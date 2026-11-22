@@ -238,7 +238,7 @@ const views = useSavedViews<Ncr>('ncr.register', projectId)   // register key: '
 - Give every column a stable id (`field`, or `colId` for computed columns); a view naming a column the grid no longer has skips it.
 - Who sees what: `private` (owner), `project` (everyone who can read the project), `team` (owner, members of the named teams, managers). Permissions: `saved_views.read` (use), `.create` (own views), `.share` (share), `.manage` (edit any shared view, set the project default).
 - `group_by` is stored but AG Grid Community has no row grouping; a register that groups rows itself reads `views.current?.config.group_by`.
-- Wired in: `rfi.register`, `ncr.register`, `asset_tree.items`.
+- Wired in: `rfi.register`, `issues.punch`, `issues.ncr`, `asset_tree.items`.
 
 ## Numbering schemes
 

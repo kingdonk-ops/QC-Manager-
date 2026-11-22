@@ -1,4 +1,5 @@
-"""NCRs: lifecycle with reopen on failed verification, root cause, disposition, CAPA, costs, PDF and export."""
+"""NCRs (issues engine, NCR type): workflow with reopen on ineffective verification, root cause, disposition, CAPA,
+costs, PDF and export through the original /api/v1/ncr routes."""
 
 import pytest
 import pytest_asyncio
@@ -12,7 +13,16 @@ from tests.integration.rbac.test_user_permissions import _grant, _login
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("fresh_login_lockout")]
 
-PERMS = ("projects.read", "ncr.read", "ncr.create", "ncr.update", "ncr.delete", "ncr.transition", "ncr.export")
+PERMS = (
+    "projects.read",
+    "ncr.read",
+    "ncr.create",
+    "ncr.update",
+    "ncr.delete",
+    "ncr.transition",
+    "ncr.export",
+    "ncr.verify",
+)
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -59,17 +69,23 @@ async def test_ncr_lifecycle_with_capa(client: AsyncClient, db_session: AsyncSes
     skipped = await client.patch(f"/api/v1/ncr/{nid}/status", json={"status": "closed"}, headers=headers)
     assert skipped.status_code == 422
 
-    async def move(status: str, note: str | None = None) -> dict:
+    async def move(status: str, note: str | None = None, expect: int = 200) -> dict:
         r = await client.patch(f"/api/v1/ncr/{nid}/status", json={"status": status, "note": note}, headers=headers)
-        assert r.status_code == 200, r.text
+        assert r.status_code == expect, r.text
         return r.json()
 
-    await move("under_investigation")
+    # containment is a required template field of the general NCR template
+    assert "Containment" in (await move("disposition", expect=422))["detail"]
+    contained = await client.patch(
+        f"/api/v1/ncr/{nid}",
+        json={"answers": {"requirement": "SPEC-INS-001 §7.3", "containment_action": "Line 12 tagged, laps taped"}},
+        headers=headers,
+    )
+    assert contained.status_code == 200, contained.text
+    await move("disposition")
     updated = await client.patch(
         f"/api/v1/ncr/{nid}",
         json={
-            "root_cause_category": "workmanship",
-            "root_cause_description": "Installer not briefed on lap orientation.",
             "disposition": "rework",
             "rework_cost": "1250.50",
             "delay_cost": "800",
@@ -82,6 +98,17 @@ async def test_ncr_lifecycle_with_capa(client: AsyncClient, db_session: AsyncSes
     assert updated.json()["total_cost"] == "2100.00"
     assert (await client.patch(f"/api/v1/ncr/{nid}", json={"rework_cost": -1}, headers=headers)).status_code == 422
     assert (await client.patch(f"/api/v1/ncr/{nid}", json={"title": None}, headers=headers)).status_code == 422
+    assert (await move("root_cause"))["disposition_by_id"] == test_user["id"]
+    locked = await client.patch(f"/api/v1/ncr/{nid}", json={"disposition": "scrap"}, headers=headers)
+    assert locked.status_code == 422  # recorded at its step
+    await move("corrective_action", expect=422)  # root cause first
+    await client.patch(
+        f"/api/v1/ncr/{nid}",
+        json={"root_cause_category": "workmanship", "root_cause_description": "Installer not briefed on lap orientation."},
+        headers=headers,
+    )
+    await move("corrective_action")
+    await move("effectiveness", expect=422)  # no corrective action done yet
 
     corrective = await client.post(
         f"/api/v1/ncr/{nid}/actions",
@@ -103,9 +130,8 @@ async def test_ncr_lifecycle_with_capa(client: AsyncClient, db_session: AsyncSes
     assert [a["kind"] for a in actions] == ["corrective", "preventive"]
     assert preventive.json()["open_actions"] == 2
     assert actions[0]["overdue"] is True  # due in the past and still open
-    await move("corrective_action_planned")
 
-    first = actions[0]["id"]
+    first, second = actions[0]["id"], actions[1]["id"]
     done = await client.patch(f"/api/v1/ncr/{nid}/actions/{first}", json={"status": "done"}, headers=headers)
     assert done.json()["actions"][0]["completed_at"]
     verified = await client.patch(
@@ -115,30 +141,44 @@ async def test_ncr_lifecycle_with_capa(client: AsyncClient, db_session: AsyncSes
     assert (action["verified_by_id"], action["verified_by_name"]) == (test_user["id"], test_user["name"])
     assert action["verified_at"] and action["overdue"] is False
     assert verified.json()["open_actions"] == 1
+    await move("effectiveness", expect=422)  # the preventive action is still open
+    no_reason = await client.patch(f"/api/v1/ncr/{nid}/actions/{second}", json={"status": "cancelled"}, headers=headers)
+    assert no_reason.status_code == 422
+    await client.patch(
+        f"/api/v1/ncr/{nid}/actions/{second}",
+        json={"status": "cancelled", "cancel_reason": "Covered by the induction update"},
+        headers=headers,
+    )
 
-    await move("corrective_action_taken")
-    await move("verified")
-    reopened = await move("corrective_action_planned")  # verification failed
-    assert reopened["status"] == "corrective_action_planned"
-    await move("corrective_action_taken")
-    await move("verified")
+    await move("effectiveness")
+    await move("corrective_action", expect=422)  # sending it back needs a reason
+    reopened = await move("corrective_action", "Verification failed")
+    assert reopened["status"] == "corrective_action"
+    await move("effectiveness")
+    await client.patch(f"/api/v1/ncr/{nid}", json={"answers": {"effectiveness_evidence": "Walkdown 12 Jan"}}, headers=headers)
+    # whoever recorded the disposition or completed an action never verifies effectiveness
+    assert (await move("closed", expect=403))["detail"].startswith("Nobody who recorded")
+
+    await _grant(db_session, test_user_2["id"], "qa-lead", *PERMS)
+    headers = {"X-CSRF-Token": await _login(client, test_user_2)}
     closed = await move("closed", "All laps re-done")
-    assert closed["closed_at"]
+    assert closed["closed_at"] and closed["verified_by_id"] == test_user_2["id"]
+    assert "NCR-001" in closed["effectiveness_statement"]
     assert (await client.patch(f"/api/v1/ncr/{nid}/status", json={"status": "open"}, headers=headers)).status_code == 422
 
     history = (await client.get(f"/api/v1/ncr/{nid}/history")).json()
     assert [h["to_status"] for h in history] == [
         "open",
-        "under_investigation",
-        "corrective_action_planned",
-        "corrective_action_taken",
-        "verified",
-        "corrective_action_planned",
-        "corrective_action_taken",
-        "verified",
+        "disposition",
+        "root_cause",
+        "corrective_action",
+        "effectiveness",
+        "corrective_action",
+        "effectiveness",
         "closed",
     ]
-    assert history[5]["note"] == "Verification failed" and history[-1]["changed_by_name"] == test_user["name"]
+    assert history[5]["note"] == "Verification failed" and history[-1]["changed_by_name"] == test_user_2["name"]
+    headers = {"X-CSRF-Token": await _login(client, test_user)}
 
     use_as_is = await client.post(
         "/api/v1/ncr/", json={"project_id": project.id, "title": "Minor dent", "source": "audit"}, headers=headers
@@ -173,7 +213,7 @@ async def test_ncr_lifecycle_with_capa(client: AsyncClient, db_session: AsyncSes
     titles = [n["title"] for n in inbox]
     assert "NCR-001: Cladding laps facing weather" in titles
     assert "NCR-001: corrective action" in titles and "NCR-001: preventive action" in titles
-    assert "NCR-001 is now closed" in titles
+    assert "NCR-001 is now effectiveness" in titles  # test_user_2 closed it themselves
 
 
 async def test_ncr_actions_belong_to_their_ncr(client: AsyncClient, db_session: AsyncSession, test_user: dict):
