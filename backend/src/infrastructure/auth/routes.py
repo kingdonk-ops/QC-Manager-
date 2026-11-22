@@ -30,7 +30,7 @@ from ...modules.user.crud import crud_users
 from ..dependencies import AsyncSessionDep
 from ..logging import get_logger
 from .dependencies import get_optional_principal, get_session_principal
-from .deps import OAuth2FormDep, a_redirect_a_link_can_carry, body_a_database_can_hold
+from .deps import CurrentPermissionsDep, CurrentUserDep, OAuth2FormDep, a_redirect_a_link_can_carry, body_a_database_can_hold
 from .setup import auth as crud_auth
 from .setup import session_transport
 
@@ -138,6 +138,11 @@ async def login(
         raise ForbiddenException("Cross-site login requests are not allowed.")
 
     user = await crud_auth.authenticate_password(db, form_data.username, form_data.password, request=request)
+    if crud_auth.repo.get(user, "entra_id"):
+        # Staff sign in through Entra, so disabling them there, and Entra's MFA and conditional access,
+        # always apply. A password they set through the reset flow must not be a way around that.
+        raise ForbiddenException("This account signs in with Microsoft.")
+
     return await session_transport.complete_login(
         request,
         response,
@@ -224,3 +229,24 @@ async def check_auth(
     except Exception as e:
         logger.error(f"Error checking authentication: {str(e)}", exc_info=True)
         return {"authenticated": False, "message": "Error checking authentication status"}
+
+
+@router.get("/whoami", summary="Who Is Signed In")
+async def whoami(user: CurrentUserDep, permissions: CurrentPermissionsDep) -> dict[str, Any]:
+    """The signed-in account, whether it is staff (Entra) or an external portal user, and what it may do.
+
+    One call gives a client everything it needs to build its menu.
+    """
+    staff = bool(user.get("entra_id")) or bool(user.get("is_superuser"))
+
+    return {
+        "id": user["id"],
+        "name": user["name"],
+        "username": user["username"],
+        "email": user["email"],
+        "profile_image_url": user.get("profile_image_url"),
+        "is_superuser": bool(user.get("is_superuser")),
+        "account_type": "staff" if staff else "external",
+        "sign_in_method": "entra" if user.get("entra_id") else "password",
+        "permissions": sorted(permissions),
+    }

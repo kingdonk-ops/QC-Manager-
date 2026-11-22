@@ -12,7 +12,9 @@ from ...infrastructure.auth.deps import (
     FreshSessionPrincipalDep,
 )
 from ...infrastructure.auth.scope import carries_a_scope
+from ...infrastructure.config.settings import settings
 from ...infrastructure.dependencies import AsyncSessionDep
+from ...infrastructure.http_exceptions import ForbiddenException
 from ..common.pagination import ItemsPerPageDep, PageDep
 from .dependencies import UserServiceDep
 from .exceptions import EmailAlreadyRegisteredError
@@ -57,6 +59,7 @@ SIGNUP_ACCEPTED = "If the address is available, the account has been created."
     responses={
         201: {"description": "The signup was accepted, whether or not the address was free"},
         400: {"description": "Invalid user data"},
+        403: {"description": "Self-service signup is off (LOCAL_SIGNUP_ENABLED)"},
         409: {"description": "Username already exists"},
     },
     response_description="A fixed confirmation, the same for every accepted signup",
@@ -73,6 +76,9 @@ async def create_user(
     server on that path alone would tell a caller which addresses hold accounts by the
     clock, since the other path waits for nothing.
     """
+    if not settings.LOCAL_SIGNUP_ENABLED:
+        raise ForbiddenException("Self-service signup is off: sign in with Microsoft.")
+
     try:
         await user_service.create(user, db)
     except EmailAlreadyRegisteredError:

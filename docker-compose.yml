@@ -1,0 +1,65 @@
+# Local development: Postgres, Redis, the API with reload, the Taskiq worker and scheduler, and Vite.
+#   cp docs/configuration.md's example into backend/.env, then: docker compose up --build
+# Open http://localhost:5173 (the API is proxied under /api).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: qc_manager
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  migrate:
+    build: { context: ., dockerfile: backend/Dockerfile, target: migrate }
+    env_file: backend/.env
+    environment: { POSTGRES_SERVER: db, CACHE_REDIS_HOST: redis }
+    depends_on: { db: { condition: service_healthy } }
+
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile, target: dev }
+    env_file: backend/.env
+    environment: { POSTGRES_SERVER: db, CACHE_REDIS_HOST: redis, CREATE_TABLES_ON_STARTUP: "false" }
+    ports: ["8000:8000"]
+    volumes: ["./backend/src:/app/src"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_started }
+
+  worker:
+    build: { context: ., dockerfile: backend/Dockerfile, target: dev }
+    env_file: backend/.env
+    environment: { POSTGRES_SERVER: db, CACHE_REDIS_HOST: redis }
+    working_dir: /app
+    command: taskiq worker src.infrastructure.taskiq.worker:default_broker
+    depends_on: [api]
+
+  scheduler:
+    build: { context: ., dockerfile: backend/Dockerfile, target: dev }
+    env_file: backend/.env
+    environment: { POSTGRES_SERVER: db, CACHE_REDIS_HOST: redis }
+    working_dir: /app
+    command: taskiq scheduler src.infrastructure.taskiq.scheduler:scheduler
+    depends_on: [api]
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    environment: { API_URL: "http://api:8000" }
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec vite --host 0.0.0.0 --port 5173"
+    ports: ["5173:5173"]
+    volumes: ["./frontend:/app", "/app/node_modules"]
+    depends_on: [api]
+
+volumes:
+  pgdata:

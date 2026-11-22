@@ -648,6 +648,7 @@ class UserService:
             "is_superuser": False,
             "google_id": None,
             "github_id": None,
+            "entra_id": None,
             "oauth_provider": None,
             "email_verified": False,
             "oauth_created_at": None,

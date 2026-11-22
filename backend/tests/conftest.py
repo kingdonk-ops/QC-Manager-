@@ -12,6 +12,7 @@ os.environ.setdefault("OAUTH_GITHUB_CLIENT_SECRET", "test-github-client-secret")
 # Tests run over http (base_url http://test), so the session/CSRF cookies must not be
 # Secure-only or httpx won't send them back on follow-up requests.
 os.environ.setdefault("SESSION_SECURE_COOKIES", "false")
+os.environ.setdefault("LOCAL_SIGNUP_ENABLED", "true")
 os.environ.setdefault("SECRET_KEY", "test_secret_key_for_tests_with_32_bytes_at_least")
 os.environ.setdefault("ADMIN_ENABLED", "true")
 os.environ.setdefault("ADMIN_USERNAME", "admin")

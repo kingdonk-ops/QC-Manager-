@@ -16,6 +16,7 @@ from ..infrastructure.auth.routes import router as auth_router
 from ..infrastructure.auth.setup import lifecycle as accounts_lifecycle
 from ..infrastructure.cache.initialize import lifecycle as cache_lifecycle
 from ..infrastructure.composition import Lifecycle, RouterMount
+from ..infrastructure.modules.lifecycle import lifecycle as modules_lifecycle
 from ..infrastructure.ratelimit.dependency import api_rate_limit_dependency
 from ..infrastructure.taskiq.lifecycle import lifecycle as taskiq_lifecycle
 from ..interfaces.admin.initialize import install as admin_install
@@ -47,6 +48,7 @@ LIFECYCLES: tuple[Lifecycle, ...] = (
     accounts_lifecycle,
     cache_lifecycle,
     taskiq_lifecycle,
+    modules_lifecycle,
 )
 INSTALLERS: tuple[Callable[[FastAPI], None], ...] = (
     accounts_install,

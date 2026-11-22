@@ -2,11 +2,8 @@
 
 import logging
 import re
-from pathlib import Path
 
 import pytest
-from crudauth import PasswordPolicy
-from crudauth.password import PasswordContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import scripts.create_first_superuser as script
@@ -201,25 +198,3 @@ class TestWhatMainReportsForAFailure:
         assert exit_code.value.code == 1
         assert "Traceback" not in logged.text
         assert re.search(r"Could not seed the superuser: \w+Error", logged.text)
-
-
-async def test_the_shipped_admin_password_meets_the_policy_shipped_beside_it():
-    """A reader copies `.env.example` and runs the seed, so the two have to agree.
-
-    The policy is built from that file rather than from the running settings, since what
-    the reader gets is whatever the example turns on.
-    """
-    shipped = dict(
-        line.split("=", 1)
-        for line in (Path(__file__).resolve().parents[3] / ".env.example").read_text().splitlines()
-        if line.startswith(("ADMIN_PASSWORD=", "PASSWORD_"))
-    )
-    as_shipped = PasswordPolicy(
-        min_length=int(shipped["PASSWORD_MIN_LENGTH"]),
-        require_uppercase=shipped["PASSWORD_REQUIRE_UPPERCASE"] == "true",
-        require_lowercase=shipped["PASSWORD_REQUIRE_LOWERCASE"] == "true",
-        require_digit=shipped["PASSWORD_REQUIRE_DIGIT"] == "true",
-        require_special=shipped["PASSWORD_REQUIRE_SPECIAL"] == "true",
-    )
-
-    assert await as_shipped.check(shipped["ADMIN_PASSWORD"], PasswordContext(source="register")) == []

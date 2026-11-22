@@ -46,6 +46,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin, UserModelExtensions):
 
     google_id: Mapped[str | None] = mapped_column(String(50), unique=True, index=True, default=None)
     github_id: Mapped[str | None] = mapped_column(String(50), unique=True, index=True, default=None)
+    entra_id: Mapped[str | None] = mapped_column(String(36), unique=True, index=True, default=None)
     oauth_provider: Mapped[str | None] = mapped_column(String(20), default=None)
     email_verified: Mapped[bool] = mapped_column(default=False)
     oauth_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

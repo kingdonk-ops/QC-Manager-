@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios'
 import { toast } from 'sonner'
+import { ApiError } from '@/api/client'
 
 export function handleServerError(error: unknown) {
   if (import.meta.env.DEV) {
@@ -16,6 +17,10 @@ export function handleServerError(error: unknown) {
     Number(error.status) === 204
   ) {
     errMsg = 'No content.'
+  }
+
+  if (error instanceof ApiError && typeof error.detail === 'string') {
+    errMsg = error.detail
   }
 
   if (error instanceof AxiosError) {

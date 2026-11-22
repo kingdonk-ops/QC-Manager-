@@ -8,7 +8,7 @@ from crudauth.oauth import OAuthUserInfo
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.auth.oauth_profile import refresh_the_provider_profile
+from src.infrastructure.auth.oauth_profile import on_oauth_login, refresh_the_provider_profile
 from src.infrastructure.auth.setup import auth
 from src.modules.user.constants import DEFAULT_PROFILE_IMAGE_URL, PROFILE_IMAGE_URL_MAX_LENGTH
 from src.modules.user.models import User
@@ -86,7 +86,7 @@ async def test_a_provider_that_sends_no_picture_leaves_the_placeholder(db_sessio
 
 
 def test_the_hook_is_registered():
-    assert auth.hooks.on_oauth_login is refresh_the_provider_profile
+    assert auth.hooks.on_oauth_login is on_oauth_login
 
 
 async def test_a_picture_no_link_could_hold_is_left_where_it_is(db_session: AsyncSession, account: dict):

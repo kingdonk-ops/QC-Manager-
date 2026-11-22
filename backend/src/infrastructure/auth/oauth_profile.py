@@ -60,3 +60,24 @@ async def refresh_the_provider_profile(
         return
 
     await crud_users.update(db=db, object=changes, id=user["id"])
+
+
+async def on_oauth_login(
+    user: dict[str, Any],
+    info: OAuthUserInfo,
+    *,
+    db: AsyncSession,
+    created: bool,
+    context: HookContext,
+) -> None:
+    """crudauth's ``on_oauth_login``: refresh the profile, then run what other features contributed.
+
+    Each contribution in ``wiring.sign_in.OAUTH_LOGIN_HOOKS`` (the Entra role and team sync) runs
+    after the profile refresh and commits its own writes. One that raises is logged and rolled back
+    by crudauth; it cannot refuse the sign-in.
+    """
+    from ...wiring.sign_in import OAUTH_LOGIN_HOOKS  # noqa: PLC0415 - the wiring imports features that import auth
+
+    await refresh_the_provider_profile(user, info, db=db, created=created, context=context)
+    for hook in OAUTH_LOGIN_HOOKS:
+        await hook(user, info, db)

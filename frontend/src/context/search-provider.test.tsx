@@ -22,6 +22,31 @@ vi.mock('@/context/theme-provider', () => ({
   useTheme: () => ({ setTheme: mocks.setTheme }),
 }))
 
+// The menu lists what the module registry gives the signed-in account; these stand in for it.
+vi.mock('@/components/layout/use-nav-groups', () => ({
+  useNavGroups: () => [
+    {
+      title: 'General',
+      items: [
+        { title: 'Dashboard', url: '/' },
+        { title: 'Tasks', url: '/tasks' },
+      ],
+    },
+    {
+      title: 'Settings',
+      items: [
+        {
+          title: 'Settings',
+          items: [
+            { title: 'Profile', url: '/settings' },
+            { title: 'Security', url: '/settings/security' },
+          ],
+        },
+      ],
+    },
+  ],
+}))
+
 type ShortcutModifier = 'Control' | 'Meta'
 
 async function renderWithSearchProvider() {
@@ -123,9 +148,9 @@ describe('SearchProvider and CommandMenu', () => {
 
     await openCommandPalette(screen)
 
-    await userEvent.click(getByRole('option', { name: 'Settings Account' }))
+    await userEvent.click(getByRole('option', { name: 'Settings Security' }))
 
-    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/account' })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/security' })
     await expect
       .element(getByPlaceholder(COMMAND_MENU_PLACEHOLDER))
       .not.toBeInTheDocument()

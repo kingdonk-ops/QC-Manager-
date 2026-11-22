@@ -16,6 +16,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    // The API is served from the same origin as the app, so the session cookie and the
+    // Entra redirect both stay first-party. In production a reverse proxy does the same.
+    proxy: {
+      '/api': { target: process.env.API_URL ?? 'http://localhost:8000', changeOrigin: false },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -26,7 +33,12 @@ export default defineConfig({
     unstubEnvs: true,
     browser: {
       enabled: true,
-      provider: playwright(),
+      // PLAYWRIGHT_CHROMIUM points at a Chromium already on the machine, instead of Playwright's own download.
+      provider: playwright(
+        process.env.PLAYWRIGHT_CHROMIUM
+          ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM } }
+          : {}
+      ),
       instances: [{ browser: 'chromium' }],
     },
     coverage: {

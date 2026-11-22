@@ -15,7 +15,7 @@ from crudauth.exceptions import ForbiddenException
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...wiring.hooks import PERMISSION_SOURCES
+from ...wiring.hooks import PERMISSION_FILTERS, PERMISSION_SOURCES
 from ..composition import PermissionSource
 from ..database.session import async_session
 from ..permissions import all_permissions
@@ -58,7 +58,12 @@ async def load_permissions(
     for source in PERMISSION_SOURCES if sources is None else sources:
         granted.update(await source(db, user_id))
 
-    return frozenset(granted & registered)
+    held = frozenset(granted & registered)
+    if sources is None:
+        for permission_filter in PERMISSION_FILTERS:
+            held = await permission_filter(db, user_id, held) & registered
+
+    return held
 
 
 async def get_current_permissions(

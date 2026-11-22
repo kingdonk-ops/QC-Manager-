@@ -177,4 +177,4 @@ async def test_the_revisions_are_read_from_beside_the_source_tree(tmp_path, monk
 
     assert ALEMBIC_INI.exists()
     assert Path(ScriptDirectory.from_config(Config(str(ALEMBIC_INI))).dir) == ALEMBIC_INI.parent / "migrations"
-    assert expected_heads() == set()
+    assert expected_heads() == set(ScriptDirectory.from_config(Config(str(ALEMBIC_INI))).get_heads())
