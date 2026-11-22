@@ -198,3 +198,24 @@ async def check(
         out += await witness_findings(db, inspection)
         out += await hold_findings(db, inspection)
     return out
+
+
+async def unsigned_hold_points(db: AsyncSession, project_id: int, node_ids: list[int] | None = None) -> list[dict[str, Any]]:
+    """ITP lines with a Hold point not yet released, within a dossier scope (all of the project when ``node_ids`` is None).
+
+    The MDR gate calls this: a dossier can't be issued past an unreleased Hold point.
+    """
+    query = select(Inspection).where(
+        Inspection.project_id == project_id,
+        Inspection.kind == "itp",
+        Inspection.hold_released_at.is_(None),
+        Inspection.status != "void",
+    )
+    if node_ids is not None:
+        query = query.where(Inspection.node_id.in_(node_ids))
+    rows = (await db.execute(query.order_by(Inspection.code))).scalars()
+    return [
+        {"reference": line.code, "message": f"Hold point not released: {line.title}", "link": f"/inspections/{line.id}"}
+        for line in rows
+        if has_hold(line.points)
+    ]

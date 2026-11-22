@@ -28,8 +28,12 @@ STAFF = (
     "projects.read",
     *(f"ncr.{a}" for a in ("read", "create", "update", "transition", "verify", "manage", "export")),
     *(f"asset_tree.{a}" for a in ("read", "create", "configure")),
+    "files.read",
+    "files.upload",
+    "comments.read",
+    "comments.create",
 )
-CLIENT = ("ncr.read", "ncr.create", "ncr.verify")
+CLIENT = ("ncr.read", "ncr.create", "ncr.verify", "files.read", "comments.read", "comments.create")
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -299,6 +303,49 @@ async def test_clients_never_see_internal_issues(client: AsyncClient, db_session
     c = await as_("client")
     assert (await _move(client, c, raised["id"], "verified"))["status"] == "closed"
     await _move(client, c, internal["id"], "verified", 404)
+
+
+async def test_files_and_comments_on_internal_issues_stay_internal(client: AsyncClient, site):
+    project, _, as_, nodes = site
+    anchor = nodes["rsw1"]["id"]
+    c = await as_("client")
+    shared = await _raise(
+        client, c, project_id=project.id, issue_type="punch", category="welding", title="Seen", anchor_node_id=anchor
+    )
+    a = await as_("a")
+    internal = await _raise(
+        client, a, project_id=project.id, issue_type="punch", category="welding", title="Hidden", anchor_node_id=anchor
+    )
+    files: dict[str, int] = {}
+    for key, issue in (("internal", internal), ("shared", shared)):
+        up = await client.post(
+            "/api/v1/files/",
+            data={"project_id": str(project.id), "entity_type": "ncr", "entity_id": str(issue["id"])},
+            files={"file": (f"{key}.txt", b"photo", "text/plain")},
+            headers=a,
+        )
+        assert up.status_code == 201, up.text
+        files[key] = up.json()["id"]
+        made = await client.post(
+            "/api/v1/comments/",
+            json={"project_id": project.id, "entity_type": "ncr", "entity_id": issue["id"], "body": key},
+            headers=a,
+        )
+        assert made.status_code == 201, made.text
+    listing = {"project_id": project.id, "entity_type": "ncr"}
+    assert set(files.values()) <= {f["id"] for f in (await client.get("/api/v1/files/", params=listing)).json()["data"]}
+
+    c = await as_("client")
+    seen = {f["id"] for f in (await client.get("/api/v1/files/", params=listing)).json()["data"]}
+    assert files["shared"] in seen and files["internal"] not in seen
+    assert (await client.get(f"/api/v1/files/{files['shared']}")).status_code == 200
+    assert (await client.get(f"/api/v1/files/{files['internal']}")).status_code == 404
+    assert (await client.get(f"/api/v1/files/{files['internal']}/download")).status_code == 404
+    thread = {"project_id": project.id, "entity_type": "ncr", "entity_id": internal["id"]}
+    assert (await client.get("/api/v1/comments/", params=thread)).status_code == 404
+    assert (await client.post("/api/v1/comments/", json={**thread, "body": "hi"}, headers=c)).status_code == 404
+    own = {**thread, "entity_id": shared["id"]}
+    assert [t["body"] for t in (await client.get("/api/v1/comments/", params=own)).json()] == ["shared"]
 
 
 async def test_flag_overrides_and_their_guardrails(client: AsyncClient, db_session: AsyncSession, site):

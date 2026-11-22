@@ -24,7 +24,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...infrastructure.auth.authorization import load_permissions
 from ...infrastructure.modules import publish
 from ...infrastructure.pdf import Document, render_pdf
-from ...infrastructure.records import assert_transition, history_of, next_reference, record_transition
+from ...infrastructure.records import (
+    assert_transition,
+    history_of,
+    next_reference,
+    record_transition,
+    register_internal_records,
+)
 from ..asset_tree import service as tree
 from ..asset_tree.constants import NodeStatus
 from ..asset_tree.models import AssetItem, AssetLevel, AssetNode
@@ -1427,3 +1433,9 @@ async def export_rows(db: AsyncSession, where: list[Any], *, external: bool = Fa
     if external:
         await mark_client_seen(db, [r["id"] for r in read], "export")
     return read
+
+
+register_internal_records(
+    "ncr",
+    lambda project_id: select(Ncr.id).where(Ncr.project_id == project_id, Ncr.visibility == Visibility.INTERNAL.value),
+)

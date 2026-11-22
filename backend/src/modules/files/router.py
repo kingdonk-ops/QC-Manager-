@@ -60,6 +60,7 @@ async def list_files(
         search=search,
         include_superseded=include_superseded,
         user=user,
+        held=held,
         skip=compute_offset(page, items_per_page),
         limit=items_per_page,
     )

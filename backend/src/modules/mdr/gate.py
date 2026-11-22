@@ -37,8 +37,13 @@ class Hook:
 
 
 HOOKS: tuple[Hook, ...] = (
-    Hook("issues_blocking", "No open issues that block the dossier", "issues", "issues.service:blocking_issues"),
-    Hook("itp_hold_points", "Every ITP hold point in scope is signed", "itp", "itp.service:unsigned_hold_points"),
+    Hook("issues_blocking", "No open issues that block the dossier", "ncr", "ncr.service:blocking_issues"),
+    Hook(
+        "itp_hold_points",
+        "Every ITP hold point in scope is signed",
+        "inspections",
+        "inspections.eligibility:unsigned_hold_points",
+    ),
     Hook(
         "equipment_calibrated",
         "Equipment used in scope was in calibration",

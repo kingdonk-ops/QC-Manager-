@@ -12,13 +12,18 @@ await record_transition(db, "rfi", rfi.id, rfi.status, "answered", user_id, note
 from .history import assert_transition, history_of, record_transition
 from .numbering import next_reference
 from .schemes import NumberingError, link_allocation, next_number
+from .visibility import hidden_from, is_hidden, is_portal_user, register_internal_records
 
 __all__ = [
     "NumberingError",
     "assert_transition",
+    "hidden_from",
     "history_of",
+    "is_hidden",
+    "is_portal_user",
     "link_allocation",
     "next_number",
     "next_reference",
     "record_transition",
+    "register_internal_records",
 ]

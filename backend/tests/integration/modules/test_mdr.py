@@ -30,6 +30,7 @@ STAFF = (
     "ncr.read",
     "ncr.create",
     "ncr.update",
+    "ncr.manage",
     "audit.read",
     *(f"asset_tree.{a}" for a in ("read", "create", "update", "configure")),
     *(f"mdr.{a}" for a in ("read", "create", "update", "delete", "submit", "sign")),
@@ -117,8 +118,7 @@ async def test_sections_list_their_providers_and_the_gate_degrades(client: Async
 
     gate = (await client.get(f"/api/v1/mdr/dossiers/{made['id']}/gate")).json()
     status = {c["key"]: c["status"] for c in gate["checks"]}
-    assert status["issues_blocking"] == status["itp_hold_points"] == status["equipment_calibrated"] == "not_available"
-    assert status["inspections_complete"] == status["ncr_open_major"] == "pass"
+    assert status["issues_blocking"] == status["itp_hold_points"] == status["inspections_complete"] == "pass"
     assert gate["ready"] is True
 
     # A module switched off for the project, and a check that crashes, both degrade to "not available".
@@ -133,7 +133,7 @@ async def test_sections_list_their_providers_and_the_gate_degrades(client: Async
     finally:
         dossier_registry._checks.pop("zz_broken", None)
     status = {c["key"]: c["status"] for c in gate["checks"]}
-    assert status["ncr_open_major"] == "not_available"
+    assert status["issues_blocking"] == "not_available"
     assert status["zz_broken"] == "not_available"
     assert gate["ready"] is True
 
@@ -189,21 +189,30 @@ async def test_a_draft_merges_records_and_attaches_each_certificate_once(client:
 
 
 async def test_issue_sign_accept_and_final(client: AsyncClient, setup, test_user: dict, test_user_2: dict):
-    project, headers, _, upload, dossier = setup
+    project, headers, node, upload, dossier = setup
     await upload("CAL-0007.pdf", pdf("CALPAGE", 1), "calibration")
     made = await dossier()
     base = f"/api/v1/mdr/dossiers/{made['id']}"
+    rsw = await node("rsw", "901.1", await node("asset", "901", await node("site", "NCR-SITE")))
 
     ncr = (
         await client.post(
-            "/api/v1/ncr/", json={"project_id": project.id, "title": "Weld undercut", "severity": "major"}, headers=headers
+            "/api/v1/issues/",
+            json={
+                "project_id": project.id,
+                "issue_type": "ncr",
+                "title": "Weld undercut",
+                "anchor_node_id": rsw,
+            },
+            headers=headers,
         )
     ).json()
     blocked = await client.post(f"{base}/issue", json={"purpose": "review"}, headers=headers)
     assert blocked.status_code == 422
     assert ncr["code"] in blocked.text
     assert (await client.post(f"{base}/draft", headers=headers)).status_code == 200  # a draft compiles anyway
-    await client.patch(f"/api/v1/ncr/{ncr['id']}", json={"severity": "minor"}, headers=headers)
+    voided = await client.post(f"/api/v1/issues/{ncr['id']}/void", json={"reason": "Raised in error"}, headers=headers)
+    assert voided.status_code == 200, voided.text
 
     assert (await client.post(f"{base}/issue", json={"purpose": "final"}, headers=headers)).status_code == 422
     issued = await client.post(f"{base}/issue", json={"purpose": "review", "note": "First issue"}, headers=headers)

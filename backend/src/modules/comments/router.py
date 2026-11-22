@@ -8,6 +8,7 @@ from ...infrastructure.auth.authorization import require_permissions
 from ...infrastructure.auth.deps import CurrentPermissionsDep, CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
 from ...infrastructure.http_exceptions import UnprocessableEntityException
+from ...infrastructure.records import is_hidden
 from ..common.pagination import MAX_INTEGER_ID
 from ..projects.service import readable_project
 from . import service
@@ -17,6 +18,15 @@ from .schemas import CommentCreate, CommentEdit, CommentRead, ReplyCreate, Resol
 router = APIRouter(tags=["Comments"])
 
 CommentId = Annotated[int, Path(ge=1, le=MAX_INTEGER_ID)]
+
+
+async def _readable(db: Any, user: dict, held: frozenset[str], project_id: int, entity_type: str, entity_id: int) -> None:
+    """The project must be readable, and a portal user never reaches threads on internal records."""
+    await readable_project(db, project_id, user["id"], held)
+    if await is_hidden(db, user, held, project_id, entity_type, entity_id):
+        raise service.CommentNotFoundError("Hidden")
+
+
 Link = Annotated[str | None, Query(max_length=300, pattern=r"^/[^/].*$", description="App path the notification opens")]
 
 
@@ -34,7 +44,7 @@ async def list_comments(
     entity_type: Annotated[str, Query(max_length=40)],
     entity_id: Annotated[int, Query(ge=1)],
 ) -> list[CommentRead]:
-    await readable_project(db, project_id, user["id"], held)
+    await _readable(db, user, held, project_id, entity_type, entity_id)
     threads = await service.thread(db, entity_type, entity_id)
     return [t for t in threads if t.project_id == project_id]
 
@@ -49,7 +59,7 @@ async def list_comments(
 async def create(
     values: CommentCreate, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep, link: Link = None
 ) -> Any:
-    await readable_project(db, values.project_id, user["id"], held)
+    await _readable(db, user, held, values.project_id, values.entity_type, values.entity_id)
     c = await service.add(
         db,
         project_id=values.project_id,
@@ -80,7 +90,7 @@ async def reply(
     link: Link = None,
 ) -> Any:
     parent = await service.get(db, comment_id)
-    await readable_project(db, parent.project_id, user["id"], held)
+    await _readable(db, user, held, parent.project_id, parent.entity_type, parent.entity_id)
     if parent.parent_id is not None:
         parent = await service.get(db, parent.parent_id)
     c = await service.add(
@@ -103,7 +113,7 @@ async def resolve(
     comment_id: CommentId, values: ResolveSet, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep
 ) -> Any:
     c = await service.get(db, comment_id)
-    await readable_project(db, c.project_id, user["id"], held)
+    await _readable(db, user, held, c.project_id, c.entity_type, c.entity_id)
     if c.parent_id is not None:
         raise UnprocessableEntityException("Resolve the thread's first comment.")
     if c.author_id != user["id"] and CommentPermissionName.UPDATE.value not in held:
@@ -117,7 +127,7 @@ async def edit(
     comment_id: CommentId, values: CommentEdit, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep
 ) -> Any:
     c = await service.get(db, comment_id)
-    await readable_project(db, c.project_id, user["id"], held)
+    await _readable(db, user, held, c.project_id, c.entity_type, c.entity_id)
     if c.author_id != user["id"] and CommentPermissionName.UPDATE.value not in held:
         raise service.NotYourCommentError("Not yours")
     c.body, c.edited = values.body, True
@@ -130,7 +140,7 @@ async def delete(
     comment_id: CommentId, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep
 ) -> dict[str, str]:
     c = await service.get(db, comment_id)
-    await readable_project(db, c.project_id, user["id"], held)
+    await _readable(db, user, held, c.project_id, c.entity_type, c.entity_id)
     if c.author_id != user["id"] and CommentPermissionName.UPDATE.value not in held:
         raise service.NotYourCommentError("Not yours")
     await db.delete(c)

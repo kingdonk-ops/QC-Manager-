@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...infrastructure.records import hidden_from, is_hidden
 from ..common.exceptions import PermissionDeniedError, ResourceNotFoundError
 from ..projects.service import readable_project
 from ..user.models import User
@@ -24,6 +25,8 @@ async def readable_file(db: AsyncSession, file_id: int, user: dict[str, Any], he
         raise FileNotFoundError("No such file")
     if f.project_id is not None:
         await readable_project(db, f.project_id, user["id"], held)
+        if await is_hidden(db, user, held, f.project_id, f.entity_type, f.entity_id):
+            raise FileNotFoundError("Hidden")
     elif f.uploaded_by_id != user["id"] and not user.get("is_superuser"):
         raise FileNotFoundError("Hidden")
     return f
@@ -50,12 +53,14 @@ async def page(
     search: str | None,
     include_superseded: bool,
     user: dict[str, Any],
+    held: frozenset[str] = frozenset(),
     skip: int,
     limit: int,
 ) -> dict[str, Any]:
     filters: list[Any] = []
     if project_id is not None:
         filters.append(StoredFile.project_id == project_id)
+        filters += hidden_from(user, held, project_id, StoredFile.entity_type, StoredFile.entity_id)
     else:
         filters.append(StoredFile.project_id.is_(None))
         filters.append(StoredFile.uploaded_by_id == user["id"])
