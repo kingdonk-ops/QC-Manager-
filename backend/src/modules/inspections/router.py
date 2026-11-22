@@ -415,7 +415,7 @@ async def check_eligibility(
     db: AsyncSessionDep,
     user: CurrentUserDep,
     held: CurrentPermissionsDep,
-    action: Annotated[str, Query(pattern="^(" + "|".join(eligibility.ACTIONS) + ")$")],
+    action: Annotated[str, Query(pattern="^(" + "|".join(eligibility.ACTIONS) + ")$")] = "submit",
 ) -> InspectionEligibility:
     inspection = await _readable(db, inspection_id, user, held)
     findings = await eligibility.check(db, inspection, action, user_id=user["id"])

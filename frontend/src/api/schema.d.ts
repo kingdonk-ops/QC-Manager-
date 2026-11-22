@@ -44341,8 +44341,8 @@ export interface operations {
     };
     check_eligibility_api_v1_inspections__inspection_id__eligibility_get: {
         parameters: {
-            query: {
-                action: string;
+            query?: {
+                action?: string;
             };
             header?: never;
             path: {
@@ -46136,8 +46136,9 @@ export interface operations {
     };
     facts_api_v1_schedule__project_id__p6_facts_get: {
         parameters: {
-            query: {
-                node_id: number;
+            query?: {
+                /** @description Required */
+                node_id?: number | null;
             };
             header?: never;
             path: {

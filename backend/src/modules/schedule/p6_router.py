@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from ...infrastructure.auth.authorization import require_permissions
 from ...infrastructure.auth.deps import CurrentPermissionsDep, CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
+from ...infrastructure.http_exceptions import UnprocessableEntityException
 from ...infrastructure.records import history_of
 from ..common.pagination import MAX_INTEGER_ID, ItemsPerPageDep, PageDep
 from ..projects.service import readable_project
@@ -431,9 +432,11 @@ async def facts(
     db: AsyncSessionDep,
     user: CurrentUserDep,
     held: CurrentPermissionsDep,
-    node_id: Annotated[int, Query(ge=1, le=MAX_INTEGER_ID)],
+    node_id: Annotated[int | None, Query(ge=1, le=MAX_INTEGER_ID, description="Required")] = None,
 ) -> Any:
     project = await readable_project(db, project_id, user["id"], held)
+    if node_id is None:
+        raise UnprocessableEntityException("Pick a node: `node_id` is required.")
     out = await p6.facts_for_node(db, project, node_id)
     await db.commit()
     return out

@@ -20689,10 +20689,11 @@
      {
       "name": "action",
       "in": "query",
-      "required": true,
+      "required": false,
       "schema": {
        "type": "string",
        "pattern": "^(fill|request|sign|submit|approve|hold_release)$",
+       "default": "submit",
        "title": "Action"
       }
      }
@@ -23775,13 +23776,22 @@
      {
       "name": "node_id",
       "in": "query",
-      "required": true,
+      "required": false,
       "schema": {
-       "type": "integer",
-       "maximum": 2147483647,
-       "minimum": 1,
+       "anyOf": [
+        {
+         "type": "integer",
+         "maximum": 2147483647,
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Required",
        "title": "Node Id"
-      }
+      },
+      "description": "Required"
      }
     ],
     "responses": {
