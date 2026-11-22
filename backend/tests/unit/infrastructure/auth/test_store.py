@@ -161,7 +161,11 @@ def test_import_models_imports_every_module_the_wiring_lists(monkeypatch):
     registry.import_models()
 
     assert set(registry.TABLE_MODULES) <= set(imported)
-    assert registry.TABLE_MODULES == ("src.infrastructure.auth.store",)
+    assert registry.TABLE_MODULES == (
+        "src.infrastructure.auth.store",
+        "src.infrastructure.modules.models",
+        "src.infrastructure.records.models",
+    )
 
 
 @pytest.mark.parametrize("backend", ["memory", "redis"])
