@@ -39,7 +39,31 @@ cd ../frontend && pnpm install && pnpm dev                                 # app
 
 Sign in at http://localhost:5173 with the `ADMIN_*` credentials, or with Microsoft once [Entra is set up](docs/entra-setup.md).
 
-Screenshots of the users manager, teams, and settings pages are in [docs/screenshots](docs/screenshots).
+
+## Screenshots
+
+Demo project P-24017 (LNG Train 3 Insulation). Full-size images are in [docs/screenshots](docs/screenshots).
+
+| | |
+|---|---|
+| ![Asset hierarchy: Site / Area / Asset / RSW with work anchors](docs/screenshots/asset-tree.png)<br>Asset hierarchy: Site / Area / Asset / RSW with work anchors | ![Spreadsheet import with column mapping](docs/screenshots/asset-import.png)<br>Spreadsheet import with column mapping |
+| ![Punch list, Cat A/B/C](docs/screenshots/issues-punch.png)<br>Punch list, Cat A/B/C | ![NCR workflow: containment to close](docs/screenshots/issues-ncr.png)<br>NCR workflow: containment to close |
+| ![ITP with Hold/Witness points](docs/screenshots/itp.png)<br>ITP with Hold/Witness points | ![Inspection request with witness parties](docs/screenshots/inspection-requests.png)<br>Inspection request with witness parties |
+| ![Inspection register](docs/screenshots/inspections.png)<br>Inspection register | ![Welding and NDE](docs/screenshots/welding.png)<br>Welding and NDE |
+| ![Heats, mill certificates and holds](docs/screenshots/materials.png)<br>Heats, mill certificates and holds | ![Calibration register](docs/screenshots/calibration.png)<br>Calibration register |
+| ![Scaffolds with tags](docs/screenshots/scaffolds.png)<br>Scaffolds with tags | ![Coating hold points, dew point, DFT](docs/screenshots/coatings.png)<br>Coating hold points, dew point, DFT |
+| ![Planner look-ahead board](docs/screenshots/planner-board.png)<br>Planner look-ahead board | ![Daily workface log](docs/screenshots/workface-log.png)<br>Daily workface log |
+| ![Shift handover](docs/screenshots/handover.png)<br>Shift handover | ![P6 import preview](docs/screenshots/p6-import.png)<br>P6 import preview |
+| ![Gantt with critical path](docs/screenshots/schedule-gantt.png)<br>Gantt with critical path | ![Earned value (hours)](docs/screenshots/evm.png)<br>Earned value (hours) |
+| ![Change of scope cards](docs/screenshots/change-of-scope.png)<br>Change of scope cards | ![Progress claim](docs/screenshots/claims.png)<br>Progress claim |
+| ![MDR dossier, compiled draft](docs/screenshots/mdr.png)<br>MDR dossier, compiled draft | ![Numbering schemes](docs/screenshots/numbering.png)<br>Numbering schemes |
+| ![Audit ledger](docs/screenshots/audit.png)<br>Audit ledger | ![KPI dashboard](docs/screenshots/dashboard.png)<br>KPI dashboard |
+| ![RFIs](docs/screenshots/rfi.png)<br>RFIs | ![Task board](docs/screenshots/tasks-board.png)<br>Task board |
+| ![Contacts](docs/screenshots/contacts.png)<br>Contacts | ![Client plan review](docs/screenshots/plan-reviews.png)<br>Client plan review |
+| ![Project access and invites](docs/screenshots/lobby.png)<br>Project access and invites | ![Module switches](docs/screenshots/modules-settings.png)<br>Module switches |
+| ![Users](docs/screenshots/users.png)<br>Users | ![User detail](docs/screenshots/users-detail.png)<br>User detail |
+| ![App-managed team](docs/screenshots/teams-manual.png)<br>App-managed team | ![Entra-linked team](docs/screenshots/teams-entra.png)<br>Entra-linked team |
+| ![Profile](docs/screenshots/settings-profile.png)<br>Profile | ![Security](docs/screenshots/settings-security.png)<br>Security |
 
 ## Sign-in
 
@@ -67,12 +91,18 @@ python scripts/new_module.py punch_list --display "Punch List" --depends project
 
 Read **[docs/modules.md](docs/modules.md)** before writing one. Shipped modules:
 
-| Module | What it does |
+Platform modules (always on): `projects`, `team`, `people`, `platform` (module switches, per-user access matrix, roles, onboarding), `portal` (external users, client plan review), `files`, `comments`, `notifications`, `audit` (hash-chained audit ledger), `saved_views`, `numbering`, `lobby` (request or be invited to a project).
+
+| Area | Modules |
 |---|---|
-| `team` | Teams, memberships, Entra group and app-role sync |
-| `portal` | Invitations and management of external users |
-| `projects` | Projects, and which client team may see each |
-| `cvr` | Cost-Value Reconciliation: editable cost-head grid, margins, totals, CSV export, cashflow chart |
+| Asset breakdown | `asset_tree` (Site → Area → Asset → RSW → Item, work anchors, packs, terminology, spreadsheet import with mapping profiles, scan tags), `assets` (asset register, COBie) |
+| Quality | `inspections` (checklists and ITPs with Hold/Witness points, inspection requests, sign-off and client co-sign, competencies), `ncr` (punch list Cat A/B/C and NCR workflow, client visibility), `welding` (WPS/PQR, welder qualifications, NDE sampling and repairs, bolted joints), `materials` (heats, mill certs, PMI, holds, traceability), `calibration` (equipment, certificates, calibration gate), `coatings` (hold points, dew point, DFT), `submittals`, `markups` |
+| Turnover | `mdr` (dossier builder: scope, section providers, readiness gate, compiled and signed revisions), `cde` (ISO 19650), `transmittals`, `correspondence` |
+| Field and planning | `planner` (work plans, work packs, crews, readiness), `workface_log` (daily log, hours by work anchor, sign-off), `handover` (shift handover), `scaffolds` (requests, tags, inspections, hire), `safety`, `tasks` (Kanban), `meetings`, `rfi`, `contacts` |
+| Schedule and cost | `schedule` (Gantt, CPM, Monte Carlo, P6 import with RSW matching, verified progress, export back to P6), `evm` (hours-based earned value, pulls actual hours from signed workface logs), `cvr`, `boq`, `change_orders`, `change_of_scope`, `claims` (progress claims from verified completion), `procurement`, `risk` |
+| Reporting | `reporting` (KPIs, pivots, charts, scheduled reports), `data_exchange` (import/export hub) |
+
+The site-execution modules (asset hierarchy, ITP, issues, welding, materials, calibration, MDR, planner, workface log, handover, P6 matching, claims, scaffolds, coatings, lobby) follow the KERP specification, adapted to this codebase: integer ids, project visibility instead of row-level security, permissions instead of personas, plain Python checks instead of a rule engine. Offline/PWA capture, the Android app, CEL rules and AI features are not built.
 
 ## Repository layout
 
