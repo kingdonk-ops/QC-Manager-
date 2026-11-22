@@ -3,6 +3,7 @@
  * Order is the default menu order within a group.
  */
 import type { ModuleManifest } from './_types'
+import { manifest as boq } from './boq/manifest'
 import { manifest as cvr } from './cvr/manifest'
 import { manifest as files } from './files/manifest'
 import { manifest as notifications } from './notifications/manifest'
@@ -23,4 +24,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   portal,
   platform,
   notifications,
+  boq,
 ]
