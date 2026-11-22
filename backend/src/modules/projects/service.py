@@ -128,3 +128,8 @@ async def set_overrides(db: AsyncSession, project_id: int, overrides: dict[str, 
     await db.commit()
 
     return await overrides_of(db, project_id)
+
+
+async def visible_project_ids(db: AsyncSession, user_id: int, held: frozenset[str]) -> set[int]:
+    """The ids of every project this user may read (for cross-project reports and exports)."""
+    return set((await db.execute(select(Project.id).where(_visible_to(user_id, held)))).scalars())

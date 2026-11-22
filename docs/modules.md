@@ -142,3 +142,82 @@ Module manifests: set `depends` on every module you import from. Modules switche
 | Permissions in UI | `can(useSession(), 'rfi.respond')`. |
 | Charts | Recharts. |
 | Menu | `navItems` with a `group` from the shell's list (`project_management`, `quality_safety`, `documents`, `procurement`, `planning`, `cost_control`, `commercial`, `assets`, `reporting`, `estimating`), `advancedOnly` for specialist screens. |
+
+## Reporting and export providers
+
+A module exposes its records to the export hub (`/data`), the report builder and the pivot explorer (`/reporting`) by registering **datasets**, **KPIs** and **importers** in a `reporting.py` in its package. Nothing else is needed: the registry (`src/infrastructure/reporting`) imports `reporting.py` of every module enabled at startup, and filters by the runtime switches (global and per project) and by permission on every request. A module switched off disappears from every list, export, dashboard and report section; a report section that names it prints "Not available" instead of failing.
+
+```python
+# src/modules/rfi/reporting.py
+from typing import Any
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ...infrastructure.reporting import Column, Dataset, Kpi, register_dataset, register_kpi
+from .models import Rfi
+
+
+async def rfi_rows(db: AsyncSession, project_id: int | None, filters: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = (await db.execute(select(Rfi).where(Rfi.project_id == project_id))).scalars()
+    return [{"project_id": r.project_id, "code": r.code, "subject": r.subject, "status": r.status,
+             "raised": r.created_at.date(), "days_open": r.days_open, "rfis": 1} for r in rows]
+
+
+register_dataset(Dataset(
+    name="rfis", module="rfi", title="RFIs", permission="rfi.read",
+    columns=[Column("code", "No."), Column("subject", "Subject"), Column("status", "Status"),
+             Column("raised", "Raised", "date"), Column("days_open", "Days open", "number"), Column("rfis", "Count", "number")],
+    rows=rfi_rows,
+))
+
+
+async def open_rfis(db: AsyncSession, project_id: int) -> int:
+    return await db.scalar(select(func.count()).where(Rfi.project_id == project_id, Rfi.status != "closed")) or 0
+
+
+register_kpi(Kpi("rfi.open", "rfi", "Open RFIs", open_rfis, unit="count", good="down", thresholds=(5, 20),
+                 permission="rfi.read", portfolio=True))
+```
+
+**Dataset** `Dataset(name, module, title, columns, rows, project_scoped=True, permission="", description="")`
+
+- `name` is unique across the app (snake_case); `module` is your module's name, so the switches apply.
+- `columns`: `Column(key, label, type, aggregatable=None)` with `type` one of `text`, `number`, `money`, `date`, `bool`. `aggregatable` defaults to true for `number` and `money` (sum/avg make sense); set it false for ids and percentages. A constant `1` column (`"rfis": 1`) makes counting easy in charts.
+- `rows(db, project_id, filters)` returns a list of dicts keyed by column key, with plain values (`str`, numbers, `Decimal`, `date`, `datetime`, `bool`, lists). `project_id` is always set for a `project_scoped` dataset; for a cross-project one (`project_scoped=False`) it is the project the caller picked, or `None`. `filters` are the caller's filters; you may use them to narrow your query, but the hub applies them to your rows afterwards anyway.
+- Visibility: the route checks `readable_project` for the project asked for. A row that carries a `project_id` key is also dropped when the caller can't read that project, so cross-project datasets just include `project_id`.
+- `permission`: what the caller must hold (comma-separate several), usually `<module>.read`.
+
+**KPI** `Kpi(key, module, label, fn, unit="", good="up"|"down", thresholds=None, permission="", description="", portfolio=False)`
+
+- `fn(db, project_id)` returns a number or `None` (shown as "–").
+- `unit`: `money`, `%`, `count`, or a free label.
+- `thresholds=(target, limit)`: with `good="up"` a value at or above `target` is green, below `limit` red, otherwise amber; with `good="down"` at or below `target` is green, above `limit` red. Without thresholds the KPI is neutral (grey).
+- `portfolio=True` also shows it as a column of the portfolio table (computed per page of projects, so keep it to one or two cheap queries).
+
+**Importer** `Importer(name, module, title, fields, apply, project_scoped=True, permission="", description="", options={})`
+
+- `fields`: `ImportField(key, label, required=False, aliases=(...))`. The wizard guesses each field's column from its key, label and aliases (case and punctuation ignored); people can change the mapping.
+- `apply(db, job) -> ImportReport`. `job` is an `ImportJob` with `project_id`, `rows` (already mapped to your field keys), `dry_run`, `user_id`, `options`, and the raw `columns`, `mapping` and `raw_rows` for an importer that hands over to an existing one (see `contacts/reporting.py`).
+- Validate every row; report problems in `ImportReport.errors` as `"Row 7: ..."` (spreadsheet line numbers start at 2) and skip that row; put non-blocking notes in `warnings`. Count `created`, `updated`, `unchanged`, `skipped`. On a dry run write nothing; otherwise commit once at the end. The budget importer (`cvr/reporting.py`) is the reference.
+- `options={"on_duplicate": ["skip", "create"]}`: choices the wizard offers; the first is the default.
+- `permission`: what the importer needs on top of `data_exchange.import` (e.g. `rfi.create`).
+
+Shipped providers: `projects` (projects), `cvr` (cost heads, cashflow; budget, cost, value, margin %, forecast margin %, cost/value %, budget variance %; the budget importer), `tasks` (tasks; open, overdue, completion %; the task importer), `contacts` (contacts, companies; the contacts importer), `files` (documents; document count), `team` (teams, team members), `people` (users).
+
+What the platform does with them:
+
+| Endpoint | |
+|---|---|
+| `GET /api/v1/data/datasets/`, `GET /api/v1/reporting/datasets/` | Datasets the caller may use (optionally for a project). |
+| `GET /api/v1/data/export/{dataset}?project_id=&format=xlsx\|csv\|pdf&columns=a,b&filters={json}` | The file. Excel carries number and date formats and an "About" sheet (dataset, project, who, when, filters); CSV puts that in `#` lines above the header (`metadata=false` leaves it out); PDF prints landscape above six columns. |
+| `GET /api/v1/data/importers/`, `POST /api/v1/data/import/{importer}/preview`, `POST /api/v1/data/import/{importer}` | The import wizard: upload, guess the mapping, dry run, apply. |
+| `GET /api/v1/reporting/kpi/{project_id}` | Every KPI for the project, with `status` good/warning/bad/neutral. |
+| `GET /api/v1/reporting/portfolio/`, `/portfolio/summary` | Projects with CVR figures and portfolio KPIs; filters `region`, `status`, `budget=over\|on\|none`, `search`. |
+| `POST /api/v1/reporting/pivot`, `/pivot/export` | Server-side pivot (rows × columns × sum/avg/count/min/max) with totals; Excel/CSV export. |
+| `/api/v1/reporting/templates/`, `POST /api/v1/reporting/generate` | Report templates (sections: KPI cards, table, chart, pivot, text) rendered as PDF or Excel. |
+| `/api/v1/reporting/schedules/` | Scheduled reports: daily/weekly/monthly at a local time (Australia/Perth by default), emailed with the file attached by the `reporting:run_due` task every 15 minutes, with run history and "send now". A schedule runs with its owner's (last editor's) access. |
+
+Filters are JSON: `{"status": "open"}` equals, `{"status": ["open", "review"]}` any of, `{"due": {"gte": "2026-01-01", "lt": "2026-02-01"}}` with `eq`, `ne`, `in`, `gt`, `gte`, `lt`, `lte`, `contains`, `empty`. Text compares without case; `number`/`money` and `date` columns compare as numbers and dates.
+
+The pivot is computed on the server, for up to 50,000 source rows, 5,000 row groups and 200 column groups; totals are aggregated from the raw values (an average of averages is never shown).
