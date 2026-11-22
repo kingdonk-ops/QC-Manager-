@@ -39,6 +39,8 @@ cd ../frontend && pnpm install && pnpm dev                                 # app
 
 Sign in at http://localhost:5173 with the `ADMIN_*` credentials, or with Microsoft once [Entra is set up](docs/entra-setup.md).
 
+Screenshots of the users manager, teams, and settings pages are in [docs/screenshots](docs/screenshots).
+
 ## Sign-in
 
 | Who | How | Accounts come from |
