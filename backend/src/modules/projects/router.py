@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Path
 from fastcrud import PaginatedListResponse, compute_offset, paginated_response
 
+from ...infrastructure.audit_ledger import record_audit
 from ...infrastructure.auth.authorization import require_permissions
 from ...infrastructure.auth.deps import CurrentPermissionsDep, CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
@@ -105,4 +106,18 @@ async def set_project_modules(
     unknown = set(values.overrides) - switchable
     if unknown:
         raise UnprocessableEntityException(f"Not a module a project can switch: {', '.join(sorted(unknown))}")
+    before = await overrides_of(db, project_id)
+    changed = sorted(m for m, v in values.overrides.items() if before.get(m) != v)
+    if changed:
+        await record_audit(
+            db,
+            "projects.modules.overridden",
+            "project",
+            project_id,
+            actor_id=user["id"],
+            project_id=project_id,
+            summary=f"Module overrides changed: {', '.join(changed)}",
+            before={m: before.get(m) for m in changed},
+            after={m: values.overrides[m] for m in changed},
+        )
     return await set_overrides(db, project_id, values.overrides)

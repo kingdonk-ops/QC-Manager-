@@ -6,6 +6,7 @@ from fastapi import APIRouter, Path, Query
 from fastcrud import PaginatedListResponse, compute_offset, paginated_response
 from sqlalchemy import delete, func, or_, select
 
+from ...infrastructure.audit_ledger import record_audit
 from ...infrastructure.auth.authorization import require_permissions
 from ...infrastructure.auth.deps import CurrentPermissionsDep, CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
@@ -287,7 +288,19 @@ async def update_node(
 async def move(node_id: Id, values: MoveIn, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep) -> Any:
     node = await service.get_node(db, node_id)
     await readable_project(db, node.project_id, user["id"], held)
+    old_parent, old_path = node.parent_id, node.display_path
     await service.move_node(db, node, values.parent_id)
+    await record_audit(
+        db,
+        "asset_tree.node.moved",
+        "asset_node",
+        node.id,
+        actor_id=user["id"],
+        project_id=node.project_id,
+        summary=f"Moved {node.code}",
+        before={"parent_id": old_parent, "display_path": old_path},
+        after={"parent_id": node.parent_id, "display_path": node.display_path},
+    )
     await db.commit()
     return (await _node_reads(db, [node]))[0]
 
@@ -302,6 +315,16 @@ async def split(node_id: Id, values: SplitIn, db: AsyncSessionDep, user: Current
     node = await service.get_node(db, node_id)
     await readable_project(db, node.project_id, user["id"], held)
     parts = await service.split(db, node, [p.model_dump() for p in values.parts])
+    await record_audit(
+        db,
+        "asset_tree.node.split",
+        "asset_node",
+        node.id,
+        actor_id=user["id"],
+        project_id=node.project_id,
+        summary=f"Split {node.code} into {', '.join(p.code for p in parts)}",
+        after={"status": node.status, "superseded_by": [p.id for p in parts]},
+    )
     await db.commit()
     return await _node_reads(db, parts)
 
@@ -317,6 +340,16 @@ async def merge(node_id: Id, values: MergeIn, db: AsyncSessionDep, user: Current
     await readable_project(db, target.project_id, user["id"], held)
     sources = [await service.get_node(db, i, target.project_id) for i in values.source_ids]
     await service.merge(db, sources, target)
+    await record_audit(
+        db,
+        "asset_tree.node.merged",
+        "asset_node",
+        target.id,
+        actor_id=user["id"],
+        project_id=target.project_id,
+        summary=f"Merged {', '.join(s.code for s in sources)} into {target.code}",
+        after={"merged_ids": [s.id for s in sources]},
+    )
     await db.commit()
     return (await _node_reads(db, [target]))[0]
 
@@ -325,7 +358,19 @@ async def merge(node_id: Id, values: MergeIn, db: AsyncSessionDep, user: Current
 async def retire(node_id: Id, values: RetireIn, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep) -> Any:
     node = await service.get_node(db, node_id)
     await readable_project(db, node.project_id, user["id"], held)
+    old_status = node.status
     await service.retire(db, node, values.superseded_by)
+    await record_audit(
+        db,
+        "asset_tree.node.retired",
+        "asset_node",
+        node.id,
+        actor_id=user["id"],
+        project_id=node.project_id,
+        summary=f"Retired {node.code}",
+        before={"status": old_status},
+        after={"status": node.status, "superseded_by": list(node.superseded_by)},
+    )
     await db.commit()
     return (await _node_reads(db, [node]))[0]
 

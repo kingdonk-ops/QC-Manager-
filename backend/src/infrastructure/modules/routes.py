@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...modules.common.schemas import EncodableText
+from ..audit_ledger import record_audit
 from ..auth.authorization import require_permissions
 from ..auth.deps import CurrentUserDep
 from ..database.session import async_session
@@ -139,6 +140,16 @@ async def toggle_module(name: ModuleName, values: ModuleToggle, db: DbDep, user:
         raise UnprocessableEntityException(f"{name} {verb}: {', '.join(blockers)}. Send cascade=true to change them too.")
 
     for target in affected:
+        await record_audit(
+            db,
+            "platform.module.toggled",
+            "module",
+            target,
+            actor_id=user["id"],
+            summary=f"{target} switched {'on' if values.enabled else 'off'}" + ("" if target == name else f" (with {name})"),
+            before={"enabled": state.get(target)},
+            after={"enabled": values.enabled},
+        )
         setting = await db.get(ModuleSetting, target)
         if setting is None:
             db.add(ModuleSetting(name=target, enabled=values.enabled, updated_by_id=user["id"]))

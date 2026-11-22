@@ -162,6 +162,7 @@ def test_import_models_imports_every_module_the_wiring_lists(monkeypatch):
 
     assert set(registry.TABLE_MODULES) <= set(imported)
     assert registry.TABLE_MODULES == (
+        "src.infrastructure.audit_ledger.models",
         "src.infrastructure.auth.store",
         "src.infrastructure.modules.models",
         "src.infrastructure.records.models",
