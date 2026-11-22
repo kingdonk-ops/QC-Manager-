@@ -13,6 +13,7 @@ import { manifest as cvr } from './cvr/manifest'
 import { manifest as dataExchange } from './data_exchange/manifest'
 import { manifest as evm } from './evm/manifest'
 import { manifest as files } from './files/manifest'
+import { manifest as handover } from './handover/manifest'
 import { manifest as inspections } from './inspections/manifest'
 import { manifest as markups } from './markups/manifest'
 import { manifest as meetings } from './meetings/manifest'
@@ -20,6 +21,7 @@ import { manifest as ncr } from './ncr/manifest'
 import { manifest as notifications } from './notifications/manifest'
 import { manifest as overview } from './overview/manifest'
 import { manifest as people } from './people/manifest'
+import { manifest as planner } from './planner/manifest'
 import { manifest as platform } from './platform/manifest'
 import { manifest as portal } from './portal/manifest'
 import { manifest as procurement } from './procurement/manifest'
@@ -33,6 +35,7 @@ import { manifest as submittals } from './submittals/manifest'
 import { manifest as tasks } from './tasks/manifest'
 import { manifest as teams } from './team/manifest'
 import { manifest as transmittals } from './transmittals/manifest'
+import { manifest as workfaceLog } from './workface_log/manifest'
 
 export const MODULE_REGISTRY: ModuleManifest[] = [
   overview,
@@ -65,4 +68,7 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   reporting,
   dataExchange,
   boq,
+  planner,
+  workfaceLog,
+  handover,
 ]
