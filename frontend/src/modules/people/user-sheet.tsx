@@ -22,6 +22,7 @@ import {
   SignInBadge,
 } from '@/components/person-badges'
 import { useRoleOptions, type Person } from './api'
+import { ModuleAccess } from './module-access'
 
 export function UserSheet({
   person,
@@ -164,6 +165,15 @@ export function UserSheet({
                   </p>
                 )}
               </section>
+
+              {can(session, 'platform.access') &&
+              person.id !== session.id &&
+              !person.is_superuser ? (
+                <section className='grid gap-2'>
+                  <h4 className='text-sm font-medium'>Module access</h4>
+                  <ModuleAccess userId={person.id} />
+                </section>
+              ) : null}
 
               {can(session, 'people.manage') && person.id !== session.id ? (
                 <>

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
+import { NotificationBell } from '@/components/notification-bell'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ProjectSelector } from '@/components/project-selector'
 import { Search } from '@/components/search'
@@ -33,6 +34,7 @@ export function Page({
       <Header fixed>
         {projectScoped ? <ProjectSelector /> : null}
         <Search className='ms-auto' />
+        <NotificationBell />
         <ThemeSwitch />
         <ConfigDrawer />
         <ProfileDropdown />

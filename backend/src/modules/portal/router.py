@@ -9,6 +9,7 @@ from ...infrastructure.auth.deps import CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
 from ..common.pagination import MAX_INTEGER_ID
 from .permissions import PortalPermissionName
+from .review_router import review_router
 from .schemas import ExternalUserRead, InvitationCreate
 from .service import PortalService
 
@@ -17,6 +18,7 @@ router = APIRouter(tags=["Client Portal"])
 PortalServiceDep = Annotated[PortalService, Depends(PortalService)]
 UserIdDep = Annotated[int, Path(ge=1, le=MAX_INTEGER_ID)]
 INVITE = [require_permissions(PortalPermissionName.INVITE.value)]
+router.include_router(review_router)
 
 
 @router.post(

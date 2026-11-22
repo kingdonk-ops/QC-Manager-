@@ -11,6 +11,7 @@ from ..infrastructure.ratelimit.settings import RateLimitSettings
 from ..infrastructure.taskiq.settings import TaskiqSettings
 from ..interfaces.admin.settings import SQLAdminSettings
 from ..modules.api_keys.settings import APIKeySettings
+from ..modules.files.settings import FileSettings
 from ..modules.tier.settings import TierSettings
 
 
@@ -19,6 +20,7 @@ class Settings(
     RateLimitSettings,
     TierSettings,
     APIKeySettings,
+    FileSettings,
     SQLAdminSettings,
     CacheSettings,
     TaskiqSettings,

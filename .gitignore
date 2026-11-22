@@ -9,3 +9,8 @@ dist/
 .env
 *.local
 .DS_Store
+*.egg-info/
+.claude/worktrees/
+
+# Uploaded files (local storage backend)
+backend/data/files/

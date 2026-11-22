@@ -10,3 +10,5 @@ class ProjectPermissionName(StrEnum):
     CREATE = "projects.create"
     UPDATE = "projects.update"
     DELETE = "projects.delete"
+    MANAGE_ACCESS = "projects.manage_access"
+    """Decide access requests, send project invites and manage direct members of the projects you can see."""

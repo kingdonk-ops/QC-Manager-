@@ -4,4 +4,9 @@ Written by the generator in `tools/removal_drill.py`, which a test compares this
 imports and literals only.
 """
 
-TABLE_MODULES: tuple[str, ...] = ("src.infrastructure.auth.store",)
+TABLE_MODULES: tuple[str, ...] = (
+    "src.infrastructure.audit_ledger.models",
+    "src.infrastructure.auth.store",
+    "src.infrastructure.modules.models",
+    "src.infrastructure.records.models",
+)

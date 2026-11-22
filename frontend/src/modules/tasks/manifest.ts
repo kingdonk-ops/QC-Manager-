@@ -1,0 +1,80 @@
+import { lazy } from 'react'
+import { ListTodo } from 'lucide-react'
+import type { ModuleManifest } from '../_types'
+
+export const manifest: ModuleManifest = {
+  id: 'tasks',
+  name: 'Tasks',
+  version: '0.1.0',
+  depends: ['projects', 'notifications'],
+  routes: [
+    {
+      path: '/tasks',
+      component: lazy(() => import('./tasks-page')),
+      permission: 'tasks.read',
+    },
+  ],
+  navItems: [
+    {
+      labelKey: 'nav.tasks',
+      to: '/tasks',
+      icon: ListTodo,
+      group: 'project_management',
+      order: 10,
+      permission: 'tasks.read',
+    },
+  ],
+  messages: {
+    en: {
+      'nav.tasks': 'Tasks',
+      'tasks.title': 'Tasks',
+      'tasks.description_text':
+        'The project’s work on a board, in a list or on a calendar.',
+      'tasks.no_project': 'Choose a project in the top bar.',
+      'tasks.kanban': 'Kanban',
+      'tasks.list': 'List',
+      'tasks.calendar': 'Calendar',
+      'tasks.new': 'New task',
+      'tasks.code': 'Code',
+      'tasks.title_field': 'Title',
+      'tasks.description': 'Description',
+      'tasks.type': 'Type',
+      'tasks.status_field': 'Status',
+      'tasks.priority': 'Priority',
+      'tasks.assignee': 'Assignee',
+      'tasks.start': 'Start',
+      'tasks.due': 'Due',
+      'tasks.search': 'Search tasks',
+      'tasks.anyone': 'Anyone',
+      'tasks.mine': 'Assigned to me',
+      'tasks.all_types': 'All types',
+      'tasks.all_priorities': 'All priorities',
+      'tasks.overdue_only': 'Overdue only',
+      'tasks.status.todo': 'To Do',
+      'tasks.status.in_progress': 'In Progress',
+      'tasks.status.review': 'Review',
+      'tasks.status.done': 'Done',
+      'tasks.wip_limits': 'WIP limits',
+      'tasks.wip_limit': 'Cards / WIP limit',
+      'tasks.wip_help':
+        'The most cards each column should hold. Leave blank for no limit.',
+      'tasks.wip_reached': 'Column at its WIP limit',
+      'tasks.wip_reached_body':
+        '{{column}} already holds as many cards as its limit allows. Finish something first, or move this card anyway.',
+      'tasks.move_anyway': 'Move anyway',
+      'tasks.empty_column': 'Nothing here',
+      'tasks.dragging': 'Moving a card',
+      'tasks.previous_month': 'Previous month',
+      'tasks.next_month': 'Next month',
+      'tasks.today': 'Today',
+      'tasks.undated_one': '{{count}} task has no due date',
+      'tasks.undated_other': '{{count}} tasks have no due date',
+      'tasks.more': '+{{count}} more',
+      'tasks.saved': 'Task saved',
+      'tasks.created': '{{code}} created',
+      'tasks.delete': 'Delete',
+      'tasks.confirm_delete': 'Delete this task?',
+      'tasks.source': 'Open the {{type}} it came from',
+    },
+  },
+}
