@@ -32,11 +32,11 @@ import {
 } from './api'
 import { CashflowChart } from './cashflow-chart'
 import { ImportDialog } from './import-dialog'
-import { PullFromField } from './pull-from-field'
 import { KpiCards } from './kpi-cards'
 import { MetricsGrid } from './metrics-grid'
 import { PackagesGrid } from './packages-grid'
 import { ProgressGrid } from './progress-grid'
+import { PullFromField } from './pull-from-field'
 import { PeriodChart, SCurveChart } from './s-curve-chart'
 import { SnapshotsPanel } from './snapshots-panel'
 

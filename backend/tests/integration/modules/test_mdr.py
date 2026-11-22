@@ -119,6 +119,7 @@ async def test_sections_list_their_providers_and_the_gate_degrades(client: Async
     gate = (await client.get(f"/api/v1/mdr/dossiers/{made['id']}/gate")).json()
     status = {c["key"]: c["status"] for c in gate["checks"]}
     assert status["issues_blocking"] == status["itp_hold_points"] == status["inspections_complete"] == "pass"
+    assert status["equipment_calibrated"] == "pass"
     assert gate["ready"] is True
 
     # A module switched off for the project, and a check that crashes, both degrade to "not available".

@@ -285,3 +285,22 @@ async def due_reminders(db: AsyncSession, today: date | None = None) -> int:
         sent += 1
     await db.commit()
     return sent
+
+
+async def uncalibrated_equipment(db: AsyncSession, project_id: int, node_ids: list[int] | None = None) -> list[dict[str, Any]]:
+    """The MDR gate: the project's equipment that is overdue, uncertified, quarantined or away for calibration
+    today. Equipment taken out of service is history and doesn't count. Equipment isn't anchored to asset
+    nodes, so the whole project is checked whatever ``node_ids`` the dossier has."""
+    rows = (
+        await db.execute(
+            select(Equipment)
+            .where(Equipment.project_id == project_id, Equipment.status != EquipmentStatus.OUT_OF_SERVICE.value)
+            .order_by(Equipment.code)
+        )
+    ).scalars()
+    today = date.today()
+    return [
+        {"reference": e.code, "message": problem, "link": link_of(e)}
+        for e in rows
+        if (problem := problem_on(e, today)) is not None
+    ]

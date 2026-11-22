@@ -22,7 +22,8 @@ export function PullFromField({
       disabled={pull.isPending}
       onClick={() =>
         pull.mutate(dataDate, {
-          onSuccess: (res) => toast.success(t('evm.pulled', { count: res.saved })),
+          onSuccess: (res) =>
+            toast.success(t('evm.pulled', { count: res.saved })),
         })
       }
     >
