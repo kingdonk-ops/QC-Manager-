@@ -8,6 +8,7 @@ import { manifest as correspondence } from './correspondence/manifest'
 import { manifest as cde } from './cde/manifest'
 import { manifest as changeOrders } from './change_orders/manifest'
 import { manifest as cvr } from './cvr/manifest'
+import { manifest as evm } from './evm/manifest'
 import { manifest as files } from './files/manifest'
 import { manifest as meetings } from './meetings/manifest'
 import { manifest as inspections } from './inspections/manifest'
@@ -53,4 +54,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   changeOrders,
   procurement,
   schedule,
+  evm,
 ]
