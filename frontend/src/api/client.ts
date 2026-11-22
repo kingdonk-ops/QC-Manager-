@@ -21,6 +21,12 @@ const csrf: Middleware = {
   },
 }
 
+/** The CSRF header for a request made with plain `fetch` (multipart uploads, file downloads). */
+export function csrfHeaders(): Record<string, string> {
+  const token = getCookie('csrf_token')
+  return token ? { 'X-CSRF-Token': decodeURIComponent(token) } : {}
+}
+
 export const api = createClient<paths>({ baseUrl: '', credentials: 'include' })
 api.use(csrf)
 

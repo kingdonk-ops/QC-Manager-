@@ -4,6 +4,7 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, unwrap } from '@/api/client'
+import { useProjectStore } from '@/stores/project-store'
 import { can, useSession, type Whoami } from '@/lib/session'
 import { MODULE_REGISTRY } from './_registry'
 import type { ModuleManifest, ModuleNavItem, ModuleRoute } from './_types'
@@ -12,10 +13,15 @@ type BackendModule = { name: string; enabled: boolean }
 
 /** Backend modules this deployment runs. A frontend module whose backend is off is hidden. */
 function useEnabledBackendModules() {
+  const projectId = useProjectStore((s) => s.projectId)
   return useQuery({
-    queryKey: ['platform', 'modules'],
+    queryKey: ['platform', 'modules', projectId],
     queryFn: () =>
-      unwrap(api.GET('/api/v1/modules')) as Promise<BackendModule[]>,
+      unwrap(
+        api.GET('/api/v1/modules', {
+          params: { query: { project_id: projectId ?? undefined } },
+        })
+      ) as Promise<BackendModule[]>,
     staleTime: 5 * 60_000,
   })
 }
@@ -51,23 +57,51 @@ export function useActiveModules() {
   )
 }
 
-const GROUP_ORDER = ['general', 'admin']
+export const GROUP_ORDER = [
+  'general',
+  'estimating',
+  'planning',
+  'cost_control',
+  'commercial',
+  'project_management',
+  'quality_safety',
+  'documents',
+  'procurement',
+  'assets',
+  'reporting',
+  'admin',
+]
+
+/** Simple or Advanced, from the user's preferences; Advanced shows `advancedOnly` items. */
+export function useInterfaceMode(): 'simple' | 'advanced' {
+  const { data } = useQuery({
+    queryKey: ['platform', 'preferences'],
+    queryFn: () =>
+      unwrap(api.GET('/api/v1/platform/me/preferences')) as Promise<
+        Record<string, Record<string, unknown>>
+      >,
+    staleTime: 5 * 60_000,
+  })
+  return data?.interface?.mode === 'simple' ? 'simple' : 'advanced'
+}
 
 export type NavGroupModel = { group: string; items: ModuleNavItem[] }
 
 export function useModuleNav(): NavGroupModel[] {
   const session = useSession()
   const modules = useActiveModules()
+  const mode = useInterfaceMode()
   return useMemo(() => {
     const groups = new Map<string, ModuleNavItem[]>()
     for (const module of modules)
       for (const item of module.navItems ?? []) {
         if (!allowed(session, item)) continue
+        if (item.advancedOnly && mode === 'simple') continue
         groups.set(item.group, [...(groups.get(item.group) ?? []), item])
       }
     const rank = (g: string) => {
       const i = GROUP_ORDER.indexOf(g)
-      return i === -1 ? 1 : i === 0 ? 0 : 2
+      return i === -1 ? GROUP_ORDER.length - 1.5 : i
     }
     return [...groups.entries()]
       .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
@@ -75,7 +109,7 @@ export function useModuleNav(): NavGroupModel[] {
         group,
         items: items.sort((a, b) => (a.order ?? 100) - (b.order ?? 100)),
       }))
-  }, [modules, session])
+  }, [modules, session, mode])
 }
 
 function match(pattern: string, path: string): Record<string, string> | null {

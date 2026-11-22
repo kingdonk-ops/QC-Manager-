@@ -2601,19 +2601,150 @@
     "tags": [
      "Modules"
     ],
-    "summary": "List Installed Modules",
+    "summary": "List Modules and Whether They're On",
+    "description": "``installed`` is false for a module the deployment left out (``MODULES_DISABLED``);\n``enabled`` is the runtime switch, with the project's override when ``project_id`` is given.",
     "operationId": "list_modules_api_v1_modules_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Apply this project's overrides",
+       "title": "Project Id"
+      },
+      "description": "Apply this project's overrides"
+     }
+    ],
     "responses": {
      "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
         "schema": {
+         "type": "array",
          "items": {
           "$ref": "#/components/schemas/ModuleRead"
          },
-         "type": "array",
          "title": "Response List Modules Api V1 Modules Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/modules/{name}/dependencies": {
+   "get": {
+    "tags": [
+     "Modules"
+    ],
+    "summary": "What a Module Needs and What Needs It",
+    "operationId": "module_dependencies_api_v1_modules__name__dependencies_get",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "maxLength": 64,
+       "pattern": "^[a-z][a-z0-9_]*$",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DependencyRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/modules/{name}/toggle": {
+   "patch": {
+    "tags": [
+     "Modules"
+    ],
+    "summary": "Switch a Module On or Off",
+    "description": "Switching a module off hides it and answers 404 on its API; its data stays. A module other\n        enabled modules need is refused (422) unless `cascade` is true, which switches them off too.\n        Switching on a module whose dependencies are off works the same way. Core modules can't be\n        switched off.",
+    "operationId": "toggle_module_api_v1_modules__name__toggle_patch",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "maxLength": 64,
+       "pattern": "^[a-z][a-z0-9_]*$",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModuleToggle"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ToggleResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
@@ -3266,6 +3397,31 @@
     }
    }
   },
+  "/api/v1/projects/regions": {
+   "get": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "Regions and What They Imply",
+    "operationId": "regions_api_v1_projects_regions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RegionRead"
+         },
+         "type": "array",
+         "title": "Response Regions Api V1 Projects Regions Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/projects/{project_id}": {
    "get": {
     "tags": [
@@ -3391,6 +3547,727 @@
           "type": "string"
          },
          "title": "Response Delete Project Api V1 Projects  Project Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/projects/{project_id}/modules": {
+   "get": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "The Project's Module Overrides",
+    "operationId": "project_modules_api_v1_projects__project_id__modules_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "boolean"
+         },
+         "title": "Response Project Modules Api V1 Projects  Project Id  Modules Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "Override Modules for One Project",
+    "description": "`{module: true|false}` overrides the system-wide switch for this project; `null` removes the override.",
+    "operationId": "set_project_modules_api_v1_projects__project_id__modules_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModuleOverrideSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "boolean"
+         },
+         "title": "Response Set Project Modules Api V1 Projects  Project Id  Modules Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/": {
+   "get": {
+    "tags": [
+     "Notifications"
+    ],
+    "summary": "The Caller's Notifications, Unread First",
+    "operationId": "list_notifications_api_v1_notifications__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 30,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     },
+     {
+      "name": "unread_only",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Unread Only"
+      }
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 100
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Search"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_NotificationRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/unread-count": {
+   "get": {
+    "tags": [
+     "Notifications"
+    ],
+    "summary": "How Many Are Unread",
+    "operationId": "unread_count_api_v1_notifications_unread_count_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UnreadCount"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/{notification_id}/read": {
+   "patch": {
+    "tags": [
+     "Notifications"
+    ],
+    "summary": "Mark Read or Unread",
+    "operationId": "mark_read_api_v1_notifications__notification_id__read_patch",
+    "parameters": [
+     {
+      "name": "notification_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Notification Id"
+      }
+     },
+     {
+      "name": "read",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Read"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NotificationRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/read-all": {
+   "post": {
+    "tags": [
+     "Notifications"
+    ],
+    "summary": "Mark Everything Read",
+    "operationId": "read_all_api_v1_notifications_read_all_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UnreadCount"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/preferences": {
+   "get": {
+    "tags": [
+     "Notifications"
+    ],
+    "summary": "The Caller's Notification Preferences",
+    "operationId": "preferences_api_v1_notifications_preferences_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PreferenceRow"
+         },
+         "type": "array",
+         "title": "Response Preferences Api V1 Notifications Preferences Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "Notifications"
+    ],
+    "summary": "Set Notification Preferences",
+    "operationId": "set_preferences_api_v1_notifications_preferences_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PreferencesSet"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PreferenceRow"
+         },
+         "type": "array",
+         "title": "Response Set Preferences Api V1 Notifications Preferences Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/comments/": {
+   "get": {
+    "tags": [
+     "Comments"
+    ],
+    "summary": "The Comment Threads on a Record",
+    "operationId": "list_comments_api_v1_comments__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "entity_type",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "maxLength": 40,
+       "title": "Entity Type"
+      }
+     },
+     {
+      "name": "entity_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "title": "Entity Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CommentRead"
+         },
+         "title": "Response List Comments Api V1 Comments  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Comments"
+    ],
+    "summary": "Comment on a Record",
+    "operationId": "create_api_v1_comments__post",
+    "parameters": [
+     {
+      "name": "link",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 300,
+         "pattern": "^/[^/].*$"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "App path the notification opens",
+       "title": "Link"
+      },
+      "description": "App path the notification opens"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CommentCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CommentRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/comments/{comment_id}/reply": {
+   "post": {
+    "tags": [
+     "Comments"
+    ],
+    "summary": "Reply in a Thread",
+    "operationId": "reply_api_v1_comments__comment_id__reply_post",
+    "parameters": [
+     {
+      "name": "comment_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Comment Id"
+      }
+     },
+     {
+      "name": "link",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 300,
+         "pattern": "^/[^/].*$"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "App path the notification opens",
+       "title": "Link"
+      },
+      "description": "App path the notification opens"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplyCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CommentRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/comments/{comment_id}/resolve": {
+   "patch": {
+    "tags": [
+     "Comments"
+    ],
+    "summary": "Resolve or Reopen a Thread",
+    "operationId": "resolve_api_v1_comments__comment_id__resolve_patch",
+    "parameters": [
+     {
+      "name": "comment_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Comment Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ResolveSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CommentRead"
+         },
+         "title": "Response Resolve Api V1 Comments  Comment Id  Resolve Patch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/comments/{comment_id}": {
+   "patch": {
+    "tags": [
+     "Comments"
+    ],
+    "summary": "Edit a Comment",
+    "operationId": "edit_api_v1_comments__comment_id__patch",
+    "parameters": [
+     {
+      "name": "comment_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Comment Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CommentEdit"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CommentRead"
+         },
+         "title": "Response Edit Api V1 Comments  Comment Id  Patch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Comments"
+    ],
+    "summary": "Delete a Comment and Its Replies",
+    "operationId": "delete_api_v1_comments__comment_id__delete",
+    "parameters": [
+     {
+      "name": "comment_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Comment Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Api V1 Comments  Comment Id  Delete"
         }
        }
       }
@@ -3778,6 +4655,398 @@
     }
    }
   },
+  "/api/v1/files/": {
+   "get": {
+    "tags": [
+     "Documents"
+    ],
+    "summary": "List Files",
+    "description": "A project's documents, or the files attached to one record (`entity_type` + `entity_id`). Without `project_id`, the caller's own unfiled uploads.",
+    "operationId": "list_files_api_v1_files__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "entity_type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 40
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Entity Type"
+      }
+     },
+     {
+      "name": "entity_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Entity Id"
+      }
+     },
+     {
+      "name": "category",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/FileCategory"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Category"
+      }
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 100
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Search"
+      }
+     },
+     {
+      "name": "include_superseded",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include Superseded"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_FileRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Documents"
+    ],
+    "summary": "Upload a File",
+    "description": "Multipart. `supersedes_id` uploads a new revision of that file.",
+    "operationId": "upload_api_v1_files__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_api_v1_files__post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FileRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/files/{file_id}": {
+   "get": {
+    "tags": [
+     "Documents"
+    ],
+    "summary": "File Details",
+    "operationId": "get_file_api_v1_files__file_id__get",
+    "parameters": [
+     {
+      "name": "file_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "File Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FileRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Documents"
+    ],
+    "summary": "Rename, Recategorise or Retag",
+    "operationId": "update_file_api_v1_files__file_id__patch",
+    "parameters": [
+     {
+      "name": "file_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "File Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FileUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FileRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Documents"
+    ],
+    "summary": "Delete a File",
+    "description": "The uploader, or holders of files.delete.",
+    "operationId": "delete_file_api_v1_files__file_id__delete",
+    "parameters": [
+     {
+      "name": "file_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "File Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete File Api V1 Files  File Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/files/{file_id}/download": {
+   "get": {
+    "tags": [
+     "Documents"
+    ],
+    "summary": "Download or Preview",
+    "description": "`inline=true` lets the browser show images, PDFs and text in place.",
+    "operationId": "download_api_v1_files__file_id__download_get",
+    "parameters": [
+     {
+      "name": "file_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "File Id"
+      }
+     },
+     {
+      "name": "inline",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Inline"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/people/me": {
    "get": {
     "tags": [
@@ -4028,6 +5297,249 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/Person"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/platform/access/{user_id}": {
+   "get": {
+    "tags": [
+     "Platform"
+    ],
+    "summary": "A User's Module Access",
+    "operationId": "get_access_api_v1_platform_access__user_id__get",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ModuleAccessRow"
+         },
+         "title": "Response Get Access Api V1 Platform Access  User Id  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "Platform"
+    ],
+    "summary": "Set a User's Module Access",
+    "description": "`null` for a module removes its level, so the user's roles decide again.",
+    "operationId": "set_access_api_v1_platform_access__user_id__put",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AccessSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ModuleAccessRow"
+         },
+         "title": "Response Set Access Api V1 Platform Access  User Id  Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/platform/access/{user_id}/preset": {
+   "post": {
+    "tags": [
+     "Platform"
+    ],
+    "summary": "Apply an Access Preset",
+    "description": "`full`: Full on every module. `view_only`: View on every module. `minimal`: View on Projects, None elsewhere. `clear`: remove every level, so roles decide.",
+    "operationId": "apply_preset_api_v1_platform_access__user_id__preset_post",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PresetApply"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ModuleAccessRow"
+         },
+         "title": "Response Apply Preset Api V1 Platform Access  User Id  Preset Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/platform/me/preferences": {
+   "get": {
+    "tags": [
+     "Platform"
+    ],
+    "summary": "All of the Caller's Preferences",
+    "operationId": "my_preferences_api_v1_platform_me_preferences_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response My Preferences Api V1 Platform Me Preferences Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/platform/me/preferences/{key}": {
+   "put": {
+    "tags": [
+     "Platform"
+    ],
+    "summary": "Set One of the Caller's Preferences",
+    "operationId": "set_preference_api_v1_platform_me_preferences__key__put",
+    "parameters": [
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "maxLength": 64,
+       "pattern": "^[a-z][a-z0-9_.-]*$",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PreferenceSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Set Preference Api V1 Platform Me Preferences  Key  Put"
         }
        }
       }
@@ -4613,6 +6125,40 @@
     "title": "APIKeyUpdate",
     "description": "Schema for updating an existing API key."
    },
+   "AccessLevel": {
+    "type": "string",
+    "enum": [
+     "none",
+     "view",
+     "edit",
+     "full"
+    ],
+    "title": "AccessLevel"
+   },
+   "AccessSet": {
+    "properties": {
+     "levels": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/AccessLevel"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Levels"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "levels"
+    ],
+    "title": "AccessSet"
+   },
    "Body_login_api_v1_auth_login_post": {
     "properties": {
      "remember_me": {
@@ -4676,6 +6222,92 @@
      "password"
     ],
     "title": "Body_login_api_v1_auth_login_post"
+   },
+   "Body_upload_api_v1_files__post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     },
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Project Id"
+     },
+     "entity_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[a-z][a-z0-9_]*$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entity Type"
+     },
+     "entity_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entity Id"
+     },
+     "category": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FileCategory"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tags": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tags",
+      "description": "Comma separated"
+     },
+     "supersedes_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supersedes Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_api_v1_files__post"
    },
    "CashflowPeriodIn": {
     "properties": {
@@ -4822,6 +6454,217 @@
      "periods"
     ],
     "title": "CashflowSet"
+   },
+   "Category": {
+    "type": "string",
+    "enum": [
+     "assignment",
+     "mention",
+     "status",
+     "approval",
+     "due",
+     "system"
+    ],
+    "title": "Category"
+   },
+   "ClassificationStandard": {
+    "type": "string",
+    "enum": [
+     "din276",
+     "nrm",
+     "masterformat",
+     "uniformat",
+     "uniclass",
+     "custom"
+    ],
+    "title": "ClassificationStandard"
+   },
+   "CommentCreate": {
+    "properties": {
+     "project_id": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Project Id"
+     },
+     "entity_type": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "title": "Entity Type"
+     },
+     "entity_id": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Entity Id"
+     },
+     "body": {
+      "type": "string",
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Body"
+     },
+     "attachment_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "maxItems": 20,
+      "title": "Attachment Ids"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "project_id",
+     "entity_type",
+     "entity_id",
+     "body"
+    ],
+    "title": "CommentCreate"
+   },
+   "CommentEdit": {
+    "properties": {
+     "body": {
+      "type": "string",
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Body"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "body"
+    ],
+    "title": "CommentEdit"
+   },
+   "CommentRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "entity_type": {
+      "type": "string",
+      "title": "Entity Type"
+     },
+     "entity_id": {
+      "type": "integer",
+      "title": "Entity Id"
+     },
+     "parent_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Id"
+     },
+     "author_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Author Id"
+     },
+     "author_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Author Name"
+     },
+     "body": {
+      "type": "string",
+      "title": "Body"
+     },
+     "mentions": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Mentions"
+     },
+     "attachment_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Attachment Ids"
+     },
+     "resolved": {
+      "type": "boolean",
+      "title": "Resolved"
+     },
+     "resolved_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolved By Id"
+     },
+     "edited": {
+      "type": "boolean",
+      "title": "Edited"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "replies": {
+      "items": {
+       "$ref": "#/components/schemas/CommentRead"
+      },
+      "type": "array",
+      "title": "Replies"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "entity_type",
+     "entity_id",
+     "parent_id",
+     "author_id",
+     "author_name",
+     "body",
+     "mentions",
+     "attachment_ids",
+     "resolved",
+     "resolved_by_id",
+     "edited",
+     "created_at"
+    ],
+    "title": "CommentRead"
    },
    "CostHeadCreate": {
     "properties": {
@@ -5207,6 +7050,51 @@
     ],
     "title": "CvrSummary"
    },
+   "DependencyRead": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "depends": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Depends"
+     },
+     "dependents": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Dependents"
+     },
+     "enabled_dependents": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Enabled Dependents"
+     },
+     "disabled_dependencies": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Disabled Dependencies"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "depends",
+     "dependents",
+     "enabled_dependents",
+     "disabled_dependencies"
+    ],
+    "title": "DependencyRead"
+   },
    "ExternalUserRead": {
     "properties": {
      "id": {
@@ -5264,6 +7152,198 @@
      "activated"
     ],
     "title": "ExternalUserRead"
+   },
+   "FileCategory": {
+    "type": "string",
+    "enum": [
+     "drawing",
+     "contract",
+     "specification",
+     "photo",
+     "correspondence",
+     "report",
+     "model",
+     "other"
+    ],
+    "title": "FileCategory"
+   },
+   "FileRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "content_type": {
+      "type": "string",
+      "title": "Content Type"
+     },
+     "size": {
+      "type": "integer",
+      "title": "Size"
+     },
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Project Id"
+     },
+     "entity_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entity Type"
+     },
+     "entity_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entity Id"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "tags": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tags"
+     },
+     "revision": {
+      "type": "integer",
+      "title": "Revision"
+     },
+     "supersedes_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supersedes Id"
+     },
+     "is_latest": {
+      "type": "boolean",
+      "title": "Is Latest"
+     },
+     "uploaded_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Uploaded By Id"
+     },
+     "uploaded_by_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Uploaded By Name"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "content_type",
+     "size",
+     "project_id",
+     "entity_type",
+     "entity_id",
+     "category",
+     "revision",
+     "supersedes_id",
+     "is_latest",
+     "uploaded_by_id"
+    ],
+    "title": "FileRead"
+   },
+   "FileUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 300,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "category": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FileCategory"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tags": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array",
+        "maxItems": 30
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tags"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "FileUpdate"
    },
    "HTTPValidationError": {
     "properties": {
@@ -5553,6 +7633,67 @@
     "type": "object",
     "title": "MembershipSet"
    },
+   "ModuleAccessRow": {
+    "properties": {
+     "module": {
+      "type": "string",
+      "title": "Module"
+     },
+     "display_name": {
+      "type": "string",
+      "title": "Display Name"
+     },
+     "level": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/AccessLevel"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "None: follows the user's roles"
+     },
+     "effective": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Effective",
+      "description": "The module's permissions the user holds now"
+     }
+    },
+    "type": "object",
+    "required": [
+     "module",
+     "display_name"
+    ],
+    "title": "ModuleAccessRow"
+   },
+   "ModuleOverrideSet": {
+    "properties": {
+     "overrides": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Overrides"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "overrides"
+    ],
+    "title": "ModuleOverrideSet"
+   },
    "ModuleRead": {
     "properties": {
      "name": {
@@ -5575,12 +7716,27 @@
       "type": "string",
       "title": "Category"
      },
+     "core": {
+      "type": "boolean",
+      "title": "Core"
+     },
      "depends": {
       "items": {
        "type": "string"
       },
       "type": "array",
       "title": "Depends"
+     },
+     "dependents": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Dependents"
+     },
+     "installed": {
+      "type": "boolean",
+      "title": "Installed"
      },
      "enabled": {
       "type": "boolean",
@@ -5598,11 +7754,33 @@
      "display_name",
      "description",
      "category",
+     "core",
      "depends",
+     "dependents",
+     "installed",
      "enabled",
      "api_prefix"
     ],
     "title": "ModuleRead"
+   },
+   "ModuleToggle": {
+    "properties": {
+     "enabled": {
+      "type": "boolean",
+      "title": "Enabled"
+     },
+     "cascade": {
+      "type": "boolean",
+      "title": "Cascade",
+      "default": false
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "enabled"
+    ],
+    "title": "ModuleToggle"
    },
    "MyTeamRead": {
     "properties": {
@@ -5677,6 +7855,96 @@
     ],
     "title": "MyTeamRead"
    },
+   "NotificationRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "body": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Body"
+     },
+     "link": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Link"
+     },
+     "entity_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entity Type"
+     },
+     "entity_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entity Id"
+     },
+     "read_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Read At"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "category",
+     "title",
+     "body",
+     "link",
+     "entity_type",
+     "entity_id",
+     "read_at",
+     "created_at"
+    ],
+    "title": "NotificationRead"
+   },
    "PaginatedListResponse_APIKeyRead_": {
     "properties": {
      "data": {
@@ -5725,6 +7993,54 @@
     ],
     "title": "PaginatedListResponse[APIKeyRead]"
    },
+   "PaginatedListResponse_FileRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/FileRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[FileRead]"
+   },
    "PaginatedListResponse_KeyUsageRead_": {
     "properties": {
      "data": {
@@ -5772,6 +8088,54 @@
      "has_more"
     ],
     "title": "PaginatedListResponse[KeyUsageRead]"
+   },
+   "PaginatedListResponse_NotificationRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/NotificationRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[NotificationRead]"
    },
    "PaginatedListResponse_Person_": {
     "properties": {
@@ -6255,6 +8619,80 @@
     ],
     "title": "PersonTeam"
    },
+   "PreferenceRow": {
+    "properties": {
+     "category": {
+      "$ref": "#/components/schemas/Category"
+     },
+     "in_app": {
+      "type": "boolean",
+      "title": "In App"
+     },
+     "email": {
+      "type": "boolean",
+      "title": "Email"
+     }
+    },
+    "type": "object",
+    "required": [
+     "category",
+     "in_app",
+     "email"
+    ],
+    "title": "PreferenceRow"
+   },
+   "PreferenceSet": {
+    "properties": {
+     "value": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Value"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "value"
+    ],
+    "title": "PreferenceSet"
+   },
+   "PreferencesSet": {
+    "properties": {
+     "preferences": {
+      "items": {
+       "$ref": "#/components/schemas/PreferenceRow"
+      },
+      "type": "array",
+      "title": "Preferences"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "preferences"
+    ],
+    "title": "PreferencesSet"
+   },
+   "PresetApply": {
+    "properties": {
+     "preset": {
+      "type": "string",
+      "enum": [
+       "full",
+       "view_only",
+       "minimal",
+       "clear"
+      ],
+      "title": "Preset"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "preset"
+    ],
+    "title": "PresetApply"
+   },
    "ProjectCreate": {
     "properties": {
      "code": {
@@ -6313,13 +8751,20 @@
       "default": "active"
      },
      "currency": {
-      "type": "string",
-      "pattern": "^[A-Z]{3}$",
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^[A-Z]{3}$",
+        "examples": [
+         "AUD"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Currency",
-      "default": "AUD",
-      "examples": [
-       "AUD"
-      ]
+      "description": "Defaults to the region's currency, else AUD"
      },
      "client_team_id": {
       "anyOf": [
@@ -6331,6 +8776,55 @@
        }
       ],
       "title": "Client Team Id"
+     },
+     "region": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 10
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region",
+      "examples": [
+       "AU"
+      ]
+     },
+     "classification_standard": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ClassificationStandard"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "start_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start Date"
+     },
+     "end_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Date"
      }
     },
     "additionalProperties": false,
@@ -6405,6 +8899,52 @@
        }
       ],
       "title": "Client Team Id"
+     },
+     "region": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region"
+     },
+     "classification_standard": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Classification Standard"
+     },
+     "start_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start Date"
+     },
+     "end_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Date"
      },
      "created_at": {
       "anyOf": [
@@ -6539,6 +9079,52 @@
        }
       ],
       "title": "Client Team Id"
+     },
+     "region": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 10
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region"
+     },
+     "classification_standard": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ClassificationStandard"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "start_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start Date"
+     },
+     "end_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Date"
      }
     },
     "additionalProperties": false,
@@ -6668,6 +9254,70 @@
      "email"
     ],
     "title": "RecoveryRequestIn"
+   },
+   "RegionRead": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency"
+     },
+     "classification": {
+      "type": "string",
+      "title": "Classification"
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "name",
+     "currency",
+     "classification"
+    ],
+    "title": "RegionRead"
+   },
+   "ReplyCreate": {
+    "properties": {
+     "body": {
+      "type": "string",
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Body"
+     },
+     "attachment_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "maxItems": 20,
+      "title": "Attachment Ids"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "body"
+    ],
+    "title": "ReplyCreate"
+   },
+   "ResolveSet": {
+    "properties": {
+     "resolved": {
+      "type": "boolean",
+      "title": "Resolved",
+      "default": true
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "ResolveSet"
    },
    "RoleCreate": {
     "properties": {
@@ -7325,6 +9975,43 @@
     ],
     "title": "TierRead",
     "description": "Schema for reading tier data.\n\nThe name's length rule belongs to the create schema; a read that repeated it\nwould answer 500 for a row the app already holds."
+   },
+   "ToggleResult": {
+    "properties": {
+     "changed": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Changed"
+     },
+     "modules": {
+      "items": {
+       "$ref": "#/components/schemas/ModuleRead"
+      },
+      "type": "array",
+      "title": "Modules"
+     }
+    },
+    "type": "object",
+    "required": [
+     "changed",
+     "modules"
+    ],
+    "title": "ToggleResult"
+   },
+   "UnreadCount": {
+    "properties": {
+     "unread": {
+      "type": "integer",
+      "title": "Unread"
+     }
+    },
+    "type": "object",
+    "required": [
+     "unread"
+    ],
+    "title": "UnreadCount"
    },
    "UserAPIKeySummary": {
     "properties": {

@@ -4,8 +4,11 @@
  */
 import type { ModuleManifest } from './_types'
 import { manifest as cvr } from './cvr/manifest'
+import { manifest as files } from './files/manifest'
+import { manifest as notifications } from './notifications/manifest'
 import { manifest as overview } from './overview/manifest'
 import { manifest as people } from './people/manifest'
+import { manifest as platform } from './platform/manifest'
 import { manifest as portal } from './portal/manifest'
 import { manifest as projects } from './projects/manifest'
 import { manifest as teams } from './team/manifest'
@@ -14,7 +17,10 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   overview,
   projects,
   cvr,
+  files,
   people,
   teams,
   portal,
+  platform,
+  notifications,
 ]

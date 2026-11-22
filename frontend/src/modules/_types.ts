@@ -24,11 +24,17 @@ export type ModuleNavItem = {
   labelKey: string
   to: string
   icon?: ComponentType<{ className?: string }>
-  /** `general` and `admin` are the shell's groups; any other value makes a new group named `nav.group.<value>`. */
+  /**
+   * A menu group. The shell orders these: `general`, `estimating`, `planning`, `cost_control`,
+   * `commercial`, `project_management`, `quality_safety`, `documents`, `procurement`, `assets`,
+   * `reporting`, `admin`. Any other value makes a new group named `nav.group.<value>`, after them.
+   */
   group: string
   order?: number
   permission?: string
   accountTypes?: AccountType[]
+  /** Hidden in Simple mode (Settings → Display). */
+  advancedOnly?: boolean
 }
 
 export type ModuleManifest = {

@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ColDef } from 'ag-grid-community'
-import { Plus } from 'lucide-react'
+import type { ColDef, ICellRendererParams } from 'ag-grid-community'
+import { Blocks, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { api, unwrap } from '@/api/client'
 import { useProjectStore } from '@/stores/project-store'
-import { handleServerError } from '@/lib/handle-server-error'
 import { can, useSession } from '@/lib/session'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,11 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { DataGrid } from '@/components/data-grid'
 import { Page } from '@/components/layout/page'
-import { projectKeys, useProjects, type Project } from './api'
+import { useProjects, type Project } from './api'
+import { CLASSIFICATIONS } from './constants'
+import { ProjectForm } from './project-form'
+import { ProjectModulesDialog } from './project-modules-dialog'
 
 function NewProjectDialog({
   open,
@@ -30,67 +28,26 @@ function NewProjectDialog({
   onOpenChange: (o: boolean) => void
 }) {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const create = useMutation({
-    mutationFn: (body: Record<string, string>) =>
-      unwrap(api.POST('/api/v1/projects/', { body: body as never })),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: projectKeys.all })
-      toast.success('Project created')
-      onOpenChange(false)
-    },
-    onError: handleServerError,
-  })
-
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    const body: Record<string, string> = {}
-    for (const [key, value] of form.entries())
-      if (String(value).trim()) body[key] = String(value).trim()
-    create.mutate(body)
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className='max-w-xl'>
         <DialogHeader>
           <DialogTitle>{t('projects.new')}</DialogTitle>
         </DialogHeader>
-        <form
-          id='new-project'
-          className='grid grid-cols-2 gap-3'
-          onSubmit={onSubmit}
-        >
-          {(['code', 'name', 'client_name', 'location'] as const).map(
-            (field) => (
-              <div key={field} className='grid gap-1.5'>
-                <Label htmlFor={field}>
-                  {t(`projects.${field === 'client_name' ? 'client' : field}`)}
-                </Label>
-                <Input
-                  id={field}
-                  name={field}
-                  required={field === 'code' || field === 'name'}
-                />
-              </div>
-            )
-          )}
-          <div className='grid gap-1.5'>
-            <Label htmlFor='currency'>{t('projects.currency')}</Label>
-            <Input
-              id='currency'
-              name='currency'
-              defaultValue='AUD'
-              maxLength={3}
-            />
-          </div>
-        </form>
+        {open ? (
+          <ProjectForm
+            formId='new-project'
+            onCreated={() => {
+              toast.success('Project created')
+              onOpenChange(false)
+            }}
+          />
+        ) : null}
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button type='submit' form='new-project' disabled={create.isPending}>
+          <Button type='submit' form='new-project'>
             {t('common.create')}
           </Button>
         </DialogFooter>
@@ -105,6 +62,7 @@ export default function ProjectsPage() {
   const { data: projects = [] } = useProjects()
   const setProjectId = useProjectStore((s) => s.setProjectId)
   const [creating, setCreating] = useState(false)
+  const [overriding, setOverriding] = useState<Project | null>(null)
 
   const columns = useMemo<ColDef<Project>[]>(
     () => [
@@ -119,9 +77,37 @@ export default function ProjectsPage() {
       { field: 'client_name', headerName: t('projects.client'), flex: 1 },
       { field: 'location', headerName: t('projects.location'), flex: 1 },
       { field: 'status', headerName: t('projects.status'), width: 120 },
+      { field: 'region', headerName: 'Region', width: 90 },
+      {
+        field: 'classification_standard',
+        headerName: 'Classification',
+        width: 140,
+        valueFormatter: (p) =>
+          CLASSIFICATIONS.find(([v]) => v === p.value)?.[1] ?? p.value ?? '',
+      },
       { field: 'currency', headerName: t('projects.currency'), width: 100 },
+      ...(can(session, 'projects.update')
+        ? [
+            {
+              headerName: '',
+              width: 56,
+              sortable: false,
+              filter: false,
+              cellRenderer: (p: ICellRendererParams<Project>) =>
+                p.data ? (
+                  <button
+                    aria-label='Project modules'
+                    title='Modules for this project'
+                    onClick={() => setOverriding(p.data!)}
+                  >
+                    <Blocks className='size-4 text-muted-foreground hover:text-foreground' />
+                  </button>
+                ) : null,
+            } satisfies ColDef<Project>,
+          ]
+        : []),
     ],
-    [t]
+    [t, session]
   )
 
   return (
@@ -151,6 +137,10 @@ export default function ProjectsPage() {
         />
       </div>
       <NewProjectDialog open={creating} onOpenChange={setCreating} />
+      <ProjectModulesDialog
+        project={overriding}
+        onClose={() => setOverriding(null)}
+      />
     </Page>
   )
 }
