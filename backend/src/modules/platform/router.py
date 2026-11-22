@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Path
 from sqlalchemy import delete, select
 
+from ...infrastructure.audit_ledger import record_audit
 from ...infrastructure.auth.authorization import load_permissions, require_permissions
 from ...infrastructure.auth.deps import CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
@@ -56,11 +57,24 @@ async def get_access(user_id: UserId, db: AsyncSessionDep, _: CurrentUserDep) ->
     return await _rows(db, user_id)
 
 
-async def _apply(db: Any, user_id: int, levels: dict[str, AccessLevel | None]) -> None:
+async def _apply(db: Any, user_id: int, levels: dict[str, AccessLevel | None], actor_id: int | None = None) -> None:
     known = {name for name, _ in _gated_modules()}
     unknown = set(levels) - known
     if unknown:
         raise UnprocessableEntityException(f"Unknown modules: {', '.join(sorted(unknown))}")
+    current = await levels_of(db, user_id)
+    changed = sorted(m for m in levels if current.get(m) != levels[m])
+    if changed:
+        await record_audit(
+            db,
+            "platform.access.changed",
+            "user",
+            user_id,
+            actor_id=actor_id,
+            summary=f"Module access of user {user_id} changed: {', '.join(changed)}",
+            before={m: current.get(m) for m in changed},
+            after={m: levels[m] for m in changed},
+        )
     for module, level in levels.items():
         await db.execute(delete(ModuleAccess).where(ModuleAccess.user_id == user_id, ModuleAccess.module == module))
         if level is not None:
@@ -79,7 +93,7 @@ async def set_access(user_id: UserId, values: AccessSet, db: AsyncSessionDep, ca
     if user_id == caller["id"]:
         raise UnprocessableEntityException("You can't change your own module access.")
     await _rows(db, user_id)
-    await _apply(db, user_id, values.levels)
+    await _apply(db, user_id, values.levels, caller["id"])
 
     return await _rows(db, user_id)
 
@@ -108,7 +122,7 @@ async def apply_preset(
         preset = {m: AccessLevel.VIEW if m == "projects" else AccessLevel.NONE for m in modules}
     else:
         preset = dict.fromkeys(modules, None)
-    await _apply(db, user_id, preset)
+    await _apply(db, user_id, preset, caller["id"])
 
     return await _rows(db, user_id)
 

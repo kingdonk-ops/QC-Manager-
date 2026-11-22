@@ -239,3 +239,52 @@ const views = useSavedViews<Ncr>('ncr.register', projectId)   // register key: '
 - Who sees what: `private` (owner), `project` (everyone who can read the project), `team` (owner, members of the named teams, managers). Permissions: `saved_views.read` (use), `.create` (own views), `.share` (share), `.manage` (edit any shared view, set the project default).
 - `group_by` is stored but AG Grid Community has no row grouping; a register that groups rows itself reads `views.current?.config.group_by`.
 - Wired in: `rfi.register`, `ncr.register`, `asset_tree.items`.
+
+## Numbering schemes
+
+`next_reference(db, "RFI", project_id)` keeps working. A module opts in to per-project numbering schemes by calling `next_number` instead (`infrastructure.records`):
+
+```python
+from ...infrastructure.records import NumberingError, link_allocation, next_number
+
+code = await next_number(db, "rfi", project_id, fallback_prefix="RFI",
+                         values={"discipline": body.discipline}, user_id=user["id"])   # 422-able NumberingError
+db.add(rfi); await db.flush()
+await link_allocation(db, project_id, "rfi", code, ("rfi", rfi.id))   # optional: the register shows the record
+```
+
+With no active scheme for `(project, record_kind)` it answers what `next_reference(fallback_prefix)` would. A scheme (`/numbering`, permission `numbering.manage`) is a pattern of whitelisted tokens: `{project}`, `{year}`, exactly one `{seq:N}` (zero-padded to at least N), and code tokens `{discipline}`, `{type}`, `{doc_type}`, `{area}`, `{originator}`, `{system}`, `{unit}`, `{level}`, `{package}`, `{role}` whose values the caller passes and the scheme's code list checks (an empty list accepts any 1-20 letters/digits). The counter is one per scheme, or one per combination of the code tokens in `counter_scope` (which must appear in the pattern). Counters are row-locked in the caller's transaction (commit with the record), every number is recorded in `numbering_allocations` (unique per project and kind) and never reused, voided ones included; a clash after a scheme edit skips to the next free value. Revision and status are never part of a number: keep them in their own columns. `POST /api/v1/numbering/preview` shows the next number without allocating it. Shipped user: `mdr` (kind `mdr`, fallback `MDR`).
+
+## Audit ledger
+
+`audit_ledger` is one append-only, hash-chained sequence: each entry stores `prev_hash` and `hash = sha256("qcm-audit-ledger\n" + canonical JSON of {v, seq, created_at, actor_id, action, entity_type, entity_id, project_id, summary, before, after, prev_hash})`. Record high-value actions in the same transaction as the change:
+
+```python
+from ...infrastructure.audit_ledger import changes, record_audit
+
+before, after = changes({"status": old}, {"status": new})          # only what changed
+await record_audit(db, "rfi.rfi.closed", "rfi", rfi.id, actor_id=user["id"], project_id=rfi.project_id,
+                   summary=f"{rfi.code} closed", before=before, after=after)
+await db.commit()
+```
+
+Keep `before`/`after` small (a summary, not the record). The ORM refuses to update or delete entries; the migration creating the table should also run `APPEND_ONLY_SQL` (triggers refusing UPDATE/DELETE/TRUNCATE). `GET /api/v1/audit/verify` walks the chain and reports the first broken link; `/api/v1/audit/entries/` and `/export` are the explorer (`audit.read`, `audit.export`). Wired today: module switches, per-project module overrides, access levels, asset tree move/split/merge/retire, numbering scheme changes and voids, MDR dossier creation and revision issue/sign/accept/reject.
+
+## MDR providers and gate checks
+
+The dossier builder (`mdr`) collects records through providers and readiness facts through checks, registered from an `mdr.py` in a module's package (imported for every enabled module); modules never import `mdr`, only `infrastructure.dossier`.
+
+```python
+from ...infrastructure.dossier import Finding, MdrCheck, MdrContext, MdrRecord, register_mdr_check, register_mdr_provider
+
+async def nde_reports(db, ctx: MdrContext) -> list[MdrRecord]:
+    rows = ...   # ctx.project_id; ctx.node_ids = scope nodes with subtrees and lineage, None = whole project
+    return [MdrRecord(reference=r.code, title=r.title, status=r.result, date=r.tested_on.isoformat(),
+                      notes="RT", pdf=render_pdf(doc), file_ids=[r.report_file_id])
+            for r in rows if ctx.in_scope(r.asset_node_id)]
+
+register_mdr_provider("nde_reports", nde_reports, module="welding")
+register_mdr_check(MdrCheck("welds_accepted", "Every weld in scope is accepted", "welding", open_welds))  # -> list[Finding]
+```
+
+Sections: `itp`, `inspections`, `ncr_register`, `material_certs`, `nde_reports`, `calibration_certs`, `as_built`, `custom` (`index` is generated). In `material_certs` and `calibration_certs` the `file_ids` are certificates: each stored file is attached once per dossier, identified by its SHA-256, and the appendix index lists every record that refers to it. Elsewhere PDFs in `file_ids` are merged after the record and other files are listed. A section with no enabled provider prints "Not available". A check whose module is off, that raises `CheckUnavailable`, or that crashes reports `not_available` and never blocks. Guarded hooks in `mdr/gate.py` call `issues.service.blocking_issues`, `itp.service.unsigned_hold_points` and `calibration.service.uncalibrated_equipment` as `await fn(db, project_id, node_ids)` (returning `Finding`s, dicts or strings) when those modules exist; adjust `HOOKS` if they land elsewhere. Shipped providers: `files` (tagged `as-built`, `mtr`, `nde`, `calibration`), `cde` (published containers with suitability CR), `inspections` (completed inspection reports + check for open inspections), `ncr` (register + open major/critical NCRs block, minor ones advise), `mdr` (files uploaded to the dossier).

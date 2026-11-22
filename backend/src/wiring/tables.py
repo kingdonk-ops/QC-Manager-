@@ -5,6 +5,7 @@ imports and literals only.
 """
 
 TABLE_MODULES: tuple[str, ...] = (
+    "src.infrastructure.audit_ledger.models",
     "src.infrastructure.auth.store",
     "src.infrastructure.modules.models",
     "src.infrastructure.records.models",
