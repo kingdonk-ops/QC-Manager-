@@ -174,7 +174,9 @@ async def list_plans(
 )
 async def create_plan(values: PlanIn, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep) -> Any:
     await readable_project(db, values.project_id, user["id"], held)
-    plan = await service.create_plan(db, values.model_dump(mode="python"), user["id"])
+    data = values.model_dump(mode="python")
+    data["milestones"] = values.model_dump(mode="json", include={"milestones"})["milestones"]  # a JSON column
+    plan = await service.create_plan(db, data, user["id"])
     await db.commit()
     return (await service.read_plans(db, [plan]))[0]
 
@@ -190,7 +192,10 @@ async def update_plan(
     plan_id: Id, values: PlanUpdate, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep
 ) -> Any:
     plan = await _plan(db, plan_id, user, held)
-    await service.update_plan(db, plan, values.model_dump(mode="python", exclude_unset=True))
+    changes = values.model_dump(mode="python", exclude_unset=True)
+    if "milestones" in changes:
+        changes["milestones"] = values.model_dump(mode="json", include={"milestones"})["milestones"]
+    await service.update_plan(db, plan, changes)
     await db.commit()
     return (await service.read_plans(db, [plan]))[0]
 

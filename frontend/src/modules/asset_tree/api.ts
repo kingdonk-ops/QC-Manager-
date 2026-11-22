@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { allPages } from '@/api/all-pages'
 import { ApiError, api, csrfHeaders, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -103,17 +104,20 @@ export function useChildren(
     enabled,
     queryFn: async () =>
       (
-        await unwrap(
-          api.GET('/api/v1/asset-tree/nodes/', {
-            params: {
-              query: {
-                project_id: projectId,
-                parent_id: parentId ?? undefined,
-                include_retired: includeRetired,
-                items_per_page: 500,
+        await allPages((page) =>
+          unwrap(
+            api.GET('/api/v1/asset-tree/nodes/', {
+              params: {
+                query: {
+                  project_id: projectId,
+                  parent_id: parentId ?? undefined,
+                  include_retired: includeRetired,
+                  page,
+                  items_per_page: 100,
+                },
               },
-            },
-          })
+            })
+          )
         )
       ).data,
   })
@@ -175,17 +179,20 @@ export function useItems(
     queryKey: ['asset-tree', projectId, 'items', nodeId, itemType],
     queryFn: async () =>
       (
-        await unwrap(
-          api.GET('/api/v1/asset-tree/items/', {
-            params: {
-              query: {
-                project_id: projectId,
-                node_id: nodeId ?? undefined,
-                item_type_key: itemType || undefined,
-                items_per_page: 500,
+        await allPages((page) =>
+          unwrap(
+            api.GET('/api/v1/asset-tree/items/', {
+              params: {
+                query: {
+                  project_id: projectId,
+                  node_id: nodeId ?? undefined,
+                  item_type_key: itemType || undefined,
+                  page,
+                  items_per_page: 100,
+                },
               },
-            },
-          })
+            })
+          )
         )
       ).data,
   })

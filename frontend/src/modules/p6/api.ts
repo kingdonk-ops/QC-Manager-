@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { allPages } from '@/api/all-pages'
 import { ApiError, api, csrfHeaders, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -51,15 +52,17 @@ export function useChanges(projectId: number, importId: number | undefined) {
     queryKey: keys.changes(projectId, importId ?? 0),
     queryFn: async () =>
       (
-        await unwrap(
-          api.GET(
-            '/api/v1/schedule/{project_id}/p6/imports/{import_id}/changes/',
-            {
-              params: {
-                path: { project_id: projectId, import_id: importId! },
-                query: { items_per_page: 1000 },
-              },
-            }
+        await allPages((page) =>
+          unwrap(
+            api.GET(
+              '/api/v1/schedule/{project_id}/p6/imports/{import_id}/changes/',
+              {
+                params: {
+                  path: { project_id: projectId, import_id: importId! },
+                  query: { page, items_per_page: 100 },
+                },
+              }
+            )
           )
         )
       ).data,
@@ -157,13 +160,15 @@ export function useUnmatched(projectId: number) {
   return useQuery({
     queryKey: keys.unmatched(projectId),
     queryFn: async () =>
-      await unwrap(
-        api.GET('/api/v1/schedule/{project_id}/p6/unmatched/', {
-          params: {
-            path: { project_id: projectId },
-            query: { items_per_page: 200 },
-          },
-        })
+      await allPages((page) =>
+        unwrap(
+          api.GET('/api/v1/schedule/{project_id}/p6/unmatched/', {
+            params: {
+              path: { project_id: projectId },
+              query: { page, items_per_page: 100 },
+            },
+          })
+        )
       ),
   })
 }

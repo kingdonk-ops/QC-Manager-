@@ -26,6 +26,7 @@ const keys = {
 export function useReviews(projectId: number, status: string) {
   return useQuery({
     queryKey: keys.list(projectId, status),
+    enabled: projectId > 0,
     queryFn: async () =>
       (
         await unwrap(

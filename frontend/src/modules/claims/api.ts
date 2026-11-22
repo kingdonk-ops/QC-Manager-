@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { allPages } from '@/api/all-pages'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -45,10 +46,14 @@ export function useClaims(projectId: number) {
     queryKey: keys.list(projectId),
     queryFn: async () =>
       (
-        await unwrap(
-          api.GET('/api/v1/claims/', {
-            params: { query: { project_id: projectId, items_per_page: 200 } },
-          })
+        await allPages((page) =>
+          unwrap(
+            api.GET('/api/v1/claims/', {
+              params: {
+                query: { project_id: projectId, page, items_per_page: 100 },
+              },
+            })
+          )
         )
       ).data,
   })
@@ -72,10 +77,14 @@ export function useRateItems(projectId: number) {
     queryKey: keys.rates(projectId),
     queryFn: async () =>
       (
-        await unwrap(
-          api.GET('/api/v1/claims/rate-items/', {
-            params: { query: { project_id: projectId, items_per_page: 1000 } },
-          })
+        await allPages((page) =>
+          unwrap(
+            api.GET('/api/v1/claims/rate-items/', {
+              params: {
+                query: { project_id: projectId, page, items_per_page: 100 },
+              },
+            })
+          )
         )
       ).data,
   })

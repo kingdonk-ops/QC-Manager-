@@ -63,8 +63,7 @@ async def assert_calibrated(db: AsyncSession, project_id: int, equipment_ids: li
     check = getattr(calibration, "assert_calibrated", None)
     if check is None or not await is_enabled(db, "calibration", project_id):
         return
-    for equipment_id in equipment_ids:
-        await check(db, equipment_id, on)
+    await check(db, equipment_ids, on, project_id=project_id)
 
 
 # --- systems ------------------------------------------------------------------------------------

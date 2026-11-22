@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { allPages } from '@/api/all-pages'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -91,17 +92,20 @@ export function useCards(projectId: number, status: string, search: string) {
     queryKey: keys.list(projectId, status, search),
     queryFn: async () =>
       (
-        await unwrap(
-          api.GET('/api/v1/change-of-scope/cards/', {
-            params: {
-              query: {
-                project_id: projectId,
-                status: (status || undefined) as never,
-                search: search || undefined,
-                items_per_page: 200,
+        await allPages((page) =>
+          unwrap(
+            api.GET('/api/v1/change-of-scope/cards/', {
+              params: {
+                query: {
+                  project_id: projectId,
+                  status: (status || undefined) as never,
+                  search: search || undefined,
+                  page,
+                  items_per_page: 100,
+                },
               },
-            },
-          })
+            })
+          )
         )
       ).data,
   })

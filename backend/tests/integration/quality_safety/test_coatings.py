@@ -17,7 +17,12 @@ from tests.integration.rbac.test_user_permissions import _grant, _login
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("fresh_login_lockout")]
 
-PERMS = ("projects.read", *(f"coatings.{a}" for a in ("read", "create", "update", "review", "delete")))
+PERMS = (
+    "projects.read",
+    *(f"coatings.{a}" for a in ("read", "create", "update", "review", "delete")),
+    "calibration.read",
+    "calibration.create",
+)
 
 SYSTEM = {
     "code": "SYS-5",
@@ -85,7 +90,7 @@ async def test_hold_points_release_in_order_with_passing_readings(client: AsyncC
     # too damp: the surface is within 3 °C of the dew point (9.3 °C at 20 °C / 50 %)
     damp = await client.post(
         f"{base}/environment",
-        json={"stage_id": prep, "air_temp_c": 20, "surface_temp_c": 12.2, "rh_pct": 50, "equipment_ids": [7]},
+        json={"stage_id": prep, "air_temp_c": 20, "surface_temp_c": 12.2, "rh_pct": 50},
         headers=headers,
     )
     assert damp.status_code == 201, damp.text
@@ -125,9 +130,7 @@ async def test_a_job_passes_when_every_hold_point_passes(client: AsyncClient, jo
     nodft = await client.post(f"{base}/stages/{primer}/release", json={"result": "passed"}, headers=headers)
     assert "no DFT readings" in nodft.text and "batch numbers" in nodft.text
 
-    thin = await client.post(
-        f"{base}/dft", json={"stage_id": primer, "readings": [50, 52, 61, 70], "equipment_ids": [7]}, headers=headers
-    )
+    thin = await client.post(f"{base}/dft", json={"stage_id": primer, "readings": [50, 52, 61, 70]}, headers=headers)
     assert thin.status_code == 201, thin.text
     assert thin.json()["passed"] is False
     good = await client.post(f"{base}/dft", json={"stage_id": primer, "readings": GOOD_PRIMER}, headers=headers)
@@ -197,10 +200,11 @@ async def test_readings_ask_the_calibration_module_when_it_is_there(client: Asyn
     j, headers = job
     checked: list[tuple[int, date]] = []
 
-    async def assert_calibrated(db, equipment_id: int, on: date) -> None:
-        checked.append((equipment_id, on))
-        if equipment_id == 99:
-            raise OutOfCalibration(str(equipment_id))
+    async def assert_calibrated(db, equipment_ids: list[int], on_date: date | None = None, *, project_id: int | None = None):
+        checked.extend((i, on_date) for i in equipment_ids)
+        if 99 in equipment_ids:
+            raise OutOfCalibration("99")
+        return []
 
     fake = types.ModuleType("src.modules.calibration.service")
     fake.assert_calibrated = assert_calibrated  # type: ignore[attr-defined]
@@ -225,3 +229,20 @@ async def test_readings_ask_the_calibration_module_when_it_is_there(client: Asyn
     )
     assert fine.status_code == 201
     assert [c[0] for c in checked] == [99, 5]
+
+
+async def test_readings_check_the_real_calibration_register(client: AsyncClient, job):
+    j, headers = job
+    made = await client.post(
+        "/api/v1/calibration/equipment/",
+        json={"project_id": j["project_id"], "code": "DFT-01", "name": "DFT gauge", "requires_calibration": True},
+        headers=headers,
+    )
+    assert made.status_code == 201, made.text
+    refused = await client.post(
+        f"/api/v1/coatings/jobs/{j['id']}/dft",
+        json={"stage_id": j["stages"][1]["id"], "readings": [70], "equipment_ids": [made.json()["id"]]},
+        headers=headers,
+    )
+    assert refused.status_code == 422, refused.text
+    assert "DFT-01" in refused.text

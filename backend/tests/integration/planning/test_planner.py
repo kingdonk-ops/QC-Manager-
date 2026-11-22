@@ -95,6 +95,18 @@ async def test_a_plan_is_a_work_plan_collection_of_its_packs_anchors(client: Asy
     assert listed["pack_count"] == 1 and listed["anchor_count"] == 2 and float(listed["planned_hours"]) == 104
 
 
+async def test_plan_milestones_are_stored(client: AsyncClient, site: Site):
+    plan = await make_plan(client, site, milestones=[{"name": "Tier 1 handover", "day": "2026-12-01"}])
+    assert plan["milestones"][0]["day"] == "2026-12-01"
+    moved = await client.patch(
+        f"/api/v1/planner/plans/{plan['id']}",
+        json={"milestones": [{"name": "Tier 1 handover", "day": "2026-12-02"}]},
+        headers=site.headers,
+    )
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["milestones"][0]["day"] == "2026-12-02"
+
+
 async def test_lines_need_a_work_anchor(client: AsyncClient, site: Site):
     plan = await make_plan(client, site)
     above = await client.post(
