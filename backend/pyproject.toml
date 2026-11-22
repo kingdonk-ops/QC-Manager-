@@ -36,6 +36,7 @@ dependencies = [
     "taskiq-aio-pika>=0.4.3",
     "user-agents>=2.2.0",
     "openpyxl>=3.1",
+    "reportlab>=4.2",
 ]
 
 [project.optional-dependencies]
@@ -90,6 +91,10 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = "src.wiring.settings"
 disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "reportlab.*"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "openpyxl.*"

@@ -103,3 +103,42 @@ Add it to `src/modules/_registry.ts` (the scaffold does this). Nothing else chan
 - Dense tables use `<DataGrid>` (AG Grid Community, themed for light and dark); format money with `money(currency)` from `@/lib/format`.
 - Call the API with `api.GET('/api/v1/...')` from `@/api/client`; paths and bodies are typed from the backend's OpenAPI document. Run `pnpm gen:api` after changing the backend.
 - User-visible text goes through `t('key')`, with the English in `messages.en`.
+
+## Platform services every module uses
+
+Reach for these instead of building your own. Reference modules: `tasks` and `contacts` (backend and data model), `cvr` and `team` (frontend grids), `files` (uploads).
+
+### Backend
+
+| Need | Use |
+|---|---|
+| Project visibility | `await readable_project(db, project_id, user["id"], held)` from `modules.projects.service`. Call it on every project-scoped route; it answers 404 for projects the caller can't see. |
+| Reference numbers | `await next_reference(db, "RFI", project_id)` → `RFI-001` (`infrastructure.records`). Commit with the record. |
+| Status workflows | Declare `FLOW = {"draft": {"open"}, ...}`; `assert_transition(FLOW, current, target)` (422 if not allowed), then `await record_transition(db, "rfi", id, old, new, user_id, note)`. Expose `GET /{id}/history` with `history_of(db, "rfi", id)`. |
+| Notify people | `await notify(db, user_ids, Category.ASSIGNMENT, title, body=..., link="/rfi?project=1&id=4", entity=("rfi", 4), actor_id=me)` from `modules.notifications.service`. Joins your transaction; emails users whose preferences ask for it. |
+| Tasks from your module | `await create_task(db, project_id=..., title=..., created_by_id=..., entity=("meeting", 7), assignee_id=..., due_date=...)` from `modules.tasks.service`. |
+| Contacts | Store `contact_id` ints; display with `await contact_names(db, ids)`; email with `contact_emails(db, ids)` (`modules.contacts.service`). |
+| Attachments | Nothing to build: the frontend's `<Attachments>` uploads to `files` with your `entity_type`/`entity_id`. To list them server-side, query `StoredFile` by entity. |
+| Comments | Nothing to build: `<Comments>` stores them against your `entity_type`/`entity_id`. |
+| Email | `await deliver(Mail(to=[...], subject=..., text=..., attachments=[Attachment(name, bytes, type)]))` from `infrastructure.mail`. Queued on the worker; pluggable backends. |
+| PDF | `Document(...)` + `render_pdf(doc)` from `infrastructure.pdf` (fields, headings, ruled tables, page numbers). Return with `Response(pdf, media_type="application/pdf", headers={"Content-Disposition": ...})`. |
+| Excel / CSV | `read_table(bytes, filename)` and `write_table(columns, rows, "xlsx"|"csv")` from `infrastructure.tabular`. |
+| Events | `await publish("rfi.rfi.answered", {...})` / `@subscribe("tasks.*")` from `infrastructure.modules`. |
+| Scheduled work | A `@default_broker.task(task_name="mod:job", schedule=[{"cron": "..."}])` in your `tasks.py`. |
+
+Permissions: name actions `read`, `create`, `update`, `delete`, plus domain verbs from this list where they fit: `respond`, `submit`, `review`, `transition`, `import`, `export`, `upload`, `assign`. The per-user access grid treats `read`/`export` as View, those verbs as Edit, and anything else (`approve`, `delete`, `manage`) as Full only.
+
+Module manifests: set `depends` on every module you import from. Modules switched off at runtime answer 404 automatically; don't add your own check.
+
+### Frontend
+
+| Need | Use |
+|---|---|
+| Page shell | `<Page title description actions projectScoped>`; `useCurrentProject()` for the selected project. |
+| Dense tables | `<DataGrid>` (AG Grid, themed). `money(currency)` from `@/lib/format`. Editable cells → PATCH one field. |
+| Record detail | `<RecordSheet title badges record={{ projectId, entityType, entityId }} tabs={{ History: ... }}>` gives Details + your tabs + Comments + Files. |
+| Status / priority pills | `<StatusBadge status="under_review" />` colours by meaning. |
+| API | `api.GET('/api/v1/...')` + `unwrap()` from `@/api/client`, typed after `pnpm gen:api`. Multipart: `fetch` with `csrfHeaders()`. |
+| Permissions in UI | `can(useSession(), 'rfi.respond')`. |
+| Charts | Recharts. |
+| Menu | `navItems` with a `group` from the shell's list (`project_management`, `quality_safety`, `documents`, `procurement`, `planning`, `cost_control`, `commercial`, `assets`, `reporting`, `estimating`), `advancedOnly` for specialist screens. |
