@@ -157,6 +157,17 @@ EspoCRM, KERP ADRs, CEOClaw).
 | 10.5 | Cross-module project timeline view over the audit chain. | todo |
 | 10.6 | Link records about one real event (incident, NCR, diary entry, claim). | todo |
 
+### Real-time collaboration — Yjs + y-websocket
+
+| # | Task | Status |
+|---|---|---|
+| 10.7 | Add a y-websocket server (one document room per record, e.g. `inspection:{id}`) behind the API's authentication: check the user's session and their permission on that record before joining; out-of-scope rooms are refused like a 404. | todo |
+| 10.8 | Persist Yjs document updates to PostgreSQL and load them when a room opens; keep the relational record as the source of truth by writing merged values back on save. | todo |
+| 10.9 | Frontend: Yjs documents for the inspection/ITR editor, form fill and meeting minutes; presence (who else is here) and remote cursors/selection. | todo |
+| 10.10 | Offline: `y-indexeddb` so field edits keep working without signal and merge on reconnect (ties in with 2.16). If the server copy is restored while a device is offline, keep the device copy as a backup and take the server's. | todo |
+| 10.11 | Signed, published or locked records close their room and open read-only; signing and publishing still go through the API, never through the shared document. | todo |
+| 10.12 | Tests: two clients editing one record merge correctly; a user without access cannot join; a locked record rejects updates. | todo |
+
 ## Later
 
 | # | Task | Status |

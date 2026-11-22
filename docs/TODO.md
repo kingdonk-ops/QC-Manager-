@@ -25,6 +25,7 @@ Task numbers refer to the full backlog in [`TASKS.md`](TASKS.md).
 - [ ] 12. Signatures anyone can check: sealed signatures, QR check page, offline export (TASKS 5.1–5.3)
 - [ ] 13. People on site, stage B: `/field` screens, PWA and offline capture (TASKS 2.14–2.20)
 - [ ] 14. MCP server under each user's permissions, with the AI record (TASKS 3.1–3.6)
+- [ ] 15. Real-time collaboration with Yjs + y-websocket: authenticated rooms, Postgres persistence, presence, offline merge, read-only once signed (TASKS 10.7–10.12)
 
 ## Housekeeping
 
