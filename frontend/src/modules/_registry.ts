@@ -3,6 +3,7 @@
  * Order is the default menu order within a group.
  */
 import type { ModuleManifest } from './_types'
+import { manifest as assetTree } from './asset_tree/manifest'
 import { manifest as assets } from './assets/manifest'
 import { manifest as boq } from './boq/manifest'
 import { manifest as cde } from './cde/manifest'
@@ -65,4 +66,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   reporting,
   dataExchange,
   boq,
+  assetTree,
 ]

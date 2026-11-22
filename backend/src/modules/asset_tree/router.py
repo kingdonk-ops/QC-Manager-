@@ -586,3 +586,8 @@ async def set_members(
     db.add_all([AssetCollectionMember(collection_id=c.id, node_id=n) for n in sorted(valid)])
     await db.commit()
     return await _collection_read(db, c)
+
+
+from .ingest_router import router as _ingest_router  # noqa: E402  (after the routes above)
+
+router.include_router(_ingest_router)

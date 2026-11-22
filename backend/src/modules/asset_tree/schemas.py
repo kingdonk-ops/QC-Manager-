@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Any
+from enum import StrEnum
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..common.schemas import EncodableText
 from .constants import CodeUniqueness, CollectionKind, IdentifierKind, Role
@@ -248,3 +249,171 @@ class MembersIn(EncodableText):
     model_config = ConfigDict(extra="forbid")
 
     node_ids: Annotated[list[int], Field(max_length=5000)]
+
+
+# --- terminology ---------------------------------------------------------------------------------------
+
+TermKey = Annotated[str, Field(pattern=r"^(level|role|noun)\.[a-z][a-z0-9_]*$", max_length=80)]
+
+
+class AssetTermForms(EncodableText):
+    model_config = ConfigDict(extra="forbid")
+
+    one: Annotated[str, Field(min_length=1, max_length=80)]
+    other: Annotated[str, Field(min_length=1, max_length=80)]
+
+
+class AssetTermsIn(EncodableText):
+    """``{"level.rsw": {"one": "Work order", "other": "Work orders"}, "noun.item": null}``; null clears an override."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    terms: Annotated[dict[TermKey, AssetTermForms | None], Field(max_length=200)]
+
+
+class AssetTermRead(BaseModel):
+    key: str
+    one: str
+    other: str
+    source: Literal["default", "level", "project"]
+
+
+# --- import --------------------------------------------------------------------------------------------
+
+Column = Annotated[str, Field(min_length=1, max_length=200)]
+NodeField = Literal[
+    "name",
+    "discipline_code",
+    "wbs_code",
+    "external_id",
+    "external_source",
+    "planned_start",
+    "planned_finish",
+    "budget_qty",
+    "uom",
+    "budget_hours",
+    "earned_qty",
+]
+FieldPath = Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$", max_length=120)]
+
+
+class TreeMode(StrEnum):
+    COLUMNS = "columns"
+    PATH = "path"
+    PARENT_ROW = "parent_row"
+
+
+class UpdateMode(StrEnum):
+    UPSERT = "upsert"
+    """Create what's new, update what's there (matched by level, code and parent)."""
+    CREATE = "create"
+    """Create what's new; leave existing nodes and items as they are."""
+    UPDATE = "update"
+    """Only update; a row naming something that isn't there is an error."""
+
+
+class TreeItemMapping(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_column: Column
+    item_type_key: Key | None = None
+    """Every row's item type, unless ``item_type_column`` names one per row (by key or name)."""
+    item_type_column: Column | None = None
+    fields: dict[Literal["spec_ref", "discipline", "notes"], Column] = Field(default_factory=dict)
+    custom_fields: dict[FieldPath, Column] = Field(default_factory=dict)
+    identifiers: dict[IdentifierKind, Column] = Field(default_factory=dict)
+
+
+class TreeImportMapping(EncodableText):
+    """How a spreadsheet's columns land in the breakdown. Saved as a mapping profile for reuse."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tree_mode: TreeMode = TreeMode.COLUMNS
+    level_columns: dict[Key, Column] = Field(default_factory=dict)
+    """``columns`` mode: level key → its code column."""
+    path_column: Column | None = None
+    path_separator: Annotated[str, Field(min_length=1, max_length=5)] = "/"
+    path_levels: list[Key] = Field(default_factory=list)
+    """``path`` mode: the level of each path segment, root first."""
+    code_column: Column | None = None
+    parent_column: Column | None = None
+    level_column: Column | None = None
+    """``parent_row`` mode: the node's code, its parent's code and its level (key or label)."""
+    node_fields: dict[NodeField, Column] = Field(default_factory=dict)
+    custom_fields: dict[FieldPath, Column] = Field(default_factory=dict)
+    """``custom_fields`` path (dots for nesting) → column, set on each row's leaf node."""
+    item: TreeItemMapping | None = None
+    update_mode: UpdateMode = UpdateMode.UPSERT
+    split_multi_values: bool = True
+    """Split a leaf cell like ``101.1 and 101.3 ; 102`` into one node per value."""
+    synonyms: dict[Column, list[Column]] = Field(default_factory=dict)
+    """Other headers a mapped column may have in another file (``{"RSW": ["RSW No", "RSW #"]}``)."""
+
+    @model_validator(mode="after")
+    def _mode_has_its_columns(self) -> "TreeImportMapping":
+        if self.tree_mode == TreeMode.COLUMNS and not self.level_columns:
+            raise ValueError("Map at least one level to a column.")
+        if self.tree_mode == TreeMode.PATH and not (self.path_column and self.path_levels):
+            raise ValueError("Name the path column and the level of each segment.")
+        if self.tree_mode == TreeMode.PARENT_ROW and not (self.code_column and self.level_column):
+            raise ValueError("Name the code and level columns (and the parent column).")
+        if self.item and not (self.item.item_type_key or self.item.item_type_column):
+            raise ValueError("Items need an item type or an item type column.")
+        return self
+
+
+class TreeImportPreview(BaseModel):
+    columns: list[str]
+    rows: int
+    sample: list[dict[str, Any]]
+    mapping: TreeImportMapping
+    """A first guess from the headers (or the chosen profile)."""
+    missing: list[str] = Field(default_factory=list)
+    """Columns the profile names that this file doesn't have."""
+
+
+class TreeImportAction(BaseModel):
+    line: int
+    action: Literal["create", "update"]
+    kind: Literal["node", "item"]
+    label: str
+    display: str
+
+
+class TreeImportReport(BaseModel):
+    dry_run: bool
+    rows: int
+    nodes_created: int
+    nodes_updated: int
+    nodes_unchanged: int
+    items_created: int
+    items_updated: int
+    skipped: int
+    errors: list[str]
+    warnings: list[str]
+    actions: list[TreeImportAction]
+    profile: "MappingProfileRead | None" = None
+
+
+class MappingProfileIn(EncodableText):
+    model_config = ConfigDict(extra="forbid")
+
+    project_id: int = Field(ge=1)
+    name: Annotated[str, Field(min_length=1, max_length=120)]
+    mapping: TreeImportMapping
+
+
+class MappingProfileRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    project_id: int
+    name: str
+    version: int
+    mapping: dict[str, Any]
+    created_by_id: int | None
+    created_at: datetime | None = None
+
+
+TreeImportReport.model_rebuild()

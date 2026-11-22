@@ -142,3 +142,33 @@ class ItemIdentifier(Base, TimestampMixin):
     kind: Mapped[str] = mapped_column(String(10))
     value: Mapped[str] = mapped_column(String(200))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class AssetTerm(Base, TimestampMixin):
+    """A project's override of a level label or domain noun, with plural forms (``level.rsw`` → RSW / RSWs)."""
+
+    __tablename__ = "asset_terms"
+    __table_args__ = (UniqueConstraint("project_id", "key", name="uq_asset_terms_project_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    key: Mapped[str] = mapped_column(String(80))
+    one: Mapped[str] = mapped_column(String(80))
+    other: Mapped[str] = mapped_column(String(80))
+
+
+class AssetMappingProfile(Base, TimestampMixin):
+    """A saved import mapping (spreadsheet columns → levels, node fields, custom fields, item fields).
+
+    Saving under an existing name adds a new ``version``; earlier versions are kept so a past import can be explained.
+    """
+
+    __tablename__ = "asset_mapping_profiles"
+    __table_args__ = (UniqueConstraint("project_id", "name", "version", name="uq_asset_mapping_profiles_version"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    mapping: Mapped[dict] = mapped_column(JSON, default_factory=dict)
+    created_by_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id", ondelete="SET NULL"), default=None)
