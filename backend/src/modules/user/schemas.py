@@ -37,6 +37,7 @@ class User(TimestampSchema, UserBase, PersistentDeletion, UserSchemaExtensions):
 
     google_id: str | None = None
     github_id: str | None = None
+    entra_id: str | None = None
     oauth_provider: str | None = None
     email_verified: bool = False
     oauth_created_at: datetime | None = None
@@ -96,6 +97,7 @@ class UserCreateInternal(UserBase):
     hashed_password: str
     google_id: str | None = None
     github_id: str | None = None
+    entra_id: str | None = None
     oauth_provider: str | None = None
     email_verified: bool = False
     oauth_created_at: datetime | None = None
@@ -146,6 +148,7 @@ class UserAdminUpdate(UserUpdate):
     ] = None
     google_id: str | None = None
     github_id: str | None = None
+    entra_id: str | None = None
     oauth_provider: str | None = None
     email_verified: bool | None = None
     oauth_updated_at: datetime | None = None
@@ -182,6 +185,7 @@ class UserAnonymize(UserSchemaExtensions):
     is_superuser: bool = False
     google_id: str | None = None
     github_id: str | None = None
+    entra_id: str | None = None
     oauth_provider: str | None = None
     email_verified: bool = False
     oauth_created_at: datetime | None = None

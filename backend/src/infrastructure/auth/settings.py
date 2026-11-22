@@ -52,6 +52,19 @@ class AuthSettings(BaseSettings):
     OAUTH_GOOGLE_CLIENT_SECRET: str = config("OAUTH_GOOGLE_CLIENT_SECRET", default="")
     OAUTH_GITHUB_CLIENT_ID: str = config("OAUTH_GITHUB_CLIENT_ID", default="")
     OAUTH_GITHUB_CLIENT_SECRET: str = config("OAUTH_GITHUB_CLIENT_SECRET", default="")
+    # Microsoft Entra ID (single tenant). Sign-in is enabled when all three are set.
+    OAUTH_ENTRA_TENANT_ID: str = config("OAUTH_ENTRA_TENANT_ID", default="")
+    OAUTH_ENTRA_CLIENT_ID: str = config("OAUTH_ENTRA_CLIENT_ID", default="")
+    OAUTH_ENTRA_CLIENT_SECRET: str = config("OAUTH_ENTRA_CLIENT_SECRET", default="")
+    # Whether the app registration emits the ``groups`` claim. Entra leaves the claim out for a
+    # user in no groups, so only when this is on does an absent claim mean "in none of them".
+    OAUTH_ENTRA_GROUPS_CLAIM: bool = config("OAUTH_ENTRA_GROUPS_CLAIM", default=True, cast=bool)
+    # Where a provider sign-in lands when it carries no redirect_to, and where a failed one is sent
+    # with ``?error=<code>``. A path on OAUTH_REDIRECT_BASE_URL, e.g. ``/sign-in``; unset is its root.
+    OAUTH_DEFAULT_REDIRECT: str | None = config("OAUTH_DEFAULT_REDIRECT", default=None)
+    # Self-service signup (POST /api/v1/users). Off: accounts come from Entra sign-in.
+    LOCAL_SIGNUP_ENABLED: bool = config("LOCAL_SIGNUP_ENABLED", default=False, cast=bool)
+
     OAUTH_REDIRECT_BASE_URL: str = config("OAUTH_REDIRECT_BASE_URL", default="http://localhost:8000")
 
     SESSION_REDIS_HOST: str = Field(

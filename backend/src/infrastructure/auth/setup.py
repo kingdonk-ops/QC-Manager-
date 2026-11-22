@@ -19,6 +19,7 @@ from typing import Any
 
 from crudauth import AuthHooks, CookieConfig, CRUDAuth, EmailConfig, NewUserContext, OAuthCredentials, SessionTransport
 from crudauth.constants import DEFAULT_FRESH_SIGN_IN_SECONDS
+from crudauth.oauth import OAuthProviderFactory
 from crudauth.ratelimit import LockoutConfig
 
 from ...modules.user.constants import NAME_MAX_LENGTH
@@ -30,9 +31,11 @@ from ..config.enums import SessionBackend
 from ..config.settings import settings
 from ..database.session import async_session
 from .audit import record_a_lockout, record_a_refused_login
+from .entra import PROVIDER_NAME as ENTRA
+from .entra import EntraIDProvider
 from .evictions import end_every_session_through
 from .limiter import build_rate_limiter, rate_limiter_redis_client
-from .oauth_profile import refresh_the_provider_profile
+from .oauth_profile import on_oauth_login
 from .password_policy import password_policy
 from .store import database_store
 
@@ -115,6 +118,12 @@ def _oauth_providers() -> dict[str, OAuthCredentials]:
         if client_id and client_secret:
             configured[provider] = OAuthCredentials(client_id=client_id, client_secret=client_secret)
 
+    if settings.OAUTH_ENTRA_TENANT_ID and settings.OAUTH_ENTRA_CLIENT_ID and settings.OAUTH_ENTRA_CLIENT_SECRET:
+        OAuthProviderFactory.register_provider(ENTRA, EntraIDProvider.for_tenant(settings.OAUTH_ENTRA_TENANT_ID))
+        configured[ENTRA] = OAuthCredentials(
+            client_id=settings.OAUTH_ENTRA_CLIENT_ID, client_secret=settings.OAUTH_ENTRA_CLIENT_SECRET
+        )
+
     return configured
 
 
@@ -140,7 +149,7 @@ auth = CRUDAuth(
     hooks=AuthHooks(
         on_login_failed=record_a_refused_login,
         on_lockout=record_a_lockout,
-        on_oauth_login=refresh_the_provider_profile,
+        on_oauth_login=on_oauth_login,
         on_after_email_changed=end_every_session_through(session_transport),
     ),
     password_policy=password_policy,
@@ -154,6 +163,7 @@ auth = CRUDAuth(
         "callback_path": "/callback/{provider}",
     },
     oauth_response_mode="redirect",
+    oauth_default_redirect=settings.OAUTH_DEFAULT_REDIRECT,
 )
 
 
