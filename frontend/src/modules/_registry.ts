@@ -24,6 +24,7 @@ import { manifest as rfi } from './rfi/manifest'
 import { manifest as submittals } from './submittals/manifest'
 import { manifest as safety } from './safety/manifest'
 import { manifest as risk } from './risk/manifest'
+import { manifest as schedule } from './schedule/manifest'
 import { manifest as teams } from './team/manifest'
 import { manifest as transmittals } from './transmittals/manifest'
 
@@ -51,4 +52,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   risk,
   changeOrders,
   procurement,
+  schedule,
 ]

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<APIBusinessObjects xmlns="http://xmlns.oracle.com/Primavera/P6/V19.12/API/BusinessObjects">
+  <Calendar>
+    <ObjectId>5</ObjectId>
+    <Name>Six day week</Name>
+    <IsDefault>1</IsDefault>
+    <HoursPerDay>10</HoursPerDay>
+    <StandardWorkWeek>
+      <StandardWorkHours><DayOfWeek>Sunday</DayOfWeek></StandardWorkHours>
+      <StandardWorkHours><DayOfWeek>Monday</DayOfWeek><WorkTime><Start>07:00:00</Start><Finish>17:00:00</Finish></WorkTime></StandardWorkHours>
+      <StandardWorkHours><DayOfWeek>Tuesday</DayOfWeek><WorkTime><Start>07:00:00</Start><Finish>17:00:00</Finish></WorkTime></StandardWorkHours>
+      <StandardWorkHours><DayOfWeek>Wednesday</DayOfWeek><WorkTime><Start>07:00:00</Start><Finish>17:00:00</Finish></WorkTime></StandardWorkHours>
+      <StandardWorkHours><DayOfWeek>Thursday</DayOfWeek><WorkTime><Start>07:00:00</Start><Finish>17:00:00</Finish></WorkTime></StandardWorkHours>
+      <StandardWorkHours><DayOfWeek>Friday</DayOfWeek><WorkTime><Start>07:00:00</Start><Finish>17:00:00</Finish></WorkTime></StandardWorkHours>
+      <StandardWorkHours><DayOfWeek>Saturday</DayOfWeek><WorkTime><Start>07:00:00</Start><Finish>17:00:00</Finish></WorkTime></StandardWorkHours>
+    </StandardWorkWeek>
+    <HolidayExceptions>
+      <HolidayException><Date>2026-01-26T00:00:00</Date></HolidayException>
+    </HolidayExceptions>
+  </Calendar>
+  <Project>
+    <ObjectId>900</ObjectId>
+    <Id>XML-DEMO</Id>
+    <Name>XML demo</Name>
+    <DataDate>2026-01-05T07:00:00</DataDate>
+    <WBS><ObjectId>20</ObjectId><Code>STR</Code><Name>Structure</Name></WBS>
+    <WBS><ObjectId>21</ObjectId><ParentObjectId>20</ParentObjectId><Code>L1</Code><Name>Level 1</Name></WBS>
+    <Activity>
+      <ObjectId>300</ObjectId><Id>S100</Id><Name>Columns L1</Name><WBSObjectId>21</WBSObjectId>
+      <Type>Task Dependent</Type><Status>Not Started</Status><PlannedDuration>50</PlannedDuration>
+      <PlannedStartDate>2026-01-05T07:00:00</PlannedStartDate><PlannedFinishDate>2026-01-09T17:00:00</PlannedFinishDate>
+      <PercentComplete>0</PercentComplete>
+    </Activity>
+    <Activity>
+      <ObjectId>301</ObjectId><Id>S110</Id><Name>Slab L1</Name><WBSObjectId>21</WBSObjectId>
+      <Type>Task Dependent</Type><Status>Not Started</Status><PlannedDuration>30</PlannedDuration>
+      <PrimaryConstraintType>Start On or After</PrimaryConstraintType><PrimaryConstraintDate>2026-01-12T07:00:00</PrimaryConstraintDate>
+    </Activity>
+    <Activity>
+      <ObjectId>302</ObjectId><Id>MS1</Id><Name>Structure complete</Name><WBSObjectId>20</WBSObjectId>
+      <Type>Finish Milestone</Type><Status>Not Started</Status><PlannedDuration>0</PlannedDuration>
+    </Activity>
+    <Relationship><ObjectId>1</ObjectId><PredecessorActivityObjectId>300</PredecessorActivityObjectId><SuccessorActivityObjectId>301</SuccessorActivityObjectId><Type>Start to Start</Type><Lag>20</Lag></Relationship>
+    <Relationship><ObjectId>2</ObjectId><PredecessorActivityObjectId>301</PredecessorActivityObjectId><SuccessorActivityObjectId>302</SuccessorActivityObjectId><Type>Finish to Start</Type><Lag>-10</Lag></Relationship>
+  </Project>
+</APIBusinessObjects>
