@@ -1,0 +1,35 @@
+/** Strings of the app shell. Module strings live in each module's manifest. */
+export const coreMessages: Record<string, Record<string, string>> = {
+  en: {
+    'app.name': 'QC Manager',
+    'app.tagline': 'Workspace',
+    'nav.group.general': 'General',
+    'nav.group.admin': 'Administration',
+    'nav.group.settings': 'Settings',
+    'nav.settings': 'Settings',
+    'project.select': 'Select project',
+    'project.none': 'No projects',
+    'common.save': 'Save',
+    'common.cancel': 'Cancel',
+    'common.create': 'Create',
+    'common.export_csv': 'Export CSV',
+    'common.loading': 'Loading…',
+    'common.total': 'Total',
+    'auth.sign_in': 'Sign in',
+    'auth.staff_title': 'Staff',
+    'auth.staff_hint': 'Use your work Microsoft account.',
+    'auth.microsoft': 'Sign in with Microsoft',
+    'auth.client_title': 'Clients and partners',
+    'auth.client_hint':
+      'Sign in with the email and password you set from your invitation.',
+    'auth.email_or_username': 'Email or username',
+    'auth.password': 'Password',
+    'auth.forgot': 'Forgot password?',
+    'auth.sign_out': 'Sign out',
+    'auth.error.oauth_failed': 'Microsoft sign-in failed. Please try again.',
+    'auth.error.account_inactive': 'This account is disabled.',
+    'auth.error.invalid_state':
+      'The sign-in took too long or was started in another tab. Please try again.',
+    'auth.error.generic': 'Sign-in failed.',
+  },
+}

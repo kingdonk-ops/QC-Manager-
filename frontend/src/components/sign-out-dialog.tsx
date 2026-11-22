@@ -1,5 +1,6 @@
-import { useNavigate, useLocation } from '@tanstack/react-router'
-import { useAuthStore } from '@/stores/auth-store'
+import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { signOut } from '@/lib/session'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface SignOutDialogProps {
@@ -9,18 +10,12 @@ interface SignOutDialogProps {
 
 export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { auth } = useAuthStore()
+  const queryClient = useQueryClient()
 
-  const handleSignOut = () => {
-    auth.reset()
-    // Preserve current location for redirect after sign-in
-    const currentPath = location.href
-    navigate({
-      to: '/sign-in',
-      search: { redirect: currentPath },
-      replace: true,
-    })
+  const handleSignOut = async () => {
+    await signOut()
+    queryClient.clear()
+    navigate({ to: '/sign-in', replace: true })
   }
 
   return (
@@ -28,7 +23,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       open={open}
       onOpenChange={onOpenChange}
       title='Sign out'
-      desc='Are you sure you want to sign out? You will need to sign in again to access your account.'
+      desc='Are you sure you want to sign out?'
       confirmText='Sign out'
       destructive
       handleConfirm={handleSignOut}

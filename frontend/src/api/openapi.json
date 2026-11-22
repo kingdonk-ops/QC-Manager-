@@ -1,0 +1,7231 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "FastAPI Boilerplate",
+  "version": "0.1.0"
+ },
+ "paths": {
+  "/api/v1/users/": {
+   "post": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Create New User Account",
+    "description": "Creates a new user account in the system.\n\n           This endpoint allows registration of new users with their basic information:\n           - Full name\n           - Username (must be lowercase alphanumeric)\n           - Email address\n           - Password (with security requirements)\n\n           New accounts are automatically assigned to the default tier.\n\n           The answer says nothing about whether the address was free. An address that\n           already has an account is answered the same way as one that did not, and the\n           account that holds it is told somebody tried to sign up with it, so a caller\n           cannot use this route to find out who is registered. A username that is taken\n           answers `409`: a username is public, and a signup form has to be able to say\n           so.\n\n           The created profile is not returned, for the same reason. Read it from\n           `GET /api/v1/users/{username}` once signed in.",
+    "operationId": "create_user_api_v1_users__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The signup was accepted, whether or not the address was free",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Create User Api V1 Users  Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Invalid user data"
+     },
+     "403": {
+      "description": "Self-service signup is off (LOCAL_SIGNUP_ENABLED)"
+     },
+     "409": {
+      "description": "Username already exists"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "List All Users",
+    "description": "Retrieves a paginated list of all users in the system.\n\n           Requires the `user.read` permission, which a role grants; superusers\n           always pass. The results include basic profile information for each\n           user.\n\n           For security reasons, sensitive information like passwords is never included\n           in the response.",
+    "operationId": "get_users_api_v1_users__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 10,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "A paginated list of users with total count and pagination metadata",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_UserRead_"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Not authorized - requires the user.read permission"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/me": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Get Current User Profile",
+    "description": "Retrieves the profile information of the currently authenticated user.\n\n            This endpoint provides users with their own profile data including:\n            - Basic profile information (name, username, email)\n            - Profile image URL\n            - Subscription tier information\n            - Authentication details (superuser status, email verification)\n\n            This is a convenient way for frontend applications to get the current\n            user's information for display or personalization purposes.",
+    "operationId": "get_current_user_profile_api_v1_users_me_get",
+    "responses": {
+     "200": {
+      "description": "The current user's profile data",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     }
+    }
+   }
+  },
+  "/api/v1/users/{username}": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Get User Profile by Username",
+    "description": "Retrieves a user's public profile by their unique username.\n\n            Any signed-in user can look up any other active user. The response carries\n            the display fields only - no email address - so the lookup can't be used to\n            collect addresses. Read your own full record from `/users/me`.\n\n            Note that usernames are case-sensitive in lookup operations.",
+    "operationId": "get_user_by_username_api_v1_users__username__get",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The requested user's profile data",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserProfileRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Update User Profile",
+    "description": "Updates a user's profile information.\n\n            This endpoint allows users to modify their own profile data, and users\n            holding the `user.update` permission to modify another user's data. Only\n            the fields provided in the request will be updated, and all fields are\n            optional.\n\n            Permission rules:\n            - Regular users can only update their own profiles\n            - Superusers can update any user's profile\n            - A credential that carries a scope, an API key among them, needs\n              `user.update` even for its owner's own profile\n            - A `user.update` holder can update another user only when that user is\n              not a superuser and holds no permission the requester lacks\n            - Note: Tier updates are handled by a separate endpoint (/users/{username}/tier)\n\n            The email address is not updatable here: an account moves its own address\n            through `POST /api/v1/auth/email/change-request`, which emails the new\n            address a confirmation link and tells the old one once it is used.\n\n            Username changes are validated to ensure uniqueness.",
+    "operationId": "update_user_profile_api_v1_users__username__patch",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Profile updated successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Update User Profile Api V1 Users  Username  Patch"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Invalid profile data"
+     },
+     "403": {
+      "description": "Not authorized to update this profile"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "409": {
+      "description": "Username already exists"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Deactivate User Account",
+    "description": "Soft-deletes (deactivates) a user account.\n\n            This endpoint performs a logical deletion of a user account, marking it\n            as deactivated in the system rather than permanently removing it. This allows\n            for potential reactivation in the future.\n\n            Permission rules:\n            - Regular users can only deactivate their own accounts\n            - Administrators can deactivate any user's account\n            - The caller must be signed in to a session; an API key cannot close an account\n            - With `FRESH_SIGN_IN_SECONDS` set, the sign-in must be no older than that\n\n            Deactivated accounts cannot be used for login and are typically hidden\n            from regular user listings.",
+    "operationId": "delete_user_account_api_v1_users__username__delete",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Account deactivated successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete User Account Api V1 Users  Username  Delete"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not signed in to a session"
+     },
+     "403": {
+      "description": "Not authorized to deactivate this account, or signed in too long ago"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/active-and-inactive/{username}": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Get Active and Inactive User Profile by Username(Admin)",
+    "description": "Retrieve a user's profile information by their unique username.\n\n            This endpoint can be used to look up any user in the system by their\n            username. It returns the same profile data structure as other user\n            endpoints but does not include sensitive information.\n\n            Note that usernames are case-sensitive in lookup operations.",
+    "operationId": "get_active_and_inactive_user_by_username_api_v1_users_active_and_inactive__username__get",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "the requested user's profile data",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Not authorized - requires admin privileges"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/db/{username}": {
+   "delete": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "GDPR Delete User (Admin)",
+    "description": "GDPR/LGPD compliant user deletion with data anonymization.\n\n            This admin-only endpoint anonymizes user PII while preserving business data\n            integrity and maintaining referential relationships for conversations and\n            analytics data.\n\n            This operation:\n            - Removes personally identifiable information (PII)\n            - Retains email for legal compliance purposes\n            - Prevents future login by clearing credentials\n            - Maintains foreign key relationships (conversations, logs)\n            - Logs the deletion event with legal basis for audit compliance\n\n            Unlike hard deletion, this approach:\n            - Complies with GDPR Article 17 (Right to Erasure)\n            - Preserves business analytics data\n            - Eliminates foreign key constraint violations\n            - Maintains audit trails for legal requirements\n\n            This operation is needed for:\n            - GDPR/LGPD data deletion requests\n            - Legal compliance while preserving business data\n            - Safe user removal without breaking referential integrity",
+    "operationId": "gdpr_delete_user_api_v1_users_db__username__delete",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "User anonymized successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Gdpr Delete User Api V1 Users Db  Username  Delete"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Not authorized - requires admin privileges"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{username}/tier": {
+   "get": {
+    "tags": [
+     "Tiers"
+    ],
+    "summary": "Get User Subscription Tier",
+    "description": "Retrieves detailed information about a user's subscription tier.\n\n            This endpoint returns comprehensive data about the user's current\n            subscription tier, including name, features, limitations, and any\n            custom configurations.\n\n            Permission rules:\n            - Users can view their own tier information\n            - Administrators can view any user's tier information\n\n            This is useful for displaying subscription information to users\n            or for determining available features in client applications.",
+    "operationId": "get_user_tier_api_v1_users__username__tier_get",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Tier information retrieved",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get User Tier Api V1 Users  Username  Tier Get"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Not authorized to view this tier information"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Tiers"
+    ],
+    "summary": "Update User Subscription Tier (Admin)",
+    "description": "Changes a user's subscription tier.\n\n            This admin-only endpoint allows changing which subscription tier\n            a user is assigned to. This affects the user's:\n            - API rate limits\n            - Available features\n            - Access privileges\n\n            When a user's tier is changed, all related configurations (such as\n            rate limits) are automatically updated based on the new tier's settings.",
+    "operationId": "update_user_tier_api_v1_users__username__tier_patch",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserTierUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "User tier updated successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Update User Tier Api V1 Users  Username  Tier Patch"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Invalid tier ID"
+     },
+     "403": {
+      "description": "Not authorized - requires admin privileges"
+     },
+     "404": {
+      "description": "User not found or tier not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{username}/rate-limits": {
+   "get": {
+    "tags": [
+     "Rate Limits"
+    ],
+    "summary": "Get User Rate Limits",
+    "description": "Retrieves the rate limit configuration for a specific user.\n\n            This endpoint returns detailed information about API rate limits\n            applicable to the user based on their subscription tier. This includes\n            limits for different API endpoints and operations.\n\n            Permission rules:\n            - Users can view their own rate limits\n            - Administrators can view any user's rate limits\n\n            This is useful for applications to understand their usage allowances\n            and implement appropriate client-side throttling.",
+    "operationId": "get_user_rate_limits_api_v1_users__username__rate_limits_get",
+    "parameters": [
+     {
+      "name": "username",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Username"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Rate limit information retrieved",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get User Rate Limits Api V1 Users  Username  Rate Limits Get"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Not authorized to view these rate limits"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{user_id}/roles": {
+   "get": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "List a User's Roles",
+    "description": "The roles an account holds.",
+    "operationId": "list_user_roles_api_v1_users__user_id__roles_get",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "User ID",
+       "title": "User Id"
+      },
+      "description": "User ID"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The roles the account holds",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/RoleRead"
+         },
+         "title": "Response List User Roles Api V1 Users  User Id  Roles Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.read permission"
+     },
+     "404": {
+      "description": "User not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tiers/": {
+   "get": {
+    "tags": [
+     "Tiers"
+    ],
+    "summary": "List tiers",
+    "description": "Paginated list of tiers (authenticated).",
+    "operationId": "get_tiers_api_v1_tiers__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 10,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_TierRead_"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tiers/{name}": {
+   "get": {
+    "tags": [
+     "Tiers"
+    ],
+    "summary": "Get a tier by name",
+    "description": "Get a tier by name (authenticated).",
+    "operationId": "get_tier_by_name_api_v1_tiers__name__get",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TierRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "404": {
+      "description": "Tier not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/rate-limits/": {
+   "get": {
+    "tags": [
+     "Rate Limits"
+    ],
+    "summary": "List All Rate Limits",
+    "description": "Retrieves a paginated list of all rate limits defined in the system.\n\n           This endpoint provides information about the API rate limits configured\n           for different subscription tiers. Each rate limit defines:\n           - The API path it applies to\n           - The maximum number of requests allowed (limit)\n           - The time period in seconds for the limit (period)\n           - The tier it belongs to\n\n           Results are paginated to handle systems with many rate limit configurations.",
+    "operationId": "get_rate_limits_api_v1_rate_limits__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 10,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "A paginated list of rate limits with their configuration details",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_RateLimitRead_"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Not a superuser"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/rate-limits/{name}": {
+   "get": {
+    "tags": [
+     "Rate Limits"
+    ],
+    "summary": "Get Active Rate Limit Details",
+    "description": "Retrieves detailed information about a specific rate limit by name.\n\n           This endpoint returns configuration details for a single rate limit,\n           identified by its unique name. The response includes:\n           - The API path it applies to\n           - The maximum number of requests allowed (limit)\n           - The time period in seconds for the limit (period)\n           - The tier it belongs to\n\n           Rate limit names are typically in the format of `path:limit:period`.",
+    "operationId": "get_rate_limit_api_v1_rate_limits__name__get",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Detailed configuration of the requested rate limit",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RateLimitRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Not a superuser"
+     },
+     "404": {
+      "description": "Rate limit not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Rate Limits"
+    ],
+    "summary": "Update Rate Limit (Admin)",
+    "description": "Updates an existing rate limit configuration.\n\n           This admin-only endpoint allows modifying the properties of a rate limit\n           identified by its unique name. The following properties can be updated:\n           - API path: The endpoint pattern to apply the limit to\n           - Limit: Maximum number of requests allowed in the period\n           - Period: Time window in seconds for the limit\n           - Name: The identifier of the rate limit\n\n           Only the fields provided in the request will be updated. Omitted fields\n           will retain their current values.\n\n           Note that updating a rate limit immediately affects all users in the\n           associated tier.",
+    "operationId": "update_rate_limit_api_v1_rate_limits__name__patch",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RateLimitUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Rate limit updated successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Update Rate Limit Api V1 Rate Limits  Name  Patch"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Invalid rate limit data"
+     },
+     "403": {
+      "description": "Not authorized - requires admin privileges"
+     },
+     "404": {
+      "description": "Rate limit not found"
+     },
+     "409": {
+      "description": "The new name, or the tier's limit for the new path, already exists"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Rate Limits"
+    ],
+    "summary": "Permanent Delete Rate Limit (Admin)",
+    "description": "Permanently removes a rate limit configuration from the system.\n\n            This admin-only endpoint allows deletion of a rate limit identified\n            by its unique name. Deleting a rate limit will immediately affect all\n            users in the associated tier.\n\n            Once a rate limit is deleted, the API endpoints previously governed\n            by that limit will fall back to either:\n            - Another less specific rate limit configuration for the same tier\n            - The default system-wide rate limit configuration\n\n            Use this endpoint with caution, as removing rate limits could potentially\n            allow users to make unlimited requests to certain API endpoints.",
+    "operationId": "delete_rate_limit_api_v1_rate_limits__name__delete",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Rate limit deleted successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Rate Limit Api V1 Rate Limits  Name  Delete"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Not authorized - requires admin privileges"
+     },
+     "404": {
+      "description": "Rate limit not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/me": {
+   "get": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Me",
+    "description": "Return the authenticated user's identity, scopes, and auth transport.",
+    "operationId": "me_api_v1_auth_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/change-password": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Change Password",
+    "description": "Change the password for an authenticated account, verifying the current one.\n\nNote:\n    Re-auth is the *current password*: the active session/token proves\n    presence, the current password proves intent. Allowed over any\n    transport - CSRF is automatic on the session path, and bearer has\n    no CSRF surface. An account with no usable password gets a 400\n    (use ``/set-password`` to create the first one).\n\nNote:\n    A password change is a compromise response: it bumps\n    ``token_version`` (evicting bearer tokens; a no-op without the\n    column) and revokes the user's OTHER sessions, keeping the current\n    one. Same eviction shape as a password reset.",
+    "operationId": "change_password_api_v1_auth_change_password_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/_ChangePasswordIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/logout-all": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Logout All",
+    "description": "Sign out of all sessions. ``keep_current=True`` keeps the calling session.",
+    "operationId": "logout_all_api_v1_auth_logout_all_post",
+    "parameters": [
+     {
+      "name": "keep_current",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Keep Current"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/sessions": {
+   "get": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "List Sessions",
+    "description": "List the user's active sessions. ``[]`` if the backend can't index by user.",
+    "operationId": "list_sessions_api_v1_auth_sessions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/SessionInfo"
+         },
+         "type": "array",
+         "title": "Response List Sessions Api V1 Auth Sessions Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/sessions/{session_handle}": {
+   "delete": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Revoke Session",
+    "description": "Revoke one session by the ``id`` listed in ``GET /sessions`` (404 also covers 'not yours').",
+    "operationId": "revoke_session_api_v1_auth_sessions__session_handle__delete",
+    "parameters": [
+     {
+      "name": "session_handle",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Session Handle"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/csrf/refresh": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Csrf Refresh",
+    "description": "Re-mint the CSRF cookie when it's lost but the session is still valid.\n\nNote:\n    Deliberately NOT behind ``current_user`` - requiring a valid CSRF\n    header to refresh CSRF would defeat the recovery purpose. It\n    resolves the session cookie directly. An attacker can *trigger*\n    this cross-origin (the session cookie auto-rides) but cannot\n    *read* the response or the new cookie (CORS), so they never learn\n    the token; and the self-heal guard returns the existing token\n    unchanged when it's already valid, so a triggered call never\n    rotates a healthy token.",
+    "operationId": "csrf_refresh_api_v1_auth_csrf_refresh_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/email/verify-request": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Request Verification",
+    "description": "Send a verification link to the recovery factor. Always succeeds (no enumeration).\n\n``redirect_to`` rides inside the signed token, so the person lands back\nwhere they started even when the link is opened on another device. Only\nsame-origin relative paths survive; anything else is dropped.",
+    "operationId": "request_verification_api_v1_auth_email_verify_request_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RecoveryRequestIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/email/verify-confirm": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Confirm Verification",
+    "description": "Confirm a verification token and mark the recovery factor verified.",
+    "operationId": "confirm_verification_api_v1_auth_email_verify_confirm_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/_TokenIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/password/reset-request": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Request Reset",
+    "description": "Send a password-reset link to the recovery factor. Always succeeds (no enumeration).\n\n``redirect_to`` is carried the same way as on verification.",
+    "operationId": "request_reset_api_v1_auth_password_reset_request_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RecoveryRequestIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/password/reset-confirm": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Reset",
+    "description": "Reset the password from a valid token and evict the user's other sessions.",
+    "operationId": "reset_api_v1_auth_password_reset_confirm_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/_ResetIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/email/change-confirm": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Change Confirm",
+    "description": "Confirm an email-change token and apply the new address.",
+    "operationId": "change_confirm_api_v1_auth_email_change_confirm_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/_TokenIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/email/change-request": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Change Request",
+    "description": "Request an email change (authenticated; re-auth via current password).",
+    "operationId": "change_request_api_v1_auth_email_change_request_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/_ChangeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/login": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "User Login",
+    "description": "Authenticates a user and creates a new session.\n\n            This endpoint accepts username/email and password credentials and verifies them.\n            On successful authentication:\n            - A new session is created\n            - A session ID is set as an HTTP-only cookie\n            - A CSRF token is generated for protection against CSRF attacks\n\n            With remember_me=true the session cookie persists across browser\n            restarts; otherwise it ends with the browser session.\n\n            The endpoint is protected by rate limiting to prevent brute force attacks.\n            After multiple failed attempts, further login attempts will be temporarily blocked.\n            A request the browser marks as sent from another site is refused, so a\n            third-party page can't sign a visitor into an account it controls.",
+    "operationId": "login_api_v1_auth_login_post",
+    "requestBody": {
+     "content": {
+      "application/x-www-form-urlencoded": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Login successful, session created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Login Api V1 Auth Login Post"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Authentication failed"
+     },
+     "403": {
+      "description": "Cross-site login request"
+     },
+     "429": {
+      "description": "Too many login attempts, try again later"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/logout": {
+   "post": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "User Logout",
+    "description": "Terminates the current user session.\n\n            This endpoint:\n            - Invalidates the active session in the storage backend\n            - Clears the cookies of every configured transport\n\n            After logout, the user will need to authenticate again to access\n            protected resources. Any existing session tokens will no longer be valid.",
+    "operationId": "logout_api_v1_auth_logout_post",
+    "responses": {
+     "200": {
+      "description": "Logout successful, session terminated",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "type": "object",
+         "title": "Response Logout Api V1 Auth Logout Post"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     }
+    }
+   }
+  },
+  "/api/v1/auth/check-auth": {
+   "get": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Check Auth",
+    "description": "Check if the user is authenticated and return basic user information.\n\nThis is useful for clients to verify authentication status. It responds to both\nauthenticated and anonymous callers (anonymous gets ``authenticated: false``\nrather than a 401).\n\nReturns:\n    Authentication status and user information if authenticated.",
+    "operationId": "check_auth_api_v1_auth_check_auth_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Check Auth Api V1 Auth Check Auth Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/whoami": {
+   "get": {
+    "tags": [
+     "Authentication"
+    ],
+    "summary": "Who Is Signed In",
+    "description": "The signed-in account, whether it is staff (Entra) or an external portal user, and what it may do.\n\nOne call gives a client everything it needs to build its menu.",
+    "operationId": "whoami_api_v1_auth_whoami_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Whoami Api V1 Auth Whoami Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/api-keys/": {
+   "post": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Create API Key",
+    "description": "Creates a new API key for the authenticated user.\n\n    API keys enable programmatic access to the API and are useful\n    for building developer-facing products and integrations.\n\n    - **name**: Human-readable name for the API key\n    - **permissions**: Registry permission names the key is scoped to, each one the caller holds\n    - **usage_limits**: Usage limits specific to this key\n    - **expires_at**: Optional expiration timestamp, with a UTC offset\n\n    \u26a0\ufe0f **Important**: The full API key is only shown once during creation.\n    Store it securely as it cannot be retrieved again.",
+    "operationId": "create_api_key_api_v1_api_keys__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/APIKeyCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "API key created successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/APIKeyResponse"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Invalid API key data"
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Get User API Keys",
+    "description": "Retrieves all API keys for the authenticated user.\n\n    - **active_only**: Whether to return only active keys (default: true)\n    - **page**: Page number (default: 1)\n    - **items_per_page**: Items per page (default: 50)\n\n    Returns keys sorted by creation date (newest first).\n    For security, only the key prefix is shown, not the full key.",
+    "operationId": "get_user_api_keys_api_v1_api_keys__get",
+    "parameters": [
+     {
+      "name": "active_only",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "description": "Return only active keys",
+       "default": true,
+       "title": "Active Only"
+      },
+      "description": "Return only active keys"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "API keys retrieved successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_APIKeyRead_"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/api-keys/{key_id}": {
+   "get": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Get API Key Details",
+    "description": "Retrieves details for a specific API key.\n\n    - **key_id**: ID of the API key to retrieve\n\n    Users can only access their own API keys.\n    Returns comprehensive key information including usage limits and the key's scope.",
+    "operationId": "get_api_key_api_v1_api_keys__key_id__get",
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "API key ID",
+       "title": "Key Id"
+      },
+      "description": "API key ID"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "API key details retrieved successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/APIKeyRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "403": {
+      "description": "Access denied to this API key"
+     },
+     "404": {
+      "description": "API key not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Update API Key",
+    "description": "Updates an existing API key.\n\n    - **key_id**: ID of the API key to update\n\n    Allows updating name, scope, usage limits, active status, and expiration.\n    Users can only update their own API keys.",
+    "operationId": "update_api_key_api_v1_api_keys__key_id__patch",
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "API key ID",
+       "title": "Key Id"
+      },
+      "description": "API key ID"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/APIKeyUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "API key updated successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/APIKeyRead"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Invalid update data"
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "403": {
+      "description": "Access denied to this API key"
+     },
+     "404": {
+      "description": "API key not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Delete API Key",
+    "description": "Deletes (deactivates) an API key.\n\n    - **key_id**: ID of the API key to delete\n\n    This operation deactivates the key rather than permanently deleting it\n    to maintain usage history and audit trails.\n\n    Users can only delete their own API keys.",
+    "operationId": "delete_api_key_api_v1_api_keys__key_id__delete",
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "API key ID",
+       "title": "Key Id"
+      },
+      "description": "API key ID"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "API key deleted successfully"
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "403": {
+      "description": "Access denied to this API key"
+     },
+     "404": {
+      "description": "API key not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/api-keys/{key_id}/usage": {
+   "get": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Get API Key Usage History",
+    "description": "Retrieves usage history for a specific API key.\n\n    - **key_id**: ID of the API key\n    - **page**: Page number (default: 1)\n    - **items_per_page**: Items per page (default: 100)\n\n    Returns usage records in reverse chronological order (newest first).\n    Includes details like endpoints used, response times, costs, and errors.",
+    "operationId": "get_key_usage_api_v1_api_keys__key_id__usage_get",
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "API key ID",
+       "title": "Key Id"
+      },
+      "description": "API key ID"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 100,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Usage history retrieved successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_KeyUsageRead_"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "403": {
+      "description": "Access denied to this API key"
+     },
+     "404": {
+      "description": "API key not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/api-keys/{key_id}/analytics": {
+   "get": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Get API Key Usage Analytics",
+    "description": "Retrieves comprehensive usage analytics for a specific API key.\n\n    - **key_id**: ID of the API key\n    - **days**: Number of days to analyze (default: 30), read down to the days\n      ``KEY_USAGE_RETENTION_DAYS`` still keeps\n\n    Returns detailed analytics including:\n    - Total and successful request counts\n    - Token usage and costs\n    - Average response times\n    - Most used endpoints\n    - Error breakdown",
+    "operationId": "get_key_analytics_api_v1_api_keys__key_id__analytics_get",
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "API key ID",
+       "title": "Key Id"
+      },
+      "description": "API key ID"
+     },
+     {
+      "name": "days",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 365,
+       "minimum": 1,
+       "description": "Number of days to analyze, capped at the retained window",
+       "default": 30,
+       "title": "Days"
+      },
+      "description": "Number of days to analyze, capped at the retained window"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Analytics retrieved successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/KeyUsageAnalytics"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Authentication required"
+     },
+     "403": {
+      "description": "Access denied to this API key"
+     },
+     "404": {
+      "description": "API key not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/api-keys/summary/user": {
+   "get": {
+    "tags": [
+     "API Keys"
+    ],
+    "summary": "Get User API Key Summary",
+    "description": "Retrieves a comprehensive summary of all API keys for the authenticated user.\n\n    Includes:\n    - Total and active key counts\n    - Overall usage statistics\n    - Total costs across all keys\n    - List of all keys with basic information\n\n    This endpoint provides a dashboard-style overview of the user's API key usage.",
+    "operationId": "get_user_summary_api_v1_api_keys_summary_user_get",
+    "responses": {
+     "200": {
+      "description": "User summary retrieved successfully",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserAPIKeySummary"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Authentication required"
+     }
+    }
+   }
+  },
+  "/api/v1/permissions": {
+   "get": {
+    "tags": [
+     "Permissions"
+    ],
+    "summary": "List Every Registered Permission",
+    "description": "Every permission the running project has, grouped by the resource that\n            declared it.\n\n            This is what a UI offers when it builds a role: the names are the only ones\n            a role may carry, since a grant for anything else is ignored wherever\n            permissions are checked.",
+    "operationId": "list_permissions_api_v1_permissions_get",
+    "responses": {
+     "200": {
+      "description": "The registered permission names, by resource",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "additionalProperties": {
+           "items": {
+            "type": "string"
+           },
+           "type": "array"
+          },
+          "type": "object"
+         },
+         "type": "object",
+         "title": "Response List Permissions Api V1 Permissions Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     }
+    }
+   }
+  },
+  "/api/v1/permissions/me": {
+   "get": {
+    "tags": [
+     "Permissions"
+    ],
+    "summary": "List the Caller's Own Permissions",
+    "description": "The permissions the caller effectively holds, gathered from every source the\n            project wired: their roles today, plus whatever else a feature contributes.\n\n            A superuser holds every registered permission. A name that is no longer\n            registered is left out, so a stale grant never appears here.",
+    "operationId": "list_my_permissions_api_v1_permissions_me_get",
+    "responses": {
+     "200": {
+      "description": "The caller's effective permission names",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "items": {
+           "type": "string"
+          },
+          "type": "array"
+         },
+         "type": "object",
+         "title": "Response List My Permissions Api V1 Permissions Me Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     }
+    }
+   }
+  },
+  "/api/v1/roles/": {
+   "get": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "List Roles",
+    "description": "A page of the roles this project has, each with the permissions it carries.",
+    "operationId": "list_roles_api_v1_roles__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 10,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "A page of roles",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_RoleRead_"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.read permission"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Create a Role",
+    "description": "Creates a role carrying the permissions named in the body.\n\n            Only registered permission names are accepted, and a caller may only hand out\n            permissions they hold themselves: a role carrying anything else answers 403 and\n            nothing is written. Superusers may grant anything.",
+    "operationId": "create_role_api_v1_roles__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RoleCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The role that was created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RoleRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.create permission, or granting what the caller doesn't hold"
+     },
+     "409": {
+      "description": "A role with this name already exists"
+     },
+     "422": {
+      "description": "An unknown permission name"
+     }
+    }
+   }
+  },
+  "/api/v1/roles/{role_id}": {
+   "get": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Get a Role",
+    "description": "One role, with the permissions it carries.",
+    "operationId": "get_role_api_v1_roles__role_id__get",
+    "parameters": [
+     {
+      "name": "role_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Role ID",
+       "title": "Role Id"
+      },
+      "description": "Role ID"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The role and the permissions it carries",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RoleRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.read permission"
+     },
+     "404": {
+      "description": "Role not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Rename a Role",
+    "description": "Changes a role's name or description. What it carries is set through\n            `PUT /api/v1/roles/{role_id}/permissions`.\n\n            A caller may only relabel a role whose permissions they hold themselves, so a\n            role stronger than the caller cannot be renamed into something it isn't.",
+    "operationId": "update_role_api_v1_roles__role_id__patch",
+    "parameters": [
+     {
+      "name": "role_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Role ID",
+       "title": "Role Id"
+      },
+      "description": "Role ID"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RoleUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The role as it now stands",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RoleRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.update permission, or relabelling a stronger role"
+     },
+     "404": {
+      "description": "Role not found"
+     },
+     "409": {
+      "description": "A role with this name already exists"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Delete a Role",
+    "description": "Deletes a role, and with it every assignment of it.\n\n            A caller may only delete a role whose permissions they hold themselves, and only\n            while every live account holding it is one they could unassign it from: a role held by\n            a superuser, or by an account holding something the caller doesn't, answers 403.",
+    "operationId": "delete_role_api_v1_roles__role_id__delete",
+    "parameters": [
+     {
+      "name": "role_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Role ID",
+       "title": "Role Id"
+      },
+      "description": "Role ID"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Success confirmation message",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Role Api V1 Roles  Role Id  Delete"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.delete permission, deleting what the caller doesn't hold, or a stronger holder"
+     },
+     "404": {
+      "description": "Role not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/roles/{role_id}/permissions": {
+   "put": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Set What a Role Carries",
+    "description": "Replaces the permissions a role carries with the ones in the body.\n\n            A caller may only hand out permissions they hold themselves, and may only take\n            away permissions they hold: a change that touches anything else answers 403 and\n            nothing is written. The change also reaches every live account holding the role, so it\n            answers 403 while one of them is a superuser or holds something the caller doesn't.\n            Superusers may set anything.",
+    "operationId": "set_role_permissions_api_v1_roles__role_id__permissions_put",
+    "parameters": [
+     {
+      "name": "role_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Role ID",
+       "title": "Role Id"
+      },
+      "description": "Role ID"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RolePermissions"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The role and what it now carries",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RoleRead"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.update permission, touching what the caller doesn't hold, or a stronger holder"
+     },
+     "404": {
+      "description": "Role not found"
+     },
+     "422": {
+      "description": "An unknown permission name"
+     }
+    }
+   }
+  },
+  "/api/v1/roles/{role_id}/users/{user_id}": {
+   "post": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Assign a Role",
+    "description": "Gives an account a role.\n\n            A caller may only assign a role whose permissions they hold themselves, and may\n            only change the roles of an account that is not a superuser and holds nothing\n            they don't hold: a role cannot be used to hand out more access than the caller\n            has, in either direction. Assigning a role the account already holds changes\n            nothing and still answers 201.",
+    "operationId": "assign_role_api_v1_roles__role_id__users__user_id__post",
+    "parameters": [
+     {
+      "name": "role_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Role ID",
+       "title": "Role Id"
+      },
+      "description": "Role ID"
+     },
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "User ID",
+       "title": "User Id"
+      },
+      "description": "User ID"
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Success confirmation message",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Assign Role Api V1 Roles  Role Id  Users  User Id  Post"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.assign permission, or reaching a role or an account the caller cannot"
+     },
+     "404": {
+      "description": "Role or user not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Roles"
+    ],
+    "summary": "Unassign a Role",
+    "description": "Takes a role away from an account, under the same rule as assigning it.",
+    "operationId": "unassign_role_api_v1_roles__role_id__users__user_id__delete",
+    "parameters": [
+     {
+      "name": "role_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Role ID",
+       "title": "Role Id"
+      },
+      "description": "Role ID"
+     },
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "User ID",
+       "title": "User Id"
+      },
+      "description": "User ID"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Success confirmation message",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Unassign Role Api V1 Roles  Role Id  Users  User Id  Delete"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Not authenticated"
+     },
+     "403": {
+      "description": "Missing the role.assign permission, or reaching a role or an account the caller cannot"
+     },
+     "404": {
+      "description": "Role or user not found"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/modules": {
+   "get": {
+    "tags": [
+     "Modules"
+    ],
+    "summary": "List Installed Modules",
+    "operationId": "list_modules_api_v1_modules_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ModuleRead"
+         },
+         "type": "array",
+         "title": "Response List Modules Api V1 Modules Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/teams/": {
+   "get": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "List Teams",
+    "operationId": "list_teams_api_v1_teams__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_TeamRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "Create a Team",
+    "operationId": "create_team_api_v1_teams__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TeamCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TeamRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/teams/mine": {
+   "get": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "List the Caller's Teams",
+    "operationId": "my_teams_api_v1_teams_mine_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/MyTeamRead"
+         },
+         "type": "array",
+         "title": "Response My Teams Api V1 Teams Mine Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/teams/{team_id}": {
+   "get": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "Get a Team and Its Members",
+    "description": "Open to holders of `team.read` and to the team's own members.",
+    "operationId": "get_team_api_v1_teams__team_id__get",
+    "parameters": [
+     {
+      "name": "team_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Team Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TeamDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "Change a Team",
+    "operationId": "update_team_api_v1_teams__team_id__patch",
+    "parameters": [
+     {
+      "name": "team_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Team Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TeamUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TeamDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "Delete a Team",
+    "operationId": "delete_team_api_v1_teams__team_id__delete",
+    "parameters": [
+     {
+      "name": "team_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Team Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Team Api V1 Teams  Team Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/teams/{team_id}/members/{user_id}": {
+   "put": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "Add a Member or Set Their Role",
+    "description": "On a team linked to an Entra group, only an existing member's role can be set.",
+    "operationId": "set_member_api_v1_teams__team_id__members__user_id__put",
+    "parameters": [
+     {
+      "name": "team_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Team Id"
+      }
+     },
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MembershipSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Set Member Api V1 Teams  Team Id  Members  User Id  Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Teams"
+    ],
+    "summary": "Remove a Member",
+    "description": "Refused on a team linked to an Entra group.",
+    "operationId": "remove_member_api_v1_teams__team_id__members__user_id__delete",
+    "parameters": [
+     {
+      "name": "team_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Team Id"
+      }
+     },
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Remove Member Api V1 Teams  Team Id  Members  User Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/entra/role-mappings": {
+   "get": {
+    "tags": [
+     "Entra ID"
+    ],
+    "summary": "List Entra App Role Mappings",
+    "operationId": "list_role_mappings_api_v1_entra_role_mappings_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RoleMappingRead"
+         },
+         "type": "array",
+         "title": "Response List Role Mappings Api V1 Entra Role Mappings Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/entra/role-mappings/{app_role_value}": {
+   "put": {
+    "tags": [
+     "Entra ID"
+    ],
+    "summary": "Map an Entra App Role",
+    "description": "Users holding this app role in Entra hold the role from their next sign-in; others lose it.",
+    "operationId": "set_role_mapping_api_v1_entra_role_mappings__app_role_value__put",
+    "parameters": [
+     {
+      "name": "app_role_value",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120,
+       "pattern": "^[A-Za-z0-9._-]+$",
+       "title": "App Role Value"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RoleMappingSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RoleMappingRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Entra ID"
+    ],
+    "summary": "Unmap an Entra App Role",
+    "operationId": "delete_role_mapping_api_v1_entra_role_mappings__app_role_value__delete",
+    "parameters": [
+     {
+      "name": "app_role_value",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120,
+       "pattern": "^[A-Za-z0-9._-]+$",
+       "title": "App Role Value"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Role Mapping Api V1 Entra Role Mappings  App Role Value  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/entra/sync": {
+   "post": {
+    "tags": [
+     "Entra ID"
+    ],
+    "summary": "Sync Linked Teams from Entra Now",
+    "operationId": "sync_now_api_v1_entra_sync_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SyncReport"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/projects/": {
+   "get": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "List the Projects the Caller May See",
+    "operationId": "list_projects_api_v1_projects__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 100,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_ProjectRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "Create a Project",
+    "operationId": "create_project_api_v1_projects__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProjectCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProjectRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/projects/{project_id}": {
+   "get": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "Get a Project",
+    "operationId": "get_project_api_v1_projects__project_id__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProjectRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "Change a Project",
+    "operationId": "update_project_api_v1_projects__project_id__patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProjectUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProjectRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Projects"
+    ],
+    "summary": "Delete a Project",
+    "operationId": "delete_project_api_v1_projects__project_id__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Project Api V1 Projects  Project Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/cvr/projects/{project_id}/cost-heads": {
+   "get": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "List Cost Heads",
+    "operationId": "list_cost_heads_api_v1_cvr_projects__project_id__cost_heads_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CostHeadRead"
+         },
+         "title": "Response List Cost Heads Api V1 Cvr Projects  Project Id  Cost Heads Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "Add a Cost Head",
+    "operationId": "add_cost_head_api_v1_cvr_projects__project_id__cost_heads_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CostHeadCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CostHeadRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/cvr/projects/{project_id}/cost-heads/{head_id}": {
+   "patch": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "Change a Cost Head",
+    "operationId": "update_cost_head_api_v1_cvr_projects__project_id__cost_heads__head_id__patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "head_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Head Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CostHeadUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CostHeadRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "Delete a Cost Head",
+    "operationId": "delete_cost_head_api_v1_cvr_projects__project_id__cost_heads__head_id__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "head_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Head Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Cost Head Api V1 Cvr Projects  Project Id  Cost Heads  Head Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/cvr/projects/{project_id}/summary": {
+   "get": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "Totals and Margins",
+    "operationId": "summary_api_v1_cvr_projects__project_id__summary_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CvrSummary"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/cvr/projects/{project_id}/cashflow": {
+   "get": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "Monthly Cashflow",
+    "operationId": "cashflow_api_v1_cvr_projects__project_id__cashflow_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CashflowPeriodRead"
+         },
+         "title": "Response Cashflow Api V1 Cvr Projects  Project Id  Cashflow Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "Cost-Value Reconciliation"
+    ],
+    "summary": "Replace the Cashflow",
+    "operationId": "set_cashflow_api_v1_cvr_projects__project_id__cashflow_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CashflowSet"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CashflowPeriodRead"
+         },
+         "title": "Response Set Cashflow Api V1 Cvr Projects  Project Id  Cashflow Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/portal/invitations": {
+   "post": {
+    "tags": [
+     "Client Portal"
+    ],
+    "summary": "Invite an External User",
+    "description": "Creates the account and emails a link to set its password. The account can't sign in until then.",
+    "operationId": "invite_api_v1_portal_invitations_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InvitationCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExternalUserRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/portal/users": {
+   "get": {
+    "tags": [
+     "Client Portal"
+    ],
+    "summary": "List External Users",
+    "operationId": "list_external_users_api_v1_portal_users_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ExternalUserRead"
+         },
+         "type": "array",
+         "title": "Response List External Users Api V1 Portal Users Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/portal/users/{user_id}/resend-invitation": {
+   "post": {
+    "tags": [
+     "Client Portal"
+    ],
+    "summary": "Resend the Set-Password Link",
+    "operationId": "resend_api_v1_portal_users__user_id__resend_invitation_post",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Resend Api V1 Portal Users  User Id  Resend Invitation Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "summary": "Health Check",
+    "description": "Liveness: the process is up and serving. Checks nothing else.",
+    "operationId": "health_check_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "type": "object",
+         "title": "Response Health Check Health Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health/ready": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "summary": "Readiness Check",
+    "description": "Readiness: whether every dependency a request needs answers.\n\nAnswers 503 while a critical dependency is unreachable, and 200 otherwise. The body\ncarries the overall status; which dependency answered what is in the log. An\ninformational dependency, such as the cache or the broker, leaves the answer ready.",
+    "operationId": "readiness_check_health_ready_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "type": "object",
+         "title": "Response Readiness Check Health Ready Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "APIKeyCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Name",
+      "description": "Human-readable name for the API key"
+     },
+     "permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Permissions",
+      "description": "Registry permission names the key is scoped to",
+      "examples": [
+       [
+        "user.read",
+        "user.update"
+       ]
+      ]
+     },
+     "usage_limits": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Usage Limits",
+      "description": "Requests the key may make per window, over any of: requests_per_day, requests_per_hour, requests_per_minute",
+      "examples": [
+       {
+        "requests_per_day": 10000,
+        "requests_per_minute": 60
+       }
+      ]
+     },
+     "expires_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expires At",
+      "description": "Key expiration timestamp"
+     },
+     "key_metadata": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Metadata",
+      "description": "Additional key metadata"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "APIKeyCreate",
+    "description": "Schema for creating a new API key."
+   },
+   "APIKeyRead": {
+    "properties": {
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "owner_token_version": {
+      "type": "integer",
+      "title": "Owner Token Version",
+      "description": "The owner's credential generation when the key was minted",
+      "default": 0
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "Human-readable name for the API key"
+     },
+     "key_prefix": {
+      "type": "string",
+      "title": "Key Prefix"
+     },
+     "permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Permissions",
+      "description": "Registry permission names the key is scoped to"
+     },
+     "usage_limits": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Usage Limits",
+      "description": "Requests the key may make per window, over any of: requests_per_day, requests_per_hour, requests_per_minute"
+     },
+     "expires_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expires At",
+      "description": "Key expiration timestamp"
+     },
+     "key_metadata": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Metadata",
+      "description": "Additional key metadata"
+     },
+     "last_used_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Used At"
+     },
+     "last_used_ip": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Used Ip"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "user_id",
+     "name",
+     "key_prefix",
+     "permissions",
+     "usage_limits",
+     "expires_at",
+     "key_metadata",
+     "last_used_at",
+     "last_used_ip",
+     "is_active"
+    ],
+    "title": "APIKeyRead",
+    "description": "An API key row as it is stored, with none of the input rules from ``APIKeyBase``."
+   },
+   "APIKeyResponse": {
+    "properties": {
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "owner_token_version": {
+      "type": "integer",
+      "title": "Owner Token Version",
+      "description": "The owner's credential generation when the key was minted",
+      "default": 0
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "Human-readable name for the API key"
+     },
+     "key_prefix": {
+      "type": "string",
+      "title": "Key Prefix"
+     },
+     "permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Permissions",
+      "description": "Registry permission names the key is scoped to"
+     },
+     "usage_limits": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Usage Limits",
+      "description": "Requests the key may make per window, over any of: requests_per_day, requests_per_hour, requests_per_minute"
+     },
+     "expires_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expires At",
+      "description": "Key expiration timestamp"
+     },
+     "last_used_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Used At"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active"
+     },
+     "api_key": {
+      "type": "string",
+      "title": "Api Key",
+      "description": "Full API key - only shown once during creation"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "user_id",
+     "name",
+     "key_prefix",
+     "permissions",
+     "usage_limits",
+     "expires_at",
+     "last_used_at",
+     "is_active",
+     "api_key"
+    ],
+    "title": "APIKeyResponse",
+    "description": "Schema for API key creation response: the key itself, and the row as read.\n\nFollows ``APIKeyRead``, with ``key_metadata`` and ``last_used_ip`` excluded from\nthe response."
+   },
+   "APIKeyUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "permissions": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Permissions"
+     },
+     "usage_limits": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Usage Limits"
+     },
+     "is_active": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Active"
+     },
+     "expires_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expires At"
+     },
+     "key_metadata": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Metadata"
+     }
+    },
+    "type": "object",
+    "title": "APIKeyUpdate",
+    "description": "Schema for updating an existing API key."
+   },
+   "Body_login_api_v1_auth_login_post": {
+    "properties": {
+     "remember_me": {
+      "type": "boolean",
+      "title": "Remember Me",
+      "default": false
+     },
+     "grant_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^password$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Grant Type"
+     },
+     "username": {
+      "type": "string",
+      "title": "Username"
+     },
+     "password": {
+      "type": "string",
+      "format": "password",
+      "title": "Password"
+     },
+     "scope": {
+      "type": "string",
+      "title": "Scope",
+      "default": ""
+     },
+     "client_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Id"
+     },
+     "client_secret": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "format": "password",
+      "title": "Client Secret"
+     }
+    },
+    "type": "object",
+    "required": [
+     "username",
+     "password"
+    ],
+    "title": "Body_login_api_v1_auth_login_post"
+   },
+   "CashflowPeriodIn": {
+    "properties": {
+     "period": {
+      "type": "string",
+      "format": "date",
+      "title": "Period",
+      "description": "Any day in the month; stored as the first of the month"
+     },
+     "planned_cost": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Planned Cost",
+      "default": "0"
+     },
+     "actual_cost": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Cost"
+     },
+     "planned_value": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Planned Value",
+      "default": "0"
+     },
+     "actual_value": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Value"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "period"
+    ],
+    "title": "CashflowPeriodIn"
+   },
+   "CashflowPeriodRead": {
+    "properties": {
+     "period": {
+      "type": "string",
+      "format": "date",
+      "title": "Period"
+     },
+     "planned_cost": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Planned Cost"
+     },
+     "actual_cost": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Cost"
+     },
+     "planned_value": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Planned Value"
+     },
+     "actual_value": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actual Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "period",
+     "planned_cost",
+     "actual_cost",
+     "planned_value",
+     "actual_value"
+    ],
+    "title": "CashflowPeriodRead"
+   },
+   "CashflowSet": {
+    "properties": {
+     "periods": {
+      "items": {
+       "$ref": "#/components/schemas/CashflowPeriodIn"
+      },
+      "type": "array",
+      "maxItems": 240,
+      "title": "Periods"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "periods"
+    ],
+    "title": "CashflowSet"
+   },
+   "CostHeadCreate": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "maxLength": 30,
+      "minLength": 1,
+      "title": "Code"
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Description"
+     },
+     "sort_order": {
+      "type": "integer",
+      "title": "Sort Order",
+      "default": 0
+     },
+     "budget": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Budget",
+      "default": "0"
+     },
+     "cost_to_date": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Cost To Date",
+      "default": "0"
+     },
+     "value_to_date": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Value To Date",
+      "default": "0"
+     },
+     "forecast_cost": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Forecast Cost",
+      "default": "0"
+     },
+     "forecast_value": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       }
+      ],
+      "title": "Forecast Value",
+      "default": "0"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "code",
+     "description"
+    ],
+    "title": "CostHeadCreate"
+   },
+   "CostHeadRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "sort_order": {
+      "type": "integer",
+      "title": "Sort Order"
+     },
+     "budget": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Budget"
+     },
+     "cost_to_date": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Cost To Date"
+     },
+     "value_to_date": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Value To Date"
+     },
+     "forecast_cost": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Forecast Cost"
+     },
+     "forecast_value": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Forecast Value"
+     },
+     "margin_to_date": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Margin To Date",
+      "readOnly": true
+     },
+     "forecast_margin": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Forecast Margin",
+      "readOnly": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "code",
+     "description",
+     "sort_order",
+     "budget",
+     "cost_to_date",
+     "value_to_date",
+     "forecast_cost",
+     "forecast_value",
+     "margin_to_date",
+     "forecast_margin"
+    ],
+    "title": "CostHeadRead"
+   },
+   "CostHeadUpdate": {
+    "properties": {
+     "code": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 30,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Code"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 300,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "sort_order": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sort Order"
+     },
+     "budget": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Budget"
+     },
+     "cost_to_date": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost To Date"
+     },
+     "value_to_date": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value To Date"
+     },
+     "forecast_cost": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Forecast Cost"
+     },
+     "forecast_value": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": -99999999999999.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Forecast Value"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "CostHeadUpdate",
+    "description": "Only the fields sent change: a grid edit sends the one cell."
+   },
+   "CvrSummary": {
+    "properties": {
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency"
+     },
+     "budget": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Budget"
+     },
+     "cost_to_date": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Cost To Date"
+     },
+     "value_to_date": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Value To Date"
+     },
+     "margin_to_date": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Margin To Date"
+     },
+     "margin_to_date_pct": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Margin To Date Pct"
+     },
+     "forecast_cost": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Forecast Cost"
+     },
+     "forecast_value": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Forecast Value"
+     },
+     "forecast_margin": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Forecast Margin"
+     },
+     "forecast_margin_pct": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Forecast Margin Pct"
+     }
+    },
+    "type": "object",
+    "required": [
+     "project_id",
+     "currency",
+     "budget",
+     "cost_to_date",
+     "value_to_date",
+     "margin_to_date",
+     "margin_to_date_pct",
+     "forecast_cost",
+     "forecast_value",
+     "forecast_margin",
+     "forecast_margin_pct"
+    ],
+    "title": "CvrSummary"
+   },
+   "ExternalUserRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "username": {
+      "type": "string",
+      "title": "Username"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "email_verified": {
+      "type": "boolean",
+      "title": "Email Verified"
+     },
+     "activated": {
+      "type": "boolean",
+      "title": "Activated",
+      "description": "Has set a password from the invitation"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "teams": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Teams"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "username",
+     "email",
+     "email_verified",
+     "activated"
+    ],
+    "title": "ExternalUserRead"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "InvitationCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 30,
+      "minLength": 2,
+      "title": "Name"
+     },
+     "email": {
+      "type": "string",
+      "maxLength": 50,
+      "format": "email",
+      "title": "Email"
+     },
+     "team_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Team Ids",
+      "description": "Teams (not Entra-linked) to place them in"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name",
+     "email"
+    ],
+    "title": "InvitationCreate"
+   },
+   "KeyUsageAnalytics": {
+    "properties": {
+     "api_key_id": {
+      "type": "integer",
+      "title": "Api Key Id"
+     },
+     "total_requests": {
+      "type": "integer",
+      "title": "Total Requests"
+     },
+     "successful_requests": {
+      "type": "integer",
+      "title": "Successful Requests"
+     },
+     "failed_requests": {
+      "type": "integer",
+      "title": "Failed Requests"
+     },
+     "total_tokens": {
+      "type": "integer",
+      "title": "Total Tokens"
+     },
+     "total_cost_microcents": {
+      "type": "integer",
+      "title": "Total Cost Microcents"
+     },
+     "average_response_time_ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Average Response Time Ms"
+     },
+     "most_used_endpoints": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Most Used Endpoints"
+     },
+     "error_breakdown": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Error Breakdown"
+     },
+     "usage_by_day": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Usage By Day"
+     }
+    },
+    "type": "object",
+    "required": [
+     "api_key_id",
+     "total_requests",
+     "successful_requests",
+     "failed_requests",
+     "total_tokens",
+     "total_cost_microcents",
+     "average_response_time_ms",
+     "most_used_endpoints",
+     "error_breakdown",
+     "usage_by_day"
+    ],
+    "title": "KeyUsageAnalytics",
+    "description": "Schema for key usage analytics."
+   },
+   "KeyUsageRead": {
+    "properties": {
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "api_key_id": {
+      "type": "integer",
+      "title": "Api Key Id"
+     },
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "endpoint": {
+      "type": "string",
+      "title": "Endpoint",
+      "description": "API endpoint used"
+     },
+     "method": {
+      "type": "string",
+      "title": "Method",
+      "description": "HTTP method"
+     },
+     "status_code": {
+      "type": "integer",
+      "title": "Status Code",
+      "description": "Response status code"
+     },
+     "tokens_used": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tokens Used",
+      "description": "AI tokens consumed"
+     },
+     "cost_microcents": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost Microcents",
+      "description": "Cost in microcents"
+     },
+     "response_time_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Response Time Ms",
+      "description": "Response time in milliseconds"
+     },
+     "ip_address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ip Address",
+      "description": "Client IP address"
+     },
+     "user_agent": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Agent",
+      "description": "Client user agent"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message",
+      "description": "Error details if any"
+     },
+     "usage_metadata": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Usage Metadata",
+      "description": "Additional usage metadata"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "api_key_id",
+     "user_id",
+     "endpoint",
+     "method",
+     "status_code",
+     "tokens_used",
+     "cost_microcents",
+     "response_time_ms",
+     "ip_address",
+     "user_agent",
+     "error_message",
+     "usage_metadata"
+    ],
+    "title": "KeyUsageRead",
+    "description": "A usage row as it is stored, with none of the input rules from ``KeyUsageBase``."
+   },
+   "MembershipSet": {
+    "properties": {
+     "role": {
+      "$ref": "#/components/schemas/TeamRole",
+      "default": "member"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "MembershipSet"
+   },
+   "ModuleRead": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "version": {
+      "type": "string",
+      "title": "Version"
+     },
+     "display_name": {
+      "type": "string",
+      "title": "Display Name"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "depends": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Depends"
+     },
+     "enabled": {
+      "type": "boolean",
+      "title": "Enabled"
+     },
+     "api_prefix": {
+      "type": "string",
+      "title": "Api Prefix"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "version",
+     "display_name",
+     "description",
+     "category",
+     "depends",
+     "enabled",
+     "api_prefix"
+    ],
+    "title": "ModuleRead"
+   },
+   "MyTeamRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "entra_group_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra Group Id"
+     },
+     "member_count": {
+      "type": "integer",
+      "title": "Member Count",
+      "default": 0
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "my_role": {
+      "$ref": "#/components/schemas/TeamRole"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "my_role"
+    ],
+    "title": "MyTeamRead"
+   },
+   "PaginatedListResponse_APIKeyRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/APIKeyRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[APIKeyRead]"
+   },
+   "PaginatedListResponse_KeyUsageRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/KeyUsageRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[KeyUsageRead]"
+   },
+   "PaginatedListResponse_ProjectRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/ProjectRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[ProjectRead]"
+   },
+   "PaginatedListResponse_RateLimitRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/RateLimitRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[RateLimitRead]"
+   },
+   "PaginatedListResponse_RoleRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/RoleRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[RoleRead]"
+   },
+   "PaginatedListResponse_TeamRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/TeamRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[TeamRead]"
+   },
+   "PaginatedListResponse_TierRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/TierRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[TierRead]"
+   },
+   "PaginatedListResponse_UserRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/UserRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[UserRead]"
+   },
+   "ProjectCreate": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "maxLength": 30,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "title": "Code",
+      "examples": [
+       "P-24017"
+      ]
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "client_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Name"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "status": {
+      "$ref": "#/components/schemas/ProjectStatus",
+      "default": "active"
+     },
+     "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "title": "Currency",
+      "default": "AUD",
+      "examples": [
+       "AUD"
+      ]
+     },
+     "client_team_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Team Id"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "code",
+     "name"
+    ],
+    "title": "ProjectCreate"
+   },
+   "ProjectRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "client_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Name"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "status": {
+      "$ref": "#/components/schemas/ProjectStatus"
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency"
+     },
+     "client_team_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Team Id"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "code",
+     "name",
+     "client_name",
+     "location",
+     "description",
+     "status",
+     "currency",
+     "client_team_id"
+    ],
+    "title": "ProjectRead"
+   },
+   "ProjectStatus": {
+    "type": "string",
+    "enum": [
+     "active",
+     "on_hold",
+     "closed"
+    ],
+    "title": "ProjectStatus"
+   },
+   "ProjectUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "client_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Name"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProjectStatus"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "currency": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^[A-Z]{3}$",
+        "examples": [
+         "AUD"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Currency"
+     },
+     "client_team_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Client Team Id"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "ProjectUpdate"
+   },
+   "RateLimitRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "tier_id": {
+      "type": "integer",
+      "title": "Tier Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "period": {
+      "type": "integer",
+      "title": "Period"
+     },
+     "is_deleted": {
+      "type": "boolean",
+      "title": "Is Deleted",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "tier_id",
+     "name",
+     "path",
+     "limit",
+     "period"
+    ],
+    "title": "RateLimitRead",
+    "description": "Schema for reading rate limit data.\n\nThe path format and the positive bounds belong to the create and update\nschemas. Repeating them here would answer 500 for a row the app already\nholds, such as one stored before the format was tightened."
+   },
+   "RateLimitUpdate": {
+    "properties": {
+     "path": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Path"
+     },
+     "limit": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 2147483647.0,
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Limit"
+     },
+     "period": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 2147483647.0,
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "title": "RateLimitUpdate",
+    "description": "Schema for updating rate limit information."
+   },
+   "RecoveryRequestIn": {
+    "properties": {
+     "redirect_to": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Redirect To"
+     },
+     "email": {
+      "type": "string",
+      "format": "email",
+      "title": "Email"
+     }
+    },
+    "type": "object",
+    "required": [
+     "email"
+    ],
+    "title": "RecoveryRequestIn"
+   },
+   "RoleCreate": {
+    "properties": {
+     "permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Permissions",
+      "examples": [
+       [
+        "user.read",
+        "user.update"
+       ]
+      ]
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Name",
+      "examples": [
+       "editor"
+      ]
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description",
+      "examples": [
+       "Edits other people's profiles"
+      ]
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "RoleCreate",
+    "description": "A new role, and what it carries."
+   },
+   "RoleMappingRead": {
+    "properties": {
+     "app_role_value": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "App Role Value"
+     },
+     "role_id": {
+      "type": "integer",
+      "title": "Role Id"
+     },
+     "role_name": {
+      "type": "string",
+      "title": "Role Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "app_role_value",
+     "role_id",
+     "role_name"
+    ],
+    "title": "RoleMappingRead"
+   },
+   "RoleMappingSet": {
+    "properties": {
+     "role_id": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Role Id"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "role_id"
+    ],
+    "title": "RoleMappingSet"
+   },
+   "RolePermissions": {
+    "properties": {
+     "permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Permissions",
+      "examples": [
+       [
+        "user.read",
+        "user.update"
+       ]
+      ]
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "RolePermissions",
+    "description": "The permissions a role carries."
+   },
+   "RoleRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Permissions"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "RoleRead",
+    "description": "A role as the API answers it."
+   },
+   "RoleUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50,
+        "minLength": 1,
+        "examples": [
+         "editor"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description",
+      "examples": [
+       "Edits other people's profiles"
+      ]
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "RoleUpdate",
+    "description": "A change to a role's name or description; its permissions have their own route."
+   },
+   "SessionInfo": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "device": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Device"
+     },
+     "ip": {
+      "type": "string",
+      "title": "Ip",
+      "default": ""
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "last_activity": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Activity"
+     },
+     "current": {
+      "type": "boolean",
+      "title": "Current",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "created_at",
+     "last_activity"
+    ],
+    "title": "SessionInfo",
+    "description": "One active session, as returned by ``GET /sessions`` (the opt-in management route).\n\n``id`` is the session's public handle (the SHA-256 of its id), what\n``DELETE /sessions/{id}`` takes; the session id itself is the cookie value and\nis never returned. ``device`` is the parsed user-agent info (browser/os/device\nflags), empty when UA parsing isn't available; timestamps serialize to ISO-8601.\n\nExample:\n    ```python\n    # each entry in the GET /sessions response:\n    SessionInfo(\n        id=\"5d41...\",\n        device={\"browser\": \"Chrome\", \"os\": \"macOS\", \"is_mobile\": False},\n        ip=\"203.0.113.7\",\n        created_at=created, last_activity=seen, current=True,\n    )\n    ```"
+   },
+   "SyncReport": {
+    "properties": {
+     "teams_synced": {
+      "type": "integer",
+      "title": "Teams Synced",
+      "default": 0
+     },
+     "memberships_added": {
+      "type": "integer",
+      "title": "Memberships Added",
+      "default": 0
+     },
+     "memberships_removed": {
+      "type": "integer",
+      "title": "Memberships Removed",
+      "default": 0
+     },
+     "unknown_users_skipped": {
+      "type": "integer",
+      "title": "Unknown Users Skipped",
+      "default": 0
+     },
+     "teams_failed": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Teams Failed"
+     }
+    },
+    "type": "object",
+    "title": "SyncReport"
+   },
+   "TeamCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Name",
+      "examples": [
+       "QC Inspectors - Perth"
+      ]
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "entra_group_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra Group Id",
+      "description": "Object id of the Entra security group this team's members come from"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "TeamCreate"
+   },
+   "TeamDetail": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "entra_group_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra Group Id"
+     },
+     "member_count": {
+      "type": "integer",
+      "title": "Member Count",
+      "default": 0
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/TeamMemberRead"
+      },
+      "type": "array",
+      "title": "Members"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "TeamDetail"
+   },
+   "TeamMemberRead": {
+    "properties": {
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "username": {
+      "type": "string",
+      "title": "Username"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "role": {
+      "$ref": "#/components/schemas/TeamRole"
+     },
+     "joined_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Joined At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "user_id",
+     "name",
+     "username",
+     "email",
+     "role"
+    ],
+    "title": "TeamMemberRead"
+   },
+   "TeamRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "entra_group_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra Group Id"
+     },
+     "member_count": {
+      "type": "integer",
+      "title": "Member Count",
+      "default": 0
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "TeamRead"
+   },
+   "TeamRole": {
+    "type": "string",
+    "enum": [
+     "member",
+     "lead",
+     "manager"
+    ],
+    "title": "TeamRole",
+    "description": "A member's role within one team. Ordered weakest first."
+   },
+   "TeamUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 1,
+        "examples": [
+         "QC Inspectors - Perth"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "entra_group_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra Group Id",
+      "description": "Object id of the Entra security group this team's members come from"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "TeamUpdate",
+    "description": "Only the fields sent are changed; ``entra_group_id: null`` unlinks the group."
+   },
+   "TierRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "is_deleted": {
+      "type": "boolean",
+      "title": "Is Deleted",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "created_at"
+    ],
+    "title": "TierRead",
+    "description": "Schema for reading tier data.\n\nThe name's length rule belongs to the create schema; a read that repeated it\nwould answer 500 for a row the app already holds."
+   },
+   "UserAPIKeySummary": {
+    "properties": {
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "total_keys": {
+      "type": "integer",
+      "title": "Total Keys"
+     },
+     "active_keys": {
+      "type": "integer",
+      "title": "Active Keys"
+     },
+     "total_requests": {
+      "type": "integer",
+      "title": "Total Requests",
+      "description": "Requests recorded over the retained window (KEY_USAGE_RETENTION_DAYS)"
+     },
+     "total_cost_microcents": {
+      "type": "integer",
+      "title": "Total Cost Microcents",
+      "description": "Cost recorded over the retained window (KEY_USAGE_RETENTION_DAYS)"
+     },
+     "keys": {
+      "items": {
+       "$ref": "#/components/schemas/APIKeyRead"
+      },
+      "type": "array",
+      "title": "Keys"
+     }
+    },
+    "type": "object",
+    "required": [
+     "user_id",
+     "total_keys",
+     "active_keys",
+     "total_requests",
+     "total_cost_microcents",
+     "keys"
+    ],
+    "title": "UserAPIKeySummary",
+    "description": "Schema for user API key summary."
+   },
+   "UserCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 30,
+      "minLength": 2,
+      "title": "Name",
+      "examples": [
+       "User Userson"
+      ]
+     },
+     "username": {
+      "type": "string",
+      "maxLength": 32,
+      "minLength": 2,
+      "pattern": "^[a-z0-9_]+$",
+      "title": "Username",
+      "examples": [
+       "userson"
+      ]
+     },
+     "email": {
+      "type": "string",
+      "maxLength": 50,
+      "format": "email",
+      "title": "Email",
+      "examples": [
+       "user.userson@example.com"
+      ]
+     },
+     "password": {
+      "type": "string",
+      "minLength": 8,
+      "title": "Password",
+      "description": "At least 8 characters, including an uppercase letter, a lowercase letter, a digit and a special character."
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "name",
+     "username",
+     "email",
+     "password"
+    ],
+    "title": "UserCreate",
+    "description": "Schema for creating a new user.\n\nSigning up never sets the OAuth identifiers or ``email_verified``: a self-declared\nverified address would pre-claim it, and crudauth links a provider login to an\nexisting account by verified email. Those fields belong to\n``UserCreateInternal``, which only server-side code builds."
+   },
+   "UserProfileRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "examples": [
+       "User Userson"
+      ]
+     },
+     "username": {
+      "type": "string",
+      "title": "Username",
+      "examples": [
+       "userson"
+      ]
+     },
+     "profile_image_url": {
+      "type": "string",
+      "title": "Profile Image Url"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "username",
+     "profile_image_url"
+    ],
+    "title": "UserProfileRead",
+    "description": "Another user's profile: the display fields any signed-in user may see.\n\nNo email address, and none of the fields other features add to the user read\nschemas. The owner reads their own record through ``/users/me``, and a superuser\nthrough the list and active-and-inactive endpoints."
+   },
+   "UserRead": {
+    "properties": {
+     "tier_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tier Id"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "examples": [
+       "User Userson"
+      ]
+     },
+     "username": {
+      "type": "string",
+      "title": "Username",
+      "examples": [
+       "userson"
+      ]
+     },
+     "email": {
+      "type": "string",
+      "title": "Email",
+      "examples": [
+       "user.userson@example.com"
+      ]
+     },
+     "profile_image_url": {
+      "type": "string",
+      "title": "Profile Image Url"
+     },
+     "is_deleted": {
+      "type": "boolean",
+      "title": "Is Deleted",
+      "default": false
+     },
+     "is_superuser": {
+      "type": "boolean",
+      "title": "Is Superuser",
+      "default": false
+     },
+     "email_verified": {
+      "type": "boolean",
+      "title": "Email Verified",
+      "default": false
+     },
+     "oauth_provider": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oauth Provider"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "username",
+     "email",
+     "profile_image_url"
+    ],
+    "title": "UserRead",
+    "description": "Schema for reading user data, excludes sensitive information.\n\nThe input rules live on the create and update schemas. A read schema that\nrepeated them would refuse rows the app itself writes, such as the short name\na provider login can leave behind, and turn them into a failed response."
+   },
+   "UserTierUpdate": {
+    "properties": {
+     "tier_id": {
+      "type": "integer",
+      "maximum": 2147483647.0,
+      "minimum": 1.0,
+      "title": "Tier Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "tier_id"
+    ],
+    "title": "UserTierUpdate",
+    "description": "The payload for putting a user on a tier."
+   },
+   "UserUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 30,
+        "minLength": 2
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name",
+      "examples": [
+       "User Userberg"
+      ]
+     },
+     "username": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 32,
+        "minLength": 2,
+        "pattern": "^[a-z0-9_]+$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Username",
+      "examples": [
+       "userberg"
+      ]
+     },
+     "profile_image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2048,
+        "pattern": "^(https?|ftp)://[^\\s/$.?#].[^\\s]*$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Profile Image Url",
+      "examples": [
+       "https://www.profileimageurl.com"
+      ]
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "UserUpdate",
+    "description": "Schema for updating user data."
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "_ChangeIn": {
+    "properties": {
+     "redirect_to": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Redirect To"
+     },
+     "new_email": {
+      "type": "string",
+      "format": "email",
+      "title": "New Email"
+     },
+     "password": {
+      "type": "string",
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "required": [
+     "new_email",
+     "password"
+    ],
+    "title": "_ChangeIn"
+   },
+   "_ChangePasswordIn": {
+    "properties": {
+     "current_password": {
+      "type": "string",
+      "title": "Current Password"
+     },
+     "new_password": {
+      "type": "string",
+      "minLength": 8,
+      "title": "New Password",
+      "description": "At least 8 characters, including an uppercase letter, a lowercase letter, a digit and a special character."
+     }
+    },
+    "type": "object",
+    "required": [
+     "current_password",
+     "new_password"
+    ],
+    "title": "_ChangePasswordIn"
+   },
+   "_ResetIn": {
+    "properties": {
+     "token": {
+      "type": "string",
+      "title": "Token"
+     },
+     "new_password": {
+      "type": "string",
+      "minLength": 8,
+      "title": "New Password",
+      "description": "At least 8 characters, including an uppercase letter, a lowercase letter, a digit and a special character."
+     }
+    },
+    "type": "object",
+    "required": [
+     "token",
+     "new_password"
+    ],
+    "title": "_ResetIn"
+   },
+   "_TokenIn": {
+    "properties": {
+     "token": {
+      "type": "string",
+      "title": "Token"
+     }
+    },
+    "type": "object",
+    "required": [
+     "token"
+    ],
+    "title": "_TokenIn"
+   }
+  }
+ }
+}

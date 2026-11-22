@@ -22,6 +22,31 @@ vi.mock('@/context/theme-provider', () => ({
   useTheme: () => ({ setTheme: mocks.setTheme }),
 }))
 
+// The menu lists what the module registry gives the signed-in account; these stand in for it.
+vi.mock('@/components/layout/use-nav-groups', () => ({
+  useNavGroups: () => [
+    {
+      title: 'General',
+      items: [
+        { title: 'Dashboard', url: '/' },
+        { title: 'Tasks', url: '/tasks' },
+      ],
+    },
+    {
+      title: 'Settings',
+      items: [
+        {
+          title: 'Settings',
+          items: [
+            { title: 'Profile', url: '/settings' },
+            { title: 'Account', url: '/settings/account' },
+          ],
+        },
+      ],
+    },
+  ],
+}))
+
 type ShortcutModifier = 'Control' | 'Meta'
 
 async function renderWithSearchProvider() {
