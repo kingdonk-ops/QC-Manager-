@@ -33,13 +33,18 @@ async def notify(
     link: str | None = None,
     entity: tuple[str, int] | None = None,
     actor_id: int | None = None,
+    transactional: bool = False,
 ) -> None:
-    """Notify users, skipping the actor. Rows join the caller's transaction; email goes out now."""
+    """Notify users, skipping the actor. Rows join the caller's transaction; email goes out now.
+
+    ``transactional``: a contractual notice (an inspection call-out, say) that goes in-app and by email
+    whatever the recipients' preferences; opting out applies to optional notifications only.
+    """
     targets = sorted({uid for uid in user_ids if uid and uid != actor_id})
     if not targets:
         return
     category = str(category)
-    prefs = await _preferences(db, targets, category)
+    prefs = {uid: (True, True) for uid in targets} if transactional else await _preferences(db, targets, category)
     for uid in targets:
         if prefs[uid][0]:
             db.add(

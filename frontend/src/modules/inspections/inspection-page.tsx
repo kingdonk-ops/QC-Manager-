@@ -49,6 +49,7 @@ import {
   useSetStatus,
 } from './api'
 import { PassRate } from './inspections-page'
+import { PointBadges, SignOffPanel } from './signoff'
 
 type Fill = ReturnType<typeof useFillItems>
 
@@ -558,8 +559,9 @@ function FillForm({ inspection }: { inspection: Inspection }) {
   const [completing, setCompleting] = useState(false)
   const locked =
     !can(session, 'inspections.update') ||
-    inspection.status === 'completed' ||
-    inspection.status === 'closed'
+    !['planned', 'requested', 'in_progress', 'returned'].includes(
+      inspection.status
+    )
   const sections = useMemo(() => {
     const out: { title: string; items: InspectionItem[] }[] = []
     for (const item of inspection.items) {
@@ -589,7 +591,36 @@ function FillForm({ inspection }: { inspection: Inspection }) {
         {inspection.inspector_name ? (
           <span>· {inspection.inspector_name}</span>
         ) : null}
+        {inspection.anchor_label ? (
+          <span>· {inspection.anchor_label}</span>
+        ) : null}
+        {inspection.kind === 'itp' ? (
+          <PointBadges points={inspection.points} />
+        ) : null}
       </div>
+      {inspection.acceptance_criteria ? (
+        <p className='text-sm'>
+          <span className='text-muted-foreground'>
+            {t('inspections.acceptance')}:
+          </span>{' '}
+          {inspection.acceptance_criteria}
+        </p>
+      ) : null}
+      {inspection.comments.some((c) => !c.resolved_at) ? (
+        <ul className='grid gap-1 rounded-md border border-amber-500 p-2 text-sm'>
+          {inspection.comments
+            .filter((c) => !c.resolved_at)
+            .map((c) => (
+              <li key={c.id}>
+                #{inspection.items.find((i) => i.id === c.item_id)?.position}:{' '}
+                {c.body}{' '}
+                <span className='text-xs text-muted-foreground'>
+                  {c.author_name}
+                </span>
+              </li>
+            ))}
+        </ul>
+      ) : null}
 
       {sections.map((section) => (
         <section key={section.title} className='grid gap-3'>
@@ -638,6 +669,7 @@ function FillForm({ inspection }: { inspection: Inspection }) {
             ) : null}
             {(inspection.status === 'in_progress' ||
               inspection.status === 'planned') &&
+            !inspection.is_formal &&
             canTransition ? (
               <Button
                 className='h-11'
@@ -650,6 +682,11 @@ function FillForm({ inspection }: { inspection: Inspection }) {
           </div>
         </div>
       </div>
+      {inspection.is_formal ||
+      inspection.kind === 'itp' ||
+      inspection.signatures.length ? (
+        <SignOffPanel inspection={inspection} />
+      ) : null}
       {completing ? (
         <CompleteDialog
           inspection={inspection}
