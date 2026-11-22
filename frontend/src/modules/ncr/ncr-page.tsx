@@ -4,6 +4,7 @@ import { Download, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentProject } from '@/stores/use-current-project'
 import { can, useSession } from '@/lib/session'
+import { useSavedViews } from '@/hooks/use-saved-views'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,6 +20,7 @@ import { DataGrid } from '@/components/data-grid'
 import { Page } from '@/components/layout/page'
 import { NativeSelect, UserSelect } from '@/components/native-select'
 import { StatusBadge } from '@/components/records/status-badge'
+import { SavedViewsMenu } from '@/components/saved-views'
 import {
   type Filters,
   LIFECYCLE,
@@ -163,6 +165,7 @@ function Register({ projectId }: { projectId: number }) {
     search: '',
   })
   const [openId, setOpenId] = useState<number | null>(initialId)
+  const views = useSavedViews<Ncr>('ncr.register', projectId)
   const [creating, setCreating] = useState(false)
   const { data: rows = [] } = useNcrs(projectId, filters)
 
@@ -231,6 +234,7 @@ function Register({ projectId }: { projectId: number }) {
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
+        <SavedViewsMenu views={views} />
         <Input
           className='h-8 w-60'
           placeholder={t('ncr.search')}
@@ -272,6 +276,7 @@ function Register({ projectId }: { projectId: number }) {
       </div>
       <div className='h-[560px]'>
         <DataGrid<Ncr>
+          onGridReady={views.onGridReady}
           rowData={rows}
           columnDefs={columns}
           getRowId={(p) => String(p.data.id)}

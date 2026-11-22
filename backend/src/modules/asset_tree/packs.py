@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import terminology
 from .models import AssetLevel, ItemType
 
 L = dict[str, Any]
@@ -93,6 +94,10 @@ PACKS: dict[str, dict[str, Any]] = {
     },
     "cui-line": {
         "title": "CUI: Scope / Job Package / Line",
+        "terms": {
+            "noun.job_pack": {"one": "Job Package", "other": "Job Packages"},
+            "noun.item": {"one": "Test point", "other": "Test points"},
+        },
         "levels": [
             {
                 "key": "scope",
@@ -183,5 +188,6 @@ async def apply_pack(db: AsyncSession, project_id: int, key: str) -> dict[str, i
         if t["key"] not in types:
             db.add(ItemType(project_id=project_id, **t))
             added_types += 1
+    await terminology.add_defaults(db, project_id, pack.get("terms", {}))
     await db.commit()
     return {"levels_added": added_levels, "item_types_added": added_types}

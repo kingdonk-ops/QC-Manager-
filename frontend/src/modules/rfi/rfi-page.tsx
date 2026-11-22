@@ -9,6 +9,7 @@ import { useCurrentProject } from '@/stores/use-current-project'
 import { handleServerError } from '@/lib/handle-server-error'
 import { can, useSession } from '@/lib/session'
 import { cn } from '@/lib/utils'
+import { useSavedViews } from '@/hooks/use-saved-views'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -26,6 +27,7 @@ import {
 import { DataGrid } from '@/components/data-grid'
 import { Page } from '@/components/layout/page'
 import { StatusBadge } from '@/components/records/status-badge'
+import { SavedViewsMenu } from '@/components/saved-views'
 import { PARTIES, STATUSES, label, rfiKeys, type Rfi } from './api'
 import { Choice } from './choice'
 import { useDeepLink } from './deep-link'
@@ -93,6 +95,7 @@ function Register({ projectId }: { projectId: number }) {
   const session = useSession()
   const linked = useDeepLink()
   const [openId, setOpenId] = useState<number | null>(linked)
+  const views = useSavedViews<Rfi>('rfi.register', projectId)
   const [creating, setCreating] = useState(false)
   const [filters, setFilters] = useState<Filters>({
     status: '',
@@ -207,6 +210,7 @@ function Register({ projectId }: { projectId: number }) {
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
+        <SavedViewsMenu views={views} />
         <Choice
           className='h-8 w-36'
           value={filters.status}
@@ -280,7 +284,8 @@ function Register({ projectId }: { projectId: number }) {
         </div>
       </div>
       <div className='h-[600px]'>
-        <DataGrid
+        <DataGrid<Rfi>
+          onGridReady={views.onGridReady}
           rowData={rows}
           columnDefs={columns}
           getRowId={(p) => String(p.data.id)}

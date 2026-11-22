@@ -221,3 +221,21 @@ What the platform does with them:
 Filters are JSON: `{"status": "open"}` equals, `{"status": ["open", "review"]}` any of, `{"due": {"gte": "2026-01-01", "lt": "2026-02-01"}}` with `eq`, `ne`, `in`, `gt`, `gte`, `lt`, `lte`, `contains`, `empty`. Text compares without case; `number`/`money` and `date` columns compare as numbers and dates.
 
 The pivot is computed on the server, for up to 50,000 source rows, 5,000 row groups and 200 column groups; totals are aggregated from the raw values (an average of averages is never shown).
+
+## Saved register views
+
+Any register grid can offer saved views (columns, order, widths, hidden/pinned, sort, filters, quick search; personal, shared with the project or with teams; a default per register) with two lines. The backend module is `saved_views` (`/api/v1/saved-views/`); nothing to add server-side.
+
+```tsx
+import { useSavedViews } from '@/hooks/use-saved-views'
+import { SavedViewsMenu } from '@/components/saved-views'
+
+const views = useSavedViews<Ncr>('ncr.register', projectId)   // register key: '<module>.<register>'
+<SavedViewsMenu views={views} />                               // in the toolbar
+<DataGrid<Ncr> onGridReady={views.onGridReady} ... />          // the grid opens with the caller's default view
+```
+
+- Give every column a stable id (`field`, or `colId` for computed columns); a view naming a column the grid no longer has skips it.
+- Who sees what: `private` (owner), `project` (everyone who can read the project), `team` (owner, members of the named teams, managers). Permissions: `saved_views.read` (use), `.create` (own views), `.share` (share), `.manage` (edit any shared view, set the project default).
+- `group_by` is stored but AG Grid Community has no row grouping; a register that groups rows itself reads `views.current?.config.group_by`.
+- Wired in: `rfi.register`, `ncr.register`, `asset_tree.items`.
