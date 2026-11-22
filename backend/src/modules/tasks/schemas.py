@@ -90,3 +90,9 @@ class WipLimits(EncodableText):
     model_config = ConfigDict(extra="forbid")
 
     wip_limits: dict[TaskStatus, Annotated[int, Field(ge=0, le=500)]]
+
+
+class Assignee(BaseModel):
+    id: int
+    name: str
+    email: str

@@ -12,11 +12,12 @@ from ...infrastructure.auth.deps import CurrentPermissionsDep, CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
 from ..common.pagination import MAX_INTEGER_ID, ItemsPerPageDep, PageDep
 from ..projects.service import readable_project
+from ..user.models import User
 from . import service
 from .constants import TYPE_FIELDS, Priority, TaskStatus, TaskType
 from .models import Task, TaskBoard
 from .permissions import TaskPermissionName as P
-from .schemas import Board, BoardColumn, TaskCreate, TaskMove, TaskRead, TaskUpdate, WipLimits
+from .schemas import Assignee, Board, BoardColumn, TaskCreate, TaskMove, TaskRead, TaskUpdate, WipLimits
 
 router = APIRouter(tags=["Tasks"])
 
@@ -121,6 +122,26 @@ async def set_limits(
         b.wip_limits = {**b.wip_limits, **limits}
     await db.commit()
     return await board(project_id, db, user, held)
+
+
+@router.get(
+    "/assignees",
+    response_model=list[Assignee],
+    summary="People Tasks Can Be Assigned To",
+    description="Active accounts by name, for assignee pickers here and in other modules.",
+    dependencies=perm(P.READ),
+)
+async def assignees(
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 200,
+) -> Any:
+    where: list[Any] = [User.is_deleted.is_(False)]
+    if search:
+        where.append(func.lower(User.name).like(f"%{search.lower()}%"))
+    rows = await db.execute(select(User.id, User.name, User.email).where(*where).order_by(User.name).limit(limit))
+    return [{"id": i, "name": n, "email": e} for i, n, e in rows.tuples().all()]
 
 
 @router.get("/{task_id}", response_model=TaskRead, summary="Get a Task", dependencies=perm(P.READ))

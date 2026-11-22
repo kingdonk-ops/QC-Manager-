@@ -3,7 +3,7 @@
 import json
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, File, Form, Path, Query, UploadFile
+from fastapi import APIRouter, File, Form, Path, Query, Response, UploadFile
 from fastcrud import PaginatedListResponse, compute_offset, paginated_response
 from sqlalchemy import delete
 
@@ -11,7 +11,7 @@ from ...infrastructure.auth.authorization import require_permissions
 from ...infrastructure.auth.deps import CurrentPermissionsDep, CurrentUserDep
 from ...infrastructure.dependencies import AsyncSessionDep
 from ...infrastructure.http_exceptions import UnprocessableEntityException
-from ...infrastructure.tabular import TableError, read_table
+from ...infrastructure.tabular import TableError, read_table, write_table
 from ..common.pagination import MAX_INTEGER_ID, ItemsPerPageDep, PageDep
 from ..projects.service import readable_project
 from . import service
@@ -199,6 +199,60 @@ async def import_contacts(
     return await run_import(
         db, columns, rows, parsed, on_duplicate=on_duplicate, dry_run=dry_run, project_id=project_id, project_role=project_role
     )
+
+
+EXPORT_COLUMNS = [
+    ("first_name", "First name"),
+    ("last_name", "Last name"),
+    ("company_name", "Company"),
+    ("type", "Type"),
+    ("job_title", "Job title"),
+    ("email", "Email"),
+    ("phone", "Phone"),
+    ("mobile", "Mobile"),
+    ("tags", "Tags"),
+    ("project_roles", "Projects"),
+    ("notes", "Notes"),
+]
+
+
+@router.get(
+    "/export",
+    summary="Export Contacts",
+    description="The directory, with the same filters as the list, as Excel or CSV.",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {}, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}}},
+    dependencies=perm(P.READ),
+)
+async def export_contacts(
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+    format: Literal["xlsx", "csv"] = "xlsx",
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    type: ContactType | None = None,
+    company_id: Annotated[int | None, Query(ge=1)] = None,
+    project_id: Annotated[int | None, Query(ge=1)] = None,
+    tag: Annotated[str | None, Query(max_length=50)] = None,
+) -> Response:
+    data = await service.page(
+        db,
+        skip=0,
+        limit=50_000,
+        search=search,
+        type_=type.value if type else None,
+        company_id=company_id,
+        project_id=project_id,
+        tag=tag,
+    )
+    rows = [
+        {
+            **c,
+            "project_roles": "; ".join(p["project_code"] + (f" ({p['role']})" if p["role"] else "") for p in c["projects"]),
+        }
+        for c in data["data"]
+    ]
+    body, media_type, ext = write_table(EXPORT_COLUMNS, rows, format, title="Contacts")
+    return Response(body, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="contacts.{ext}"'})
 
 
 # --- one contact ----------------------------------------------------------------------------------------

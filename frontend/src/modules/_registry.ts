@@ -3,14 +3,17 @@
  * Order is the default menu order within a group.
  */
 import type { ModuleManifest } from './_types'
+import { manifest as contacts } from './contacts/manifest'
 import { manifest as cvr } from './cvr/manifest'
 import { manifest as files } from './files/manifest'
+import { manifest as meetings } from './meetings/manifest'
 import { manifest as notifications } from './notifications/manifest'
 import { manifest as overview } from './overview/manifest'
 import { manifest as people } from './people/manifest'
 import { manifest as platform } from './platform/manifest'
 import { manifest as portal } from './portal/manifest'
 import { manifest as projects } from './projects/manifest'
+import { manifest as tasks } from './tasks/manifest'
 import { manifest as teams } from './team/manifest'
 
 export const MODULE_REGISTRY: ModuleManifest[] = [
@@ -23,4 +26,7 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   portal,
   platform,
   notifications,
+  tasks,
+  meetings,
+  contacts,
 ]
