@@ -34,6 +34,8 @@ import {
   useTemplateAction,
   useTemplates,
 } from './api'
+import { ItpEditor, TemplateSettingsFields } from './itp-editor'
+import { PointBadges } from './signoff'
 
 type Draft = Omit<TemplateBody, 'project_id'>
 
@@ -54,6 +56,12 @@ const blank = (): Draft => ({
   description: '',
   active: true,
   sections: [{ title: 'General', items: [blankItem()] }],
+  kind: 'inspection',
+  area: 'general',
+  is_formal: false,
+  linked_issue_types: [],
+  requires_client_signature: false,
+  activities: [],
 })
 
 function move<T>(list: T[], from: number, to: number): T[] {
@@ -316,6 +324,14 @@ function Editor({
           description: template.description ?? '',
           active: template.active,
           sections: template.sections,
+          area: template.area as Draft['area'],
+          is_formal: template.is_formal,
+          audit_scope: template.audit_scope as Draft['audit_scope'],
+          requires_client_signature: template.requires_client_signature,
+          required_qualification: template.required_qualification,
+          kind: 'inspection',
+          linked_issue_types: template.linked_issue_types ?? [],
+          activities: [],
         }
       : blank()
   )
@@ -395,6 +411,10 @@ function Editor({
           />
         </div>
       </div>
+      <TemplateSettingsFields
+        value={draft}
+        onChange={(next) => setDraft({ ...draft, ...next })}
+      />
       {sections.map((section, i) => (
         <SectionEditor
           key={i}
@@ -433,9 +453,14 @@ function Templates({ projectId }: { projectId: number }) {
   const editable = can(session, 'inspections.update')
   const { data: templates = [] } = useTemplates(projectId)
   const action = useTemplateAction(projectId)
-  const [selected, setSelected] = useState<number | 'new' | null>(null)
+  const [selected, setSelected] = useState<number | 'new' | 'new-itp' | null>(
+    null
+  )
   const current =
-    selected === 'new' ? null : templates.find((tpl) => tpl.id === selected)
+    selected === 'new' || selected === 'new-itp'
+      ? null
+      : templates.find((tpl) => tpl.id === selected)
+  const itp = selected === 'new-itp' || current?.kind === 'itp'
 
   return (
     <div className='grid gap-4 lg:grid-cols-[320px_1fr]'>
@@ -444,6 +469,13 @@ function Templates({ projectId }: { projectId: number }) {
           <div className='flex gap-2'>
             <Button size='sm' onClick={() => setSelected('new')}>
               <Plus /> {t('inspections.new_template')}
+            </Button>
+            <Button
+              size='sm'
+              variant='outline'
+              onClick={() => setSelected('new-itp')}
+            >
+              <Plus /> {t('inspections.new_itp')}
             </Button>
             <Button
               size='sm'
@@ -466,6 +498,8 @@ function Templates({ projectId }: { projectId: number }) {
             <span className='font-medium'>{tpl.name}</span>
             <span className='text-xs text-muted-foreground'>
               {[
+                tpl.kind === 'itp' ? 'ITP' : t(`inspections.areas.${tpl.area}`),
+                tpl.is_formal ? t('inspections.formal_short') : null,
                 tpl.trade,
                 `v${tpl.version}`,
                 `${tpl.item_count} ${t('inspections.items')}`,
@@ -497,6 +531,16 @@ function Templates({ projectId }: { projectId: number }) {
                   </ul>
                 </div>
               ))}
+              {(current.activities ?? []).length ? (
+                <ol className='grid list-decimal gap-1 ps-5 text-sm'>
+                  {(current.activities ?? []).map((a, i) => (
+                    <li key={i}>
+                      <span className='me-2'>{a.title}</span>
+                      <PointBadges points={a.points ?? {}} />
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
             </CardContent>
           </Card>
         ) : (
@@ -535,12 +579,21 @@ function Templates({ projectId }: { projectId: number }) {
                 ) : null}
               </div>
             ) : null}
-            <Editor
-              key={`${selected}-${current?.version ?? 0}`}
-              projectId={projectId}
-              template={current ?? null}
-              onSaved={(saved) => setSelected(saved.id)}
-            />
+            {itp ? (
+              <ItpEditor
+                key={`${selected}-${current?.version ?? 0}`}
+                projectId={projectId}
+                template={current ?? null}
+                onSaved={(saved) => setSelected(saved.id)}
+              />
+            ) : (
+              <Editor
+                key={`${selected}-${current?.version ?? 0}`}
+                projectId={projectId}
+                template={current ?? null}
+                onSaved={(saved) => setSelected(saved.id)}
+              />
+            )}
           </div>
         )}
       </div>

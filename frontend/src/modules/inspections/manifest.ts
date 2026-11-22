@@ -1,11 +1,12 @@
 import { lazy } from 'react'
-import { ClipboardCheck } from 'lucide-react'
+import { CalendarClock, ClipboardCheck } from 'lucide-react'
 import type { ModuleManifest } from '../_types'
+import { qualityMessages } from './quality-messages'
 
 export const manifest: ModuleManifest = {
   id: 'inspections',
   name: 'Quality Inspections',
-  version: '0.1.0',
+  version: '0.2.0',
   depends: ['projects', 'files', 'tasks', 'notifications'],
   routes: [
     {
@@ -21,10 +22,31 @@ export const manifest: ModuleManifest = {
       accountTypes: ['staff'],
     },
     {
+      path: '/inspections/itp',
+      component: lazy(() => import('./itp-page')),
+      permission: 'inspections.read',
+      accountTypes: ['staff'],
+    },
+    {
+      path: '/inspections/itp/:instanceId',
+      component: lazy(() => import('./itp-instance-page')),
+      permission: 'inspections.read',
+      accountTypes: ['staff'],
+    },
+    {
+      path: '/inspections/requests',
+      component: lazy(() => import('./requests-page')),
+      permission: 'inspections.read',
+    },
+    {
+      path: '/inspections/competencies',
+      component: lazy(() => import('./competencies-page')),
+      permission: 'inspections.read',
+    },
+    {
       path: '/inspections/:inspectionId',
       component: lazy(() => import('./inspection-page')),
       permission: 'inspections.read',
-      accountTypes: ['staff'],
     },
   ],
   navItems: [
@@ -37,9 +59,18 @@ export const manifest: ModuleManifest = {
       permission: 'inspections.read',
       accountTypes: ['staff'],
     },
+    {
+      labelKey: 'nav.inspection_requests',
+      to: '/inspections/requests',
+      icon: CalendarClock,
+      group: 'quality_safety',
+      order: 11,
+      permission: 'inspections.read',
+    },
   ],
   messages: {
     en: {
+      ...qualityMessages,
       'nav.inspections': 'Inspections',
       'inspections.page_title': 'Quality inspections',
       'inspections.description':

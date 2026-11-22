@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
-import { ClipboardList, Plus } from 'lucide-react'
+import {
+  BadgeCheck,
+  CalendarDays,
+  ClipboardList,
+  ListOrdered,
+  Plus,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentProject } from '@/stores/use-current-project'
 import { can, useSession } from '@/lib/session'
@@ -28,6 +34,7 @@ import {
   useTemplates,
   useTrends,
 } from './api'
+import { DashboardTiles } from './dashboard-tiles'
 import { TrendChart } from './trend-chart'
 
 export function PassRate({ value }: { value?: number | null }) {
@@ -83,6 +90,7 @@ function NewInspection({
                 area: draft.area || null,
                 scheduled_date: draft.scheduled_date || null,
                 inspector_id: draft.inspector_id,
+                links: [],
               },
               {
                 onSuccess: (made) => {
@@ -239,6 +247,7 @@ function Register({ projectId }: { projectId: number }) {
 
   return (
     <>
+      <DashboardTiles projectId={projectId} />
       <div className='flex flex-wrap items-center gap-2'>
         <NativeSelect
           className='h-8 w-44'
@@ -249,6 +258,21 @@ function Register({ projectId }: { projectId: number }) {
           onChange={(e) => setStatus(e.target.value)}
         />
         <div className='ms-auto flex gap-2'>
+          <Button size='sm' variant='outline' asChild>
+            <Link to='/$' params={{ _splat: 'inspections/requests' }}>
+              <CalendarDays /> {t('inspections.requests')}
+            </Link>
+          </Button>
+          <Button size='sm' variant='outline' asChild>
+            <Link to='/$' params={{ _splat: 'inspections/itp' }}>
+              <ListOrdered /> {t('inspections.itps')}
+            </Link>
+          </Button>
+          <Button size='sm' variant='outline' asChild>
+            <Link to='/$' params={{ _splat: 'inspections/competencies' }}>
+              <BadgeCheck /> {t('inspections.competencies')}
+            </Link>
+          </Button>
           <Button size='sm' variant='outline' asChild>
             <Link to='/$' params={{ _splat: 'inspections/templates' }}>
               <ClipboardList /> {t('inspections.templates')}

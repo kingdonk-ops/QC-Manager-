@@ -17,7 +17,10 @@ export type Trends = S['InspectionTrends']
 
 export const STATUSES = [
   'planned',
+  'requested',
   'in_progress',
+  'submitted',
+  'returned',
   'completed',
   'closed',
 ] as const
@@ -53,7 +56,7 @@ export function useSaveTemplate(projectId: number) {
   return useMutation({
     mutationFn: ({ id, body }: { id?: number; body: TemplateBody }) => {
       if (id) {
-        const { project_id: _, ...rest } = body
+        const { project_id: _, kind: __, ...rest } = body
         return unwrap(
           api.PATCH('/api/v1/inspections/templates/{template_id}', {
             params: { path: { template_id: id } },
