@@ -4,6 +4,7 @@
  */
 import type { ModuleManifest } from './_types'
 import { manifest as cvr } from './cvr/manifest'
+import { manifest as evm } from './evm/manifest'
 import { manifest as files } from './files/manifest'
 import { manifest as notifications } from './notifications/manifest'
 import { manifest as overview } from './overview/manifest'
@@ -23,4 +24,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   portal,
   platform,
   notifications,
+  evm,
 ]
