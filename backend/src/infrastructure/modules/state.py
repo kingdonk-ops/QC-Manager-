@@ -20,6 +20,7 @@ from .loader import installed_modules
 from .models import ModuleSetting
 
 TTL_SECONDS = 10.0
+MAX_DB_INTEGER = 2_147_483_647
 
 _cache: tuple[float, dict[str, bool]] | None = None
 
@@ -76,6 +77,8 @@ def module_gate(name: str) -> Any:
     async def gate(request: Request, db: Annotated[AsyncSession, Depends(async_session)]) -> None:
         raw = request.path_params.get("project_id")
         project_id = int(raw) if isinstance(raw, (int, str)) and str(raw).isdigit() else None
+        if project_id is not None and not 1 <= project_id <= MAX_DB_INTEGER:
+            project_id = None  # path validation answers 422 for it; don't take it to the database
         if not await is_enabled(db, name, project_id):
             raise NotFoundException("This module is switched off.")
 
