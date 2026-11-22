@@ -288,3 +288,11 @@ register_mdr_check(MdrCheck("welds_accepted", "Every weld in scope is accepted",
 ```
 
 Sections: `itp`, `inspections`, `ncr_register`, `material_certs`, `nde_reports`, `calibration_certs`, `as_built`, `custom` (`index` is generated). In `material_certs` and `calibration_certs` the `file_ids` are certificates: each stored file is attached once per dossier, identified by its SHA-256, and the appendix index lists every record that refers to it. Elsewhere PDFs in `file_ids` are merged after the record and other files are listed. A section with no enabled provider prints "Not available". A check whose module is off, that raises `CheckUnavailable`, or that crashes reports `not_available` and never blocks. Guarded hooks in `mdr/gate.py` call `ncr.service.blocking_issues`, `inspections.eligibility.unsigned_hold_points` and `calibration.service.uncalibrated_equipment` as `await fn(db, project_id, node_ids)` (returning `Finding`s, dicts or strings) when those modules exist; adjust `HOOKS` if they land elsewhere. Shipped providers: `files` (tagged `as-built`, `mtr`, `nde`, `calibration`), `cde` (published containers with suitability CR), `inspections` (completed inspection reports + check for open inspections), `ncr` (client-visible issues register; blocking issues come from the `ncr.service.blocking_issues` hook), `mdr` (files uploaded to the dossier).
+
+## Quality gates other modules call
+
+| Need | Use |
+|---|---|
+| A reading taken with an instrument | `await assert_calibrated(db, equipment_ids, reading_date, project_id=...)` from `modules.calibration.service` (guard with `is_enabled(db, "calibration", project_id)` and list `calibration` in `optional_depends`). Raises 422 naming each overdue, quarantined or uncalibrated piece. Pickers use `GET /api/v1/calibration/available`. |
+| An MDR's material certificate appendix | `await certificates_for(db, node_ids, verified_only=False)` from `modules.materials.service`; expand a node with `asset_tree.service.subtree_ids` first. One row per certificate with heat, grade, `file_id` and the `node_ids` it was issued to. |
+| Client-supplied material late for work | `await readiness_warnings(db, project_id, node_ids)` from `modules.materials.service`: warnings, never blocks. |

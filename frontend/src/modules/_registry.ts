@@ -7,6 +7,7 @@ import { manifest as assetTree } from './asset_tree/manifest'
 import { manifest as assets } from './assets/manifest'
 import { manifest as audit } from './audit/manifest'
 import { manifest as boq } from './boq/manifest'
+import { manifest as calibration } from './calibration/manifest'
 import { manifest as cde } from './cde/manifest'
 import { manifest as changeOfScope } from './change_of_scope/manifest'
 import { manifest as changeOrders } from './change_orders/manifest'
@@ -23,6 +24,7 @@ import { manifest as inspections } from './inspections/manifest'
 import { manifest as lobby } from './lobby/manifest'
 import { manifest as markups } from './markups/manifest'
 import { manifest as mdr } from './mdr/manifest'
+import { manifest as materials } from './materials/manifest'
 import { manifest as meetings } from './meetings/manifest'
 import { manifest as ncr } from './ncr/manifest'
 import { manifest as notifications } from './notifications/manifest'
@@ -46,6 +48,7 @@ import { manifest as tasks } from './tasks/manifest'
 import { manifest as teams } from './team/manifest'
 import { manifest as transmittals } from './transmittals/manifest'
 import { manifest as workfaceLog } from './workface_log/manifest'
+import { manifest as welding } from './welding/manifest'
 
 export const MODULE_REGISTRY: ModuleManifest[] = [
   overview,
@@ -91,4 +94,7 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   scaffolds,
   coatings,
   lobby,
+  welding,
+  materials,
+  calibration,
 ]
