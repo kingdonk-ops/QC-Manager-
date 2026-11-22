@@ -32,6 +32,7 @@ import {
 } from './api'
 import { CashflowChart } from './cashflow-chart'
 import { ImportDialog } from './import-dialog'
+import { PullFromField } from './pull-from-field'
 import { KpiCards } from './kpi-cards'
 import { MetricsGrid } from './metrics-grid'
 import { PackagesGrid } from './packages-grid'
@@ -181,6 +182,9 @@ function Dashboard({
           </Select>
         </div>
         <div className='ms-auto flex flex-wrap gap-2'>
+          {can(session, 'evm.update') ? (
+            <PullFromField projectId={projectId} dataDate={effectiveDate} />
+          ) : null}
           {can(session, 'evm.import') ? (
             <ImportDialog projectId={projectId} dataDate={effectiveDate} />
           ) : null}

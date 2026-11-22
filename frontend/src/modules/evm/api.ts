@@ -17,6 +17,7 @@ export type SnapshotCompare = components['schemas']['EvmSnapshotCompare']
 export type Cashflow = components['schemas']['EvmCashflow']
 export type EvmSettings = components['schemas']['EvmSettingsRead']
 export type ImportReport = components['schemas']['EvmProgressImportReport']
+export type FieldReport = components['schemas']['EvmFieldReport']
 
 export type Basis = 'hours' | 'cost'
 export type GroupBy = 'package' | 'account' | 'discipline' | 'project'
@@ -128,6 +129,22 @@ export function useSaveProgress(projectId: number) {
         api.POST('/api/v1/evm/{project_id}/progress', {
           params: at(projectId),
           body: { ...body, set_data_date: true },
+        })
+      ),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: root(projectId) }),
+    onError: handleServerError,
+  })
+}
+
+/** Actual hours from signed workface logs and % complete from verified progress, matched by WBS or P6 link. */
+export function usePullFromField(projectId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (date: string) =>
+      unwrap(
+        api.POST('/api/v1/evm/{project_id}/progress/from-field', {
+          params: { path: { project_id: projectId }, query: { date } },
         })
       ),
     onSuccess: () =>

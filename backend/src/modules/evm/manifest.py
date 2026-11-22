@@ -6,5 +6,5 @@ manifest = ModuleManifest(
     display_name="Earned Value",
     description="Planned against earned and actual labour hours per work package: SPI, CPI, EAC, S-curves and baselines.",
     depends=("projects",),
-    optional_depends=("cvr",),
+    optional_depends=("cvr", "asset_tree", "workface_log", "schedule"),
 )

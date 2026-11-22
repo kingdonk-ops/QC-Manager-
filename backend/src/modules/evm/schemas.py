@@ -141,6 +141,22 @@ class EvmProgressSaved(BaseModel):
     saved: int
 
 
+class EvmFieldRow(BaseModel):
+    work_package_id: int
+    code: str
+    nodes: int
+    """Asset nodes in the package's scope (WBS match or linked P6 activity, with their subtrees)."""
+    actual_hours: Decimal | None
+    percent_complete: Decimal | None
+
+
+class EvmFieldReport(BaseModel):
+    data_date: date
+    dry_run: bool
+    saved: int
+    rows: list[EvmFieldRow]
+
+
 class EvmProgressImportIssue(BaseModel):
     row: int
     message: str

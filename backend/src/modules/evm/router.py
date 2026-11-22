@@ -14,12 +14,13 @@ from ...infrastructure.http_exceptions import UnprocessableEntityException
 from ...infrastructure.tabular import TableError, read_table, write_table
 from ..common.pagination import MAX_INTEGER_ID, ItemsPerPageDep, PageDep
 from ..projects.service import readable_project
-from . import importer, report, service
+from . import field, importer, report, service
 from .constants import Basis, EacMethod, GroupBy, Interval
 from .models import BudgetSnapshot, EvmSettings, ProgressRecord, WorkPackage
 from .permissions import EvmPermissionName as P
 from .schemas import (
     EvmCashflow,
+    EvmFieldReport,
     EvmMetricsReport,
     EvmProgressBatch,
     EvmProgressEntry,
@@ -212,6 +213,30 @@ async def post_progress(
     await readable_project(db, project_id, user["id"], held)
     saved = await service.save_progress(db, project_id, values.data_date, values.entries, user["id"], values.set_data_date)
     return {"data_date": values.data_date, "saved": saved}
+
+
+@router.post(
+    "/{project_id}/progress/from-field",
+    response_model=EvmFieldReport,
+    summary="Pull Progress from the Field",
+    description="Actual hours from signed workface logs and percent complete from verified progress, for each "
+    "package matched to the asset breakdown by WBS code or by its linked P6 activity. `dry_run` reports without saving.",
+    dependencies=perm(P.UPDATE),
+)
+async def progress_from_field(
+    project_id: Id,
+    db: AsyncSessionDep,
+    user: CurrentUserDep,
+    held: CurrentPermissionsDep,
+    on: DataDate = None,
+    dry_run: bool = False,
+) -> Any:
+    await readable_project(db, project_id, user["id"], held)
+    on = await service.data_date(db, project_id, on)
+    entries, rows = await field.field_progress(db, project_id, on)
+    if entries and not dry_run:
+        await service.save_progress(db, project_id, on, entries, user["id"], False)
+    return {"data_date": on, "dry_run": dry_run, "saved": 0 if dry_run else len(entries), "rows": rows}
 
 
 @router.post(

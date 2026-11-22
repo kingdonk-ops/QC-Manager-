@@ -108,6 +108,10 @@ export const manifest: ModuleManifest = {
         'Cumulative to {{date}}. Edit % complete and actual hours, then save all.',
       'evm.discard': 'Discard',
       'evm.save_all': 'Save all ({{count}})',
+      'evm.pull_field': 'Pull from field',
+      'evm.pull_field_help':
+        'Actual hours from signed workface logs and % complete from verified progress, for packages matched by WBS code or linked P6 activity',
+      'evm.pulled': '{{count}} packages updated from the field',
       'evm.saved': 'Saved progress for {{count}} packages',
       'evm.snapshot_name': 'Snapshot name, e.g. Baseline rev 0',
       'evm.make_baseline': 'Make baseline',
