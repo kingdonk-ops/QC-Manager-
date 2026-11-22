@@ -1,0 +1,2 @@
+[console_scripts]
+bp = cli.app:app
