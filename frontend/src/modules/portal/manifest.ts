@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { UserPlus } from 'lucide-react'
+import { ClipboardCheck, UserPlus } from 'lucide-react'
 import type { ModuleManifest } from '../_types'
 
 export const manifest: ModuleManifest = {
@@ -14,6 +14,11 @@ export const manifest: ModuleManifest = {
       permission: 'portal.invite',
       accountTypes: ['staff'],
     },
+    {
+      path: '/plan-reviews',
+      component: lazy(() => import('./reviews-page')),
+      permission: 'portal.read',
+    },
   ],
   navItems: [
     {
@@ -24,6 +29,13 @@ export const manifest: ModuleManifest = {
       order: 20,
       permission: 'portal.invite',
       accountTypes: ['staff'],
+    },
+    {
+      labelKey: 'nav.plan_reviews',
+      to: '/plan-reviews',
+      icon: ClipboardCheck,
+      group: 'documents',
+      permission: 'portal.read',
     },
   ],
   messages: {
@@ -38,6 +50,37 @@ export const manifest: ModuleManifest = {
       'portal.teams': 'Teams',
       'portal.activated': 'Password set',
       'portal.resend': 'Resend',
+      'nav.plan_reviews': 'Plan reviews',
+      'reviews.title': 'Client plan review',
+      'reviews.queue': 'Plans to review',
+      'reviews.description':
+        'Share work plans, ITPs, method statements and schedules with the client and follow their decisions.',
+      'reviews.client_description':
+        'Plans shared with you for review. Approve, approve with comments or reject each document.',
+      'reviews.no_project': 'Choose a project in the top bar.',
+      'reviews.new': 'New review',
+      'reviews.title_field': 'Title',
+      'reviews.kind': 'Kind',
+      'reviews.due': 'Due',
+      'reviews.message': 'Message to the client',
+      'reviews.documents': 'Documents',
+      'reviews.save_draft': 'Save as draft',
+      'reviews.share': 'Share with client',
+      'reviews.withdraw': 'Withdraw',
+      'reviews.add_document': 'Add document',
+      'reviews.decision_comment': 'Comment (required unless approving)',
+      'reviews.approve': 'Approve',
+      'reviews.approve_with_comments': 'Approve with comments',
+      'reviews.reject': 'Reject',
+      'reviews.comments': 'Comments',
+      'reviews.comment': 'Comment',
+      'reviews.client': 'client',
+      'reviews.on_document': 'On document',
+      'reviews.whole_package': 'Whole package',
+      'reviews.status': 'Status',
+      'reviews.all': 'All',
+      'reviews.decided': 'decided',
+      'reviews.none': 'Nothing here yet.',
     },
   },
 }

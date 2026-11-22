@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useProjects } from '@/modules/projects/api'
 import { Building2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -25,7 +26,12 @@ export function ProjectSelector() {
 
   if (!projects.length) {
     return (
-      <span className='text-sm text-muted-foreground'>{t('project.none')}</span>
+      <span className='text-sm text-muted-foreground'>
+        {t('project.none')}{' '}
+        <Link to='/$' params={{ _splat: 'lobby' }} className='underline'>
+          {t('project.browse')}
+        </Link>
+      </span>
     )
   }
 
@@ -50,6 +56,13 @@ export function ProjectSelector() {
             ) : null}
           </SelectItem>
         ))}
+        <Link
+          to='/$'
+          params={{ _splat: 'lobby' }}
+          className='block border-t px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground'
+        >
+          {t('project.browse')}
+        </Link>
       </SelectContent>
     </Select>
   )

@@ -29,6 +29,22 @@ class Project(Base, TimestampMixin):
     end_date: Mapped[date | None] = mapped_column(Date, default=None)
 
 
+class ProjectMember(Base, TimestampMixin):
+    """A direct grant to read one project, for someone outside its client team and without ``projects.read``.
+
+    Written when an access request is approved or a project invite is accepted (the ``lobby`` module),
+    or by a project admin. ``readable_project`` honours it like client-team membership.
+    """
+
+    __tablename__ = "project_members"
+
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True, index=True)
+    source: Mapped[str] = mapped_column(String(20), default="manual")
+    """``access_request``, ``invite`` or ``manual``."""
+    added_by_id: Mapped[int | None] = mapped_column(Integer, default=None)
+
+
 class ProjectModuleOverride(Base, TimestampMixin):
     """Switches a module on or off for one project, over the system-wide switch.
 
