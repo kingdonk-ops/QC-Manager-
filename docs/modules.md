@@ -221,3 +221,11 @@ What the platform does with them:
 Filters are JSON: `{"status": "open"}` equals, `{"status": ["open", "review"]}` any of, `{"due": {"gte": "2026-01-01", "lt": "2026-02-01"}}` with `eq`, `ne`, `in`, `gt`, `gte`, `lt`, `lte`, `contains`, `empty`. Text compares without case; `number`/`money` and `date` columns compare as numbers and dates.
 
 The pivot is computed on the server, for up to 50,000 source rows, 5,000 row groups and 200 column groups; totals are aggregated from the raw values (an average of averages is never shown).
+
+## Quality gates other modules call
+
+| Need | Use |
+|---|---|
+| A reading taken with an instrument | `await assert_calibrated(db, equipment_ids, reading_date, project_id=...)` from `modules.calibration.service` (guard with `is_enabled(db, "calibration", project_id)` and list `calibration` in `optional_depends`). Raises 422 naming each overdue, quarantined or uncalibrated piece. Pickers use `GET /api/v1/calibration/available`. |
+| An MDR's material certificate appendix | `await certificates_for(db, node_ids, verified_only=False)` from `modules.materials.service`; expand a node with `asset_tree.service.subtree_ids` first. One row per certificate with heat, grade, `file_id` and the `node_ids` it was issued to. |
+| Client-supplied material late for work | `await readiness_warnings(db, project_id, node_ids)` from `modules.materials.service`: warnings, never blocks. |
