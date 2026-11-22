@@ -8,6 +8,7 @@ import { manifest as correspondence } from './correspondence/manifest'
 import { manifest as cde } from './cde/manifest'
 import { manifest as changeOrders } from './change_orders/manifest'
 import { manifest as assets } from './assets/manifest'
+import { manifest as boq } from './boq/manifest'
 import { manifest as cvr } from './cvr/manifest'
 import { manifest as evm } from './evm/manifest'
 import { manifest as dataExchange } from './data_exchange/manifest'
@@ -63,4 +64,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   markups,
   reporting,
   dataExchange,
+  boq,
 ]
