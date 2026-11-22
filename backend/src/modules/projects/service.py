@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...infrastructure.modules import publish
 from ..team.exceptions import TeamNotFoundError
 from ..team.models import Team, TeamMembership
+from .constants import REGIONS
 from .exceptions import ProjectCodeTakenError, ProjectNotFoundError
-from .models import Project
+from .models import Project, ProjectModuleOverride
 from .permissions import ProjectPermissionName
 from .schemas import ProjectRead
 
@@ -61,6 +62,11 @@ class ProjectService:
 
     async def create(self, db: AsyncSession, values: dict[str, Any]) -> dict[str, Any]:
         await self._check_team(db, values.get("client_team_id"))
+        region = REGIONS.get(values.get("region") or "")
+        if not values.get("currency"):
+            values["currency"] = region["currency"] if region else "AUD"
+        if not values.get("classification_standard") and region:
+            values["classification_standard"] = region["classification"]
         project = Project(**values)
         db.add(project)
         await self._commit(db)
@@ -90,3 +96,35 @@ class ProjectService:
         await db.delete(project)
         await db.commit()
         await publish("projects.project.deleted", {"project_id": project_id})
+
+
+async def module_override(db: AsyncSession, project_id: int, module: str) -> bool | None:
+    """The project's override for a module, or ``None`` when it follows the system-wide switch."""
+    override = await db.get(ProjectModuleOverride, (project_id, module))
+
+    return None if override is None else override.enabled
+
+
+async def overrides_of(db: AsyncSession, project_id: int) -> dict[str, bool]:
+    rows = await db.execute(
+        select(ProjectModuleOverride.module, ProjectModuleOverride.enabled).where(
+            ProjectModuleOverride.project_id == project_id
+        )
+    )
+
+    return {module: enabled for module, enabled in rows.all()}
+
+
+async def set_overrides(db: AsyncSession, project_id: int, overrides: dict[str, bool | None]) -> dict[str, bool]:
+    for module, enabled in overrides.items():
+        current = await db.get(ProjectModuleOverride, (project_id, module))
+        if enabled is None:
+            if current is not None:
+                await db.delete(current)
+        elif current is None:
+            db.add(ProjectModuleOverride(project_id=project_id, module=module, enabled=enabled))
+        else:
+            current.enabled = enabled
+    await db.commit()
+
+    return await overrides_of(db, project_id)

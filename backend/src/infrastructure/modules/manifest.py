@@ -33,6 +33,10 @@ class ModuleManifest:
         extra_routers: ``{prefix: attribute}`` for further routers ``router.py`` exports, for a module
             that owns more than one top-level path.
         throttled: Put the module's routes behind the API rate limit.
+        permission_resources: The permission resources this module owns, for the per-user access
+            matrix (None/View/Edit/Full). Defaults to the module's name.
+
+    A module whose category is ``core`` is always on: it can't be switched off at runtime.
     """
 
     name: str
@@ -46,10 +50,19 @@ class ModuleManifest:
     route_prefix: str | None = None
     extra_routers: dict[str, str] = field(default_factory=dict)
     throttled: bool = True
+    permission_resources: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not MODULE_NAME.match(self.name):
             raise ValueError(f"Module name {self.name!r} must be snake_case.")
+
+    @property
+    def core(self) -> bool:
+        return self.category == ModuleCategory.CORE
+
+    @property
+    def resources(self) -> tuple[str, ...]:
+        return self.permission_resources or (self.name,)
 
     @property
     def prefix(self) -> str:

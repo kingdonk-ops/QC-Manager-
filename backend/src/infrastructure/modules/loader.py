@@ -125,13 +125,47 @@ def enabled_modules() -> tuple[LoadedModule, ...]:
     return tuple(module for module in installed_modules() if module.enabled)
 
 
+def dependents_of(name: str) -> tuple[str, ...]:
+    """Installed modules that need ``name``, directly or through another module."""
+    found: set[str] = set()
+    frontier = {name}
+    while frontier:
+        nxt = {
+            m.manifest.name for m in installed_modules() if set(m.manifest.depends) & frontier and m.manifest.name not in found
+        }
+        found |= nxt
+        frontier = nxt
+    return tuple(sorted(found))
+
+
+def dependencies_of(name: str) -> tuple[str, ...]:
+    """Modules ``name`` needs, directly or transitively."""
+    by_name = {m.manifest.name: m.manifest for m in installed_modules()}
+    found: set[str] = set()
+    stack = list(by_name[name].depends) if name in by_name else []
+    while stack:
+        dep = stack.pop()
+        if dep not in found and dep in by_name:
+            found.add(dep)
+            stack.extend(by_name[dep].depends)
+    return tuple(sorted(found))
+
+
 def mount_module_routers(target: APIRouter, throttle: list[Any]) -> None:
-    """Mount every enabled module's routers onto the ``/api/v1`` router."""
+    """Mount every enabled module's routers onto the ``/api/v1`` router.
+
+    A module that isn't core also sits behind its runtime switch, so switching it off answers
+    404 on its routes without a restart.
+    """
+    from .state import module_gate  # noqa: PLC0415 - state reads the loader
+
     for module in enabled_modules():
         routes = module.submodule("router")
         if routes is None:
             continue
-        dependencies = throttle if module.manifest.throttled else []
+        dependencies = list(throttle) if module.manifest.throttled else []
+        if not module.manifest.core:
+            dependencies.append(module_gate(module.manifest.name))
         router = getattr(routes, "router", None)
         if isinstance(router, APIRouter):
             target.include_router(router, prefix=module.manifest.prefix, dependencies=dependencies)

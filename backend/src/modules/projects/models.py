@@ -1,4 +1,6 @@
-from sqlalchemy import ForeignKey, Integer, String, Text
+from datetime import date
+
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ...infrastructure.database.models import TimestampMixin
@@ -21,3 +23,21 @@ class Project(Base, TimestampMixin):
         Integer, ForeignKey("teams.id", ondelete="SET NULL"), index=True, default=None
     )
     """Members of this team (typically external portal users) may read the project."""
+    region: Mapped[str | None] = mapped_column(String(10), default=None)
+    classification_standard: Mapped[str | None] = mapped_column(String(20), default=None)
+    start_date: Mapped[date | None] = mapped_column(Date, default=None)
+    end_date: Mapped[date | None] = mapped_column(Date, default=None)
+
+
+class ProjectModuleOverride(Base, TimestampMixin):
+    """Switches a module on or off for one project, over the system-wide switch.
+
+    Switching on only matters where the module is on system-wide: a module switched off there
+    stays off everywhere.
+    """
+
+    __tablename__ = "project_module_overrides"
+
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    module: Mapped[str] = mapped_column(String(64), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean)

@@ -10,5 +10,6 @@ from ..infrastructure.modules.loader import module_task_modules
 TASK_MODULES: tuple[str, ...] = (
     "src.infrastructure.taskiq.email",
     "src.modules.api_keys.tasks",
+    "src.infrastructure.mail.tasks",
     *module_task_modules(),
 )

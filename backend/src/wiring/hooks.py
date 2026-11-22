@@ -7,6 +7,7 @@ imports and literals only.
 from ..infrastructure.auth.health import limiter_readiness, sessions_readiness
 from ..infrastructure.cache.health import readiness as cache_readiness
 from ..infrastructure.composition import (
+    PermissionFilter,
     PermissionSource,
     RateLimitResolver,
     ReadinessCheck,
@@ -16,10 +17,12 @@ from ..infrastructure.composition import (
 from ..infrastructure.database.health import readiness as database_readiness
 from ..infrastructure.database.health import schema_readiness
 from ..infrastructure.taskiq.health import readiness as broker_readiness
+from ..modules.platform.access import module_access_filter
 from ..modules.rate_limit.hooks import rate_limits_reference_tier, release_deleted_rate_limits, tier_rate_limit
 from ..modules.role.sources import role_permissions
 
 PERMISSION_SOURCES: tuple[PermissionSource, ...] = (role_permissions,)
+PERMISSION_FILTERS: tuple[PermissionFilter, ...] = (module_access_filter,)
 RATE_LIMIT_RESOLVERS: tuple[RateLimitResolver, ...] = (tier_rate_limit,)
 TIER_DELETE_GUARDS: tuple[TierDeleteGuard, ...] = (rate_limits_reference_tier,)
 TIER_DELETE_RELEASES: tuple[TierDeleteRelease, ...] = (release_deleted_rate_limits,)

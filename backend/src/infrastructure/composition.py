@@ -36,6 +36,11 @@ PermissionSource = Callable[[AsyncSession, int], Awaitable[Collection[str]]]
 """Answers which permission names a user holds; the authorization checks ask every one."""
 
 
+PermissionFilter = Callable[[AsyncSession, int, frozenset[str]], Awaitable[frozenset[str]]]
+"""Rewrites the union of every source's grants, e.g. a per-user module access level that
+replaces what the user's roles give for that module. Run in order, after the sources."""
+
+
 RateLimitResolver = Callable[[Request, Any], Awaitable[RateLimit | None]]
 """Answers the limit for a request, or ``None`` to let the next resolver decide."""
 
