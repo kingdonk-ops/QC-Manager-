@@ -36,9 +36,29 @@ async def _unique_username(db: AsyncSession, email: str) -> str:
     return candidate
 
 
-async def _send_set_password_link(db: AsyncSession, email: str) -> None:
+async def _send_set_password_link(db: AsyncSession, email: str, redirect_to: str = "/") -> None:
     if auth.emails is not None:
-        await auth.emails.request_password_reset(db, email, redirect_to="/")
+        await auth.emails.request_password_reset(db, email, redirect_to=redirect_to)
+
+
+send_set_password_link = _send_set_password_link
+"""For other modules: email the set-password link, landing on ``redirect_to`` afterwards."""
+
+
+async def new_external_account(db: AsyncSession, name: str, email: str) -> User:
+    """An external account that can't sign in until it sets a password (flushed, not committed).
+
+    For other modules inviting someone new (the lobby's project invites). Commit, then ``send_set_password_link``.
+    """
+    user = User(
+        name=name,
+        username=await _unique_username(db, email.lower()),
+        email=email.lower(),
+        hashed_password=make_unusable_password(),
+    )
+    db.add(user)
+    await db.flush()
+    return user
 
 
 class PortalService:

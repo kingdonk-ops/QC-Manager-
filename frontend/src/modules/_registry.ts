@@ -11,6 +11,7 @@ import { manifest as cde } from './cde/manifest'
 import { manifest as changeOfScope } from './change_of_scope/manifest'
 import { manifest as changeOrders } from './change_orders/manifest'
 import { manifest as claims } from './claims/manifest'
+import { manifest as coatings } from './coatings/manifest'
 import { manifest as contacts } from './contacts/manifest'
 import { manifest as correspondence } from './correspondence/manifest'
 import { manifest as cvr } from './cvr/manifest'
@@ -19,6 +20,7 @@ import { manifest as evm } from './evm/manifest'
 import { manifest as files } from './files/manifest'
 import { manifest as handover } from './handover/manifest'
 import { manifest as inspections } from './inspections/manifest'
+import { manifest as lobby } from './lobby/manifest'
 import { manifest as markups } from './markups/manifest'
 import { manifest as mdr } from './mdr/manifest'
 import { manifest as meetings } from './meetings/manifest'
@@ -37,6 +39,7 @@ import { manifest as reporting } from './reporting/manifest'
 import { manifest as rfi } from './rfi/manifest'
 import { manifest as risk } from './risk/manifest'
 import { manifest as safety } from './safety/manifest'
+import { manifest as scaffolds } from './scaffolds/manifest'
 import { manifest as schedule } from './schedule/manifest'
 import { manifest as submittals } from './submittals/manifest'
 import { manifest as tasks } from './tasks/manifest'
@@ -85,4 +88,7 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   p6,
   changeOfScope,
   claims,
+  scaffolds,
+  coatings,
+  lobby,
 ]

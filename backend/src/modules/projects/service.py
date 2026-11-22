@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +11,7 @@ from ..team.exceptions import TeamNotFoundError
 from ..team.models import Team, TeamMembership
 from .constants import REGIONS
 from .exceptions import ProjectCodeTakenError, ProjectNotFoundError
-from .models import Project, ProjectModuleOverride
+from .models import Project, ProjectMember, ProjectModuleOverride
 from .permissions import ProjectPermissionName
 from .schemas import ProjectRead
 
@@ -21,8 +21,9 @@ def _visible_to(user_id: int, held: frozenset[str]):
     if ProjectPermissionName.READ.value in held:
         return True
     teams = select(TeamMembership.team_id).where(TeamMembership.user_id == user_id)
+    direct = select(ProjectMember.project_id).where(ProjectMember.user_id == user_id)
 
-    return Project.client_team_id.in_(teams)
+    return or_(Project.client_team_id.in_(teams), Project.id.in_(direct))
 
 
 async def readable_project(db: AsyncSession, project_id: int, user_id: int, held: frozenset[str]) -> Project:
@@ -133,3 +134,12 @@ async def set_overrides(db: AsyncSession, project_id: int, overrides: dict[str, 
 async def visible_project_ids(db: AsyncSession, user_id: int, held: frozenset[str]) -> set[int]:
     """The ids of every project this user may read (for cross-project reports and exports)."""
     return set((await db.execute(select(Project.id).where(_visible_to(user_id, held)))).scalars())
+
+
+async def add_member(db: AsyncSession, project_id: int, user_id: int, source: str, added_by_id: int | None) -> bool:
+    """Grant one user read access to one project (no commit). ``False`` when they already had a direct grant."""
+    if await db.get(ProjectMember, (project_id, user_id)) is not None:
+        return False
+    db.add(ProjectMember(project_id=project_id, user_id=user_id, source=source, added_by_id=added_by_id))
+    await db.flush()
+    return True
