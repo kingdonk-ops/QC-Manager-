@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
-import { Download, Eye, Upload } from 'lucide-react'
+import { Download, Eye, PenTool, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api, unwrap } from '@/api/client'
@@ -32,6 +33,7 @@ import {
   uploadFile,
   type StoredFile,
 } from '@/components/records/files'
+import { useActiveModules } from '../_runtime'
 
 const CATEGORIES = [
   'drawing',
@@ -156,6 +158,9 @@ function Documents({ projectId }: { projectId: number }) {
   })
 
   const editable = can(session, 'files.upload')
+  const active = useActiveModules()
+  const markups =
+    can(session, 'markups.read') && active.some((m) => m.id === 'markups')
   const columns = useMemo<ColDef<StoredFile>[]>(
     () => [
       { field: 'name', headerName: 'Name', flex: 2, minWidth: 240 },
@@ -207,7 +212,7 @@ function Documents({ projectId }: { projectId: number }) {
       },
       {
         headerName: '',
-        width: 80,
+        width: 110,
         sortable: false,
         filter: false,
         cellRenderer: (p: ICellRendererParams<StoredFile>) =>
@@ -219,11 +224,21 @@ function Documents({ projectId }: { projectId: number }) {
               <a aria-label='Download' href={fileUrl(p.data.id)}>
                 <Download className='size-4' />
               </a>
+              {markups && p.data.content_type === 'application/pdf' ? (
+                <Link
+                  aria-label='Markup'
+                  title='Markup'
+                  to='/$'
+                  params={{ _splat: `markups/${p.data.id}` }}
+                >
+                  <PenTool className='size-4' />
+                </Link>
+              ) : null}
             </span>
           ) : null,
       },
     ],
-    [editable]
+    [editable, markups]
   )
 
   return (
