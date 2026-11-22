@@ -10,6 +10,7 @@ import { manifest as changeOrders } from './change_orders/manifest'
 import { manifest as assets } from './assets/manifest'
 import { manifest as cvr } from './cvr/manifest'
 import { manifest as evm } from './evm/manifest'
+import { manifest as dataExchange } from './data_exchange/manifest'
 import { manifest as files } from './files/manifest'
 import { manifest as meetings } from './meetings/manifest'
 import { manifest as inspections } from './inspections/manifest'
@@ -28,6 +29,7 @@ import { manifest as submittals } from './submittals/manifest'
 import { manifest as safety } from './safety/manifest'
 import { manifest as risk } from './risk/manifest'
 import { manifest as schedule } from './schedule/manifest'
+import { manifest as reporting } from './reporting/manifest'
 import { manifest as teams } from './team/manifest'
 import { manifest as transmittals } from './transmittals/manifest'
 
@@ -59,4 +61,6 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   evm,
   assets,
   markups,
+  reporting,
+  dataExchange,
 ]
