@@ -11,6 +11,7 @@ import { manifest as people } from './people/manifest'
 import { manifest as platform } from './platform/manifest'
 import { manifest as portal } from './portal/manifest'
 import { manifest as projects } from './projects/manifest'
+import { manifest as schedule } from './schedule/manifest'
 import { manifest as teams } from './team/manifest'
 
 export const MODULE_REGISTRY: ModuleManifest[] = [
@@ -23,4 +24,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   portal,
   platform,
   notifications,
+  schedule,
 ]
