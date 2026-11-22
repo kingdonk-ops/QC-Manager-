@@ -11,3 +11,5 @@ class SchedulePermissionName(StrEnum):
     DELETE = "schedule.delete"
     IMPORT = "schedule.import"
     EXPORT = "schedule.export"
+    REVIEW = "schedule.review"
+    """Record verified progress (counts as earned only with evidence)."""

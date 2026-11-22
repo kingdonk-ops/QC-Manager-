@@ -38,6 +38,9 @@ class ImportedActivity:
     budget_hours: float | None = None
     notes: str | None = None
     wbs_code: str | None = None
+    extra: dict = field(default_factory=dict)
+    """P6 facts the mirror keeps: ``guid``, ``task_type``, ``status_code``, ``total_float_hours``,
+    ``longest_path``, ``late_finish``, ``codes`` and ``udfs``."""
 
 
 @dataclass
@@ -234,6 +237,8 @@ def parse_xer(data: bytes) -> Imported:
             )
         )
 
+    codes = _xer_codes(tables)
+    udfs = _xer_udfs(tables)
     for t in tables["TASK"]:
         if proj_id and t.get("proj_id") not in (None, "", proj_id):
             continue
@@ -260,6 +265,16 @@ def parse_xer(data: bytes) -> Imported:
                 constraint_type=XER_CONSTRAINT.get(t.get("cstr_type", ""), "asap"),
                 constraint_date=_date(t.get("cstr_date")),
                 budget_hours=_float(t.get("target_work_qty")) or None,
+                extra={
+                    "guid": t.get("guid") or None,
+                    "task_type": task_type,
+                    "status_code": status,
+                    "total_float_hours": _float(t["total_float_hr_cnt"]) if t.get("total_float_hr_cnt") else None,
+                    "longest_path": t.get("driving_path_flag") == "Y",
+                    "late_finish": (lf.isoformat() if (lf := _date(t.get("late_end_date"))) else None),
+                    "codes": codes.get(t["task_id"], {}),
+                    "udfs": udfs.get(t["task_id"], {}),
+                },
             )
         )
 
@@ -276,6 +291,38 @@ def parse_xer(data: bytes) -> Imported:
     return out
 
 
+def _xer_codes(tables: dict[str, list[dict[str, str]]]) -> dict[str, dict[str, str]]:
+    """``{task_id: {activity code type: value}}`` from TASKACTV, ACTVCODE and ACTVTYPE."""
+    types = {r.get("actv_code_type_id"): r.get("actv_code_type") or "" for r in tables.get("ACTVTYPE", [])}
+    values = {
+        r.get("actv_code_id"): (types.get(r.get("actv_code_type_id"), ""), r.get("short_name") or r.get("actv_code_name") or "")
+        for r in tables.get("ACTVCODE", [])
+    }
+    out: dict[str, dict[str, str]] = {}
+    for r in tables.get("TASKACTV", []):
+        kind, value = values.get(r.get("actv_code_id"), ("", ""))
+        if kind:
+            out.setdefault(r.get("task_id") or "", {})[kind] = value
+    return out
+
+
+def _xer_udfs(tables: dict[str, list[dict[str, str]]]) -> dict[str, dict[str, str]]:
+    """``{task_id: {UDF label: value}}`` for the UDFs defined on activities."""
+    labels = {
+        r.get("udf_type_id"): r.get("udf_type_label") or r.get("udf_type_name") or ""
+        for r in tables.get("UDFTYPE", [])
+        if r.get("table_name") in (None, "", "TASK")
+    }
+    out: dict[str, dict[str, str]] = {}
+    for r in tables.get("UDFVALUE", []):
+        label = labels.get(r.get("udf_type_id"))
+        if not label:
+            continue
+        value = r.get("udf_text") or r.get("udf_number") or r.get("udf_date") or r.get("udf_code_id") or ""
+        out.setdefault(r.get("fk_id") or "", {})[label] = value
+    return out
+
+
 # --- Primavera P6 XML ----------------------------------------------------------------------------
 
 P6_XML_LINK = {"Finish to Start": "FS", "Start to Start": "SS", "Finish to Finish": "FF", "Start to Finish": "SF"}
@@ -286,6 +333,15 @@ P6_XML_CONSTRAINT = {
     "Finish On or Before": "fnlt",
     "Mandatory Finish": "fnlt",
 }
+P6_XML_TYPE = {
+    "Task Dependent": "TT_Task",
+    "Resource Dependent": "TT_Rsrc",
+    "Level of Effort": "TT_LOE",
+    "Start Milestone": "TT_Mile",
+    "Finish Milestone": "TT_FinMile",
+    "WBS Summary": "TT_WBS",
+}
+P6_XML_STATUS = {"Not Started": "TK_NotStart", "In Progress": "TK_Active", "Completed": "TK_Complete"}
 WEEKDAY_NAMES = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
 
 
@@ -355,6 +411,16 @@ def parse_p6_xml(data: bytes) -> Imported:
                 constraint_date=_date(_text(a, "PrimaryConstraintDate")),
                 budget_hours=_float(_text(a, "PlannedTotalUnits")) or None,
                 notes=_text(a, "Notes"),
+                extra={
+                    "guid": _text(a, "GUID"),
+                    "task_type": P6_XML_TYPE.get(kind, kind),
+                    "status_code": P6_XML_STATUS.get(_text(a, "Status") or "", _text(a, "Status") or ""),
+                    "total_float_hours": _float(_text(a, "TotalFloat")) if _text(a, "TotalFloat") else None,
+                    "longest_path": (_text(a, "IsLongestPath") or "").lower() in ("1", "true"),
+                    "late_finish": (lf.isoformat() if (lf := _date(_text(a, "LateFinishDate"))) else None),
+                    "codes": {},
+                    "udfs": {},
+                },
             )
         )
 

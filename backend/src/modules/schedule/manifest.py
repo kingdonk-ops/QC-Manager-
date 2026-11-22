@@ -6,5 +6,5 @@ manifest = ModuleManifest(
     display_name="4D Schedule",
     description="Gantt programme with critical path, baselines, progress, Monte Carlo risk and P6 / MS Project exchange.",
     depends=("projects", "notifications"),
-    optional_depends=("cvr",),
+    optional_depends=("cvr", "asset_tree", "inspections", "files"),
 )
