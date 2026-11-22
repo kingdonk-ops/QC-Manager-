@@ -141,6 +141,8 @@ class ScheduleActivityRead(BaseModel):
     start_variance: int | None = Field(None, description="Working days actual (or forecast) start is later than planned")
     finish_variance: int | None = Field(None, description="Working days actual (or forecast) finish is later than planned")
     baseline_variance: int | None = Field(None, description="Working days the forecast finish is later than the baseline")
+    p6_activity_id: str | None = Field(None, description="The P6 Activity ID this activity mirrors")
+    schedule_state: str = Field("active", description="`removed_from_schedule` once missing from the latest P6 import")
 
 
 class ScheduleDependencyCreate(EncodableText):

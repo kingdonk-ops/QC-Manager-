@@ -414,3 +414,8 @@ async def export_schedule(
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="schedule-{code}-{stamp}.{ext}"'},
     )
+
+
+from .p6_router import router as p6_router  # noqa: E402 - the P6 mirror's routes, under /schedule/{project_id}/p6
+
+router.include_router(p6_router)

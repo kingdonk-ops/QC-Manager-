@@ -8,7 +8,9 @@ import { manifest as assets } from './assets/manifest'
 import { manifest as audit } from './audit/manifest'
 import { manifest as boq } from './boq/manifest'
 import { manifest as cde } from './cde/manifest'
+import { manifest as changeOfScope } from './change_of_scope/manifest'
 import { manifest as changeOrders } from './change_orders/manifest'
+import { manifest as claims } from './claims/manifest'
 import { manifest as contacts } from './contacts/manifest'
 import { manifest as correspondence } from './correspondence/manifest'
 import { manifest as cvr } from './cvr/manifest'
@@ -24,6 +26,7 @@ import { manifest as ncr } from './ncr/manifest'
 import { manifest as notifications } from './notifications/manifest'
 import { manifest as numbering } from './numbering/manifest'
 import { manifest as overview } from './overview/manifest'
+import { manifest as p6 } from './p6/manifest'
 import { manifest as people } from './people/manifest'
 import { manifest as planner } from './planner/manifest'
 import { manifest as platform } from './platform/manifest'
@@ -79,4 +82,7 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   numbering,
   audit,
   mdr,
+  p6,
+  changeOfScope,
+  claims,
 ]

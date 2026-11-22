@@ -38,6 +38,11 @@ class ScheduleSettings(Base, TimestampMixin):
     finish_date: Mapped[date | None] = mapped_column(Date, default=None)
     """The calculated finish, kept from the last calculation."""
     calculated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    p6_critical_definition: Mapped[str] = mapped_column(String(20), default="total_float_le")
+    """How a mirrored P6 activity counts as critical: ``total_float_le`` (float at or below the threshold) or
+    ``longest_path`` (the schedule's own longest-path flag)."""
+    p6_critical_float_hours: Mapped[float] = mapped_column(Float, default=0.0)
+    p6_rules_seeded: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Activity(Base, TimestampMixin):
@@ -48,7 +53,10 @@ class Activity(Base, TimestampMixin):
     """
 
     __tablename__ = "schedule_activities"
-    __table_args__ = (Index("ix_schedule_activities_project_wbs", "project_id", "wbs_code"),)
+    __table_args__ = (
+        Index("ix_schedule_activities_project_wbs", "project_id", "wbs_code"),
+        Index("uq_schedule_activities_p6", "project_id", "p6_activity_id", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
     project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
@@ -88,6 +96,14 @@ class Activity(Base, TimestampMixin):
     free_float: Mapped[int | None] = mapped_column(Integer, default=None)
     is_critical: Mapped[bool] = mapped_column(Boolean, default=False)
     driving_predecessor_ids: Mapped[list] = mapped_column(JSON, default_factory=list)
+    p6_activity_id: Mapped[str | None] = mapped_column(String(60), default=None)
+    """The P6 Activity ID (``task_code``) this activity mirrors; its identity across re-imports."""
+    p6_guid: Mapped[str | None] = mapped_column(String(60), default=None)
+    schedule_state: Mapped[str] = mapped_column(String(30), default="active")
+    """``active`` or ``removed_from_schedule`` (missing from the latest P6 import; never deleted)."""
+    p6_facts: Mapped[dict] = mapped_column(JSON, default_factory=dict)
+    """P6-owned facts of the last committed import: ``src`` (the source row), float, longest path, codes,
+    UDFs, eligibility and the name-grammar match."""
 
 
 class Dependency(Base, TimestampMixin):
@@ -115,3 +131,20 @@ class Baseline(Base):
     finish_date: Mapped[date | None] = mapped_column(Date, default=None)
     created_by_id: Mapped[int | None] = mapped_column(Integer, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), init=False)
+
+
+from .p6_models import P6Change, P6Export, P6Import, P6Link, P6LinkMemory, P6Rule, ProgressVerification  # noqa: E402
+
+__all__ = [
+    "Activity",
+    "Baseline",
+    "Dependency",
+    "P6Change",
+    "P6Export",
+    "P6Import",
+    "P6Link",
+    "P6LinkMemory",
+    "P6Rule",
+    "ProgressVerification",
+    "ScheduleSettings",
+]
