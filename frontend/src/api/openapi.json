@@ -3778,6 +3778,273 @@
     }
    }
   },
+  "/api/v1/people/me": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "The Signed-in User's Profile, Roles and Teams",
+    "operationId": "me_api_v1_people_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Person"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/people/": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "List Users with Their Roles and Teams",
+    "operationId": "list_people_api_v1_people__get",
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 100,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 100
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Search"
+      }
+     },
+     {
+      "name": "include_inactive",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include Inactive"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_Person_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/people/roles": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Roles, and Which Ones Entra Grants",
+    "operationId": "roles_api_v1_people_roles_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RoleOption"
+         },
+         "type": "array",
+         "title": "Response Roles Api V1 People Roles Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/people/{user_id}": {
+   "get": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Get a User",
+    "operationId": "get_person_api_v1_people__user_id__get",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Person"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/people/{user_id}/deactivate": {
+   "post": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Deactivate an Account",
+    "description": "Signs the account out everywhere and refuses every sign-in until reactivated. Nothing is deleted.",
+    "operationId": "deactivate_api_v1_people__user_id__deactivate_post",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Person"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/people/{user_id}/reactivate": {
+   "post": {
+    "tags": [
+     "Users"
+    ],
+    "summary": "Reactivate an Account",
+    "operationId": "reactivate_api_v1_people__user_id__reactivate_post",
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Person"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/portal/invitations": {
    "post": {
     "tags": [
@@ -5506,6 +5773,54 @@
     ],
     "title": "PaginatedListResponse[KeyUsageRead]"
    },
+   "PaginatedListResponse_Person_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/Person"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[Person]"
+   },
    "PaginatedListResponse_ProjectRead_": {
     "properties": {
      "data": {
@@ -5793,6 +6108,152 @@
      "has_more"
     ],
     "title": "PaginatedListResponse[UserRead]"
+   },
+   "Person": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "username": {
+      "type": "string",
+      "title": "Username"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "account_type": {
+      "type": "string",
+      "enum": [
+       "staff",
+       "external"
+      ],
+      "title": "Account Type"
+     },
+     "sign_in_method": {
+      "type": "string",
+      "enum": [
+       "entra",
+       "password"
+      ],
+      "title": "Sign In Method"
+     },
+     "is_superuser": {
+      "type": "boolean",
+      "title": "Is Superuser"
+     },
+     "active": {
+      "type": "boolean",
+      "title": "Active"
+     },
+     "activated": {
+      "type": "boolean",
+      "title": "Activated",
+      "description": "Has a usable sign-in: Entra, or a password set from the invitation"
+     },
+     "roles": {
+      "items": {
+       "$ref": "#/components/schemas/PersonRole"
+      },
+      "type": "array",
+      "title": "Roles"
+     },
+     "teams": {
+      "items": {
+       "$ref": "#/components/schemas/PersonTeam"
+      },
+      "type": "array",
+      "title": "Teams"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "username",
+     "email",
+     "account_type",
+     "sign_in_method",
+     "is_superuser",
+     "active",
+     "activated"
+    ],
+    "title": "Person"
+   },
+   "PersonRole": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "entra_app_role": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra App Role",
+      "description": "Set when Entra grants this role; it can't be changed here"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "PersonRole"
+   },
+   "PersonTeam": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "entra_managed": {
+      "type": "boolean",
+      "title": "Entra Managed"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "role",
+     "entra_managed"
+    ],
+    "title": "PersonTeam"
    },
    "ProjectCreate": {
     "properties": {
@@ -6294,6 +6755,48 @@
      "role_id"
     ],
     "title": "RoleMappingSet"
+   },
+   "RoleOption": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "entra_app_role": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entra App Role"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "description",
+     "entra_app_role"
+    ],
+    "title": "RoleOption"
    },
    "RolePermissions": {
     "properties": {

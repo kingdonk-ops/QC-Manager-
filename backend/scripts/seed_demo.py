@@ -9,6 +9,7 @@ import asyncio
 from datetime import date
 from decimal import Decimal
 
+from crudauth.utils.hashing import is_unusable_password, make_unusable_password
 from sqlalchemy import select
 
 from src.infrastructure.config.settings import EnvironmentOption, settings
@@ -16,8 +17,9 @@ from src.infrastructure.database.registry import import_models
 from src.infrastructure.database.session import local_session
 from src.modules.cvr.models import CashflowPeriod, CostHead
 from src.modules.projects.models import Project
-from src.modules.role.models import Role, RolePermission
-from src.modules.team.models import EntraRoleMapping, Team
+from src.modules.role.models import Role, RolePermission, UserRole
+from src.modules.team.models import EntraRoleMapping, Team, TeamMembership
+from src.modules.user.models import User
 
 ROLES = {
     "Administrator": (
@@ -30,6 +32,8 @@ ROLES = {
             "team.manage_members",
             "entra.manage",
             "portal.invite",
+            "people.read",
+            "people.manage",
             "role.read",
             "role.create",
             "role.update",
@@ -56,6 +60,61 @@ COST_HEADS = [
     ("07", "Coatings", 228_000, 31_900, 40_500, 219_000, 236_000),
     ("08", "Plant & equipment", 185_000, 92_800, 88_000, 194_000, 186_000),
 ]
+
+# Directory entries for local development. Staff carry a made-up Entra object id and no password, so
+# none of them can sign in; they only make the users and teams screens realistic.
+PEOPLE = [
+    ("Priya Natarajan", "priya.natarajan@example.com", "staff", ["Administrator"], [("Commercial - WA", "manager")]),
+    (
+        "Tom Whitfield",
+        "tom.whitfield@example.com",
+        "staff",
+        ["Commercial"],
+        [("Commercial - WA", "lead"), ("QC Inspectors - Perth", "member")],
+    ),
+    ("Aisha Rahman", "aisha.rahman@example.com", "staff", ["Commercial"], [("Commercial - WA", "member")]),
+    ("Liam O'Connor", "liam.oconnor@example.com", "staff", ["Viewer"], [("QC Inspectors - Perth", "lead")]),
+    ("Mei Chen", "mei.chen@example.com", "staff", ["Viewer"], [("QC Inspectors - Perth", "member")]),
+    ("Dana Brooks", "dana.brooks@northwind.example", "external", [], [("Client - Northwind Energy", "member")]),
+    ("Sam Okafor", "sam.okafor@northwind.example", "external", [], [("Client - Northwind Energy", "member")]),
+]
+
+TEAMS = {
+    "Commercial - WA": "3f6c2a1e-7d4b-4a8e-9c1f-2b5d8e0a4c71",
+    "QC Inspectors - Perth": None,
+}
+
+
+async def seed_people(db) -> None:
+    roles = {r.name: r for r in (await db.execute(select(Role))).scalars()}
+    teams = {t.name: t for t in (await db.execute(select(Team))).scalars()}
+    for name, group in TEAMS.items():
+        if name not in teams:
+            teams[name] = Team(name=name, entra_group_id=group)
+            db.add(teams[name])
+    await db.flush()
+    for index, (name, email, kind, role_names, memberships) in enumerate(PEOPLE):
+        if await db.scalar(select(User.id).where(User.email == email)):
+            continue
+        user = User(
+            name=name,
+            username=email.split("@")[0].replace(".", "_").replace("'", ""),
+            email=email,
+            hashed_password=make_unusable_password(),
+        )
+        if kind == "staff":
+            user.entra_id = f"00000000-0000-4000-8000-{index:012d}"
+            user.email_verified = True
+        db.add(user)
+        await db.flush()
+        db.add_all([UserRole(user_id=user.id, role_id=roles[r].id) for r in role_names])
+        db.add_all([TeamMembership(team_id=teams[t].id, user_id=user.id, role=r) for t, r in memberships])
+    # one external user who has set a password, so not every invitation looks pending
+    sam = await db.scalar(select(User).where(User.email == "sam.okafor@northwind.example"))
+    if sam is not None and is_unusable_password(sam.hashed_password):
+        from crudauth import get_password_hash  # noqa: PLC0415
+
+        sam.hashed_password = get_password_hash("Cl1ent!Passw0rd")
 
 
 async def main() -> None:
@@ -120,6 +179,8 @@ async def main() -> None:
                     )
                 )
 
+        await db.flush()
+        await seed_people(db)
         await db.commit()
     print("Demo data is in place: roles, a client team, and project P-24017.")
 

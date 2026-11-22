@@ -20,10 +20,18 @@ export function useNavGroups(): NavGroup[] {
       })),
       {
         title: t(settingsNavGroup.title),
-        items: settingsNavGroup.items.map((item) => ({
-          ...item,
-          title: t(item.title),
-        })),
+        items: settingsNavGroup.items.map((item) =>
+          item.items
+            ? {
+                ...item,
+                title: t(item.title),
+                items: item.items.map((sub) => ({
+                  ...sub,
+                  title: t(sub.title),
+                })),
+              }
+            : { ...item, title: t(item.title) }
+        ),
       },
     ],
     [moduleGroups, t]

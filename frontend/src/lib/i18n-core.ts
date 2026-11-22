@@ -7,6 +7,13 @@ export const coreMessages: Record<string, Record<string, string>> = {
     'nav.group.admin': 'Administration',
     'nav.group.settings': 'Settings',
     'nav.settings': 'Settings',
+    'settings.title': 'Settings',
+    'settings.description':
+      'Your profile, how you sign in, and how the app looks.',
+    'settings.profile': 'Profile',
+    'settings.security': 'Sign-in & security',
+    'settings.appearance': 'Appearance',
+    'settings.display': 'Display',
     'project.select': 'Select project',
     'project.none': 'No projects',
     'common.save': 'Save',

@@ -39,7 +39,7 @@ vi.mock('@/components/layout/use-nav-groups', () => ({
           title: 'Settings',
           items: [
             { title: 'Profile', url: '/settings' },
-            { title: 'Account', url: '/settings/account' },
+            { title: 'Security', url: '/settings/security' },
           ],
         },
       ],
@@ -148,9 +148,9 @@ describe('SearchProvider and CommandMenu', () => {
 
     await openCommandPalette(screen)
 
-    await userEvent.click(getByRole('option', { name: 'Settings Account' }))
+    await userEvent.click(getByRole('option', { name: 'Settings Security' }))
 
-    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/account' })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/security' })
     await expect
       .element(getByPlaceholder(COMMAND_MENU_PLACEHOLDER))
       .not.toBeInTheDocument()

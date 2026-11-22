@@ -1425,6 +1425,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Signed-in User's Profile, Roles and Teams */
+        get: operations["me_api_v1_people_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users with Their Roles and Teams */
+        get: operations["list_people_api_v1_people__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roles, and Which Ones Entra Grants */
+        get: operations["roles_api_v1_people_roles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a User */
+        get: operations["get_person_api_v1_people__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/{user_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate an Account
+         * @description Signs the account out everywhere and refuses every sign-in until reactivated. Nothing is deleted.
+         */
+        post: operations["deactivate_api_v1_people__user_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/{user_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate an Account */
+        post: operations["reactivate_api_v1_people__user_id__reactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portal/invitations": {
         parameters: {
             query?: never;
@@ -2102,6 +2207,19 @@ export interface components {
             /** Items Per Page */
             items_per_page?: number | null;
         };
+        /** PaginatedListResponse[Person] */
+        PaginatedListResponse_Person_: {
+            /** Data */
+            data: components["schemas"]["Person"][];
+            /** Total Count */
+            total_count: number;
+            /** Has More */
+            has_more: boolean;
+            /** Page */
+            page?: number | null;
+            /** Items Per Page */
+            items_per_page?: number | null;
+        };
         /** PaginatedListResponse[ProjectRead] */
         PaginatedListResponse_ProjectRead_: {
             /** Data */
@@ -2179,6 +2297,65 @@ export interface components {
             page?: number | null;
             /** Items Per Page */
             items_per_page?: number | null;
+        };
+        /** Person */
+        Person: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Username */
+            username: string;
+            /** Email */
+            email: string;
+            /**
+             * Account Type
+             * @enum {string}
+             */
+            account_type: "staff" | "external";
+            /**
+             * Sign In Method
+             * @enum {string}
+             */
+            sign_in_method: "entra" | "password";
+            /** Is Superuser */
+            is_superuser: boolean;
+            /** Active */
+            active: boolean;
+            /**
+             * Activated
+             * @description Has a usable sign-in: Entra, or a password set from the invitation
+             */
+            activated: boolean;
+            /** Roles */
+            roles?: components["schemas"]["PersonRole"][];
+            /** Teams */
+            teams?: components["schemas"]["PersonTeam"][];
+            /** Created At */
+            created_at?: string | null;
+        };
+        /** PersonRole */
+        PersonRole: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Entra App Role
+             * @description Set when Entra grants this role; it can't be changed here
+             */
+            entra_app_role?: string | null;
+        };
+        /** PersonTeam */
+        PersonTeam: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Entra Managed */
+            entra_managed: boolean;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -2339,6 +2516,17 @@ export interface components {
         RoleMappingSet: {
             /** Role Id */
             role_id: number;
+        };
+        /** RoleOption */
+        RoleOption: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Entra App Role */
+            entra_app_role: string | null;
         };
         /**
          * RolePermissions
@@ -5842,6 +6030,175 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CashflowPeriodRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_v1_people_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
+                };
+            };
+        };
+    };
+    list_people_api_v1_people__get: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page (max 100) */
+                items_per_page?: number;
+                search?: string | null;
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedListResponse_Person_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roles_api_v1_people_roles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleOption"][];
+                };
+            };
+        };
+    };
+    get_person_api_v1_people__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_api_v1_people__user_id__deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reactivate_api_v1_people__user_id__reactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
                 };
             };
             /** @description Validation Error */
