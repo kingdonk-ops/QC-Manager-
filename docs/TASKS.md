@@ -175,7 +175,7 @@ synthetic schedules of the same shape.
 
 | # | Task | Status |
 |---|---|---|
-| 11.1 | Activity names with several RSWs: `902 - 903 - 904` links each RSW, `728 - 732` is the range 728–732 (up to `max_range`); a trailing note (`OHP`, `Access`, `Props`, `North`) is kept on the link and never changes which RSW is meant. Unclear chains (`410-2-3`) go to manual linking. | done |
+| 11.1 | Activity names with several RSWs: `902 - 903 - 904` links each RSW, `728 - 732` is the range 728–732 (up to `max_range`); a trailing note (`OHP`, `Access`, `Props`, `North`) is kept on the link and never changes which RSW is meant. Bare-dash runs: `804-805-806` is RSWs 804, 805, 806 and `410-2-3` is 410, 410.2, 410.3 (gaps never filled — 410.1 may be done by others or not needed); a single shorter part stays a suffix (`900-16`). Provisional sums named without an RSW are out of scope by default. | done |
 | 11.2 | Breakdown levels from the WBS, per project (`wbs_level` rules on the P6 Rules tab, e.g. WBS level 3 → Site, level 4 → Area). | done |
 | 11.3 | P6-created RSWs are named after their activity types (code stays the RSW number) and take planned start/finish and budget hours from their activities; a value someone changed since the last import is never overwritten. | done |
 | 11.4 | Durations and lags use each activity's own P6 calendar; holidays from years before the programme are dropped. | done |

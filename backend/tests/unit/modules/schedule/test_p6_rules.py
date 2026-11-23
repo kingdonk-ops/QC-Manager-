@@ -15,6 +15,7 @@ from src.modules.schedule.p6_rules import (
     link_info,
     norm,
     parse,
+    split_chain,
 )
 from src.modules.schedule.p6_service import Existing, diff, row_hash
 
@@ -139,6 +140,14 @@ def test_diff_classifies_every_change():
         ("CV-01 / B / 305 Water Diversion", ["305"], "Water Diversion", None),
         ("CV-01 / B / 512-21", ["512-21"], None, None),
         ("CV-01 / B / 512 Online", ["512"], None, "Online"),
+        # Bare-dash runs: full codes when the parts are as long as the first, items of the first when shorter.
+        ("CV-01 / SCA Erect / 804-805-806", ["804", "805", "806"], None, None),
+        ("CV-01 / SCA Erect / 909-910-911-914", ["909", "910", "911", "914"], None, None),  # gaps never filled
+        ("CV-01 / P / 410-2-3", ["410", "410.2", "410.3"], None, None),  # 410.1 not named, not added
+        ("CV-01 / P / 410-2-3 Shut", ["410", "410.2", "410.3"], None, "Shut"),
+        ("CV-01 / SCA Dism / 914-915", ["914", "915"], None, None),  # as long as the code: two codes
+        ("CV-01 / B / 900-16", ["900-16"], None, None),  # a single shorter part stays a suffix (TD-076)
+        ("CV-01 / B / 913.1-16", ["913.1-16"], None, None),
     ],
 )
 def test_lists_ranges_and_qualifiers(name, anchors, qualifier, window):
@@ -148,9 +157,21 @@ def test_lists_ranges_and_qualifiers(name, anchors, qualifier, window):
     assert (parsed.qualifier, parsed.window) == (qualifier, window)
 
 
-@pytest.mark.parametrize("name", ["CV-01 / P / 410-2-3", "CV-01 / Prov Sums / Painters", "Site mobilisation"])
+@pytest.mark.parametrize(
+    "name", ["CV-01 / P / 41-410-4", "CV-01 / P / 410.1-2-3", "CV-01 / Prov Sums / Painters", "Site mobilisation"]
+)
 def test_unclear_codes_stay_unmatched(name):
     assert parse(row(name), rules()).groups is None
+
+
+def test_split_chain_only_reads_the_two_clear_shapes():
+    assert split_chain("804-805-806") == ["804", "805", "806"]
+    assert split_chain("410-2-3-4") == ["410", "410.2", "410.3", "410.4"]
+    assert split_chain("914-915") == ["914", "915"]
+    assert split_chain("900-16") is None  # suffix
+    assert split_chain("410-22-3") == ["410", "410.22", "410.3"]
+    assert split_chain("41-410-4") is None  # a later part longer than the first
+    assert split_chain("410.1-2-3") is None  # decimal start
 
 
 def test_expand_list_never_guesses_a_long_or_backwards_range():
@@ -214,3 +235,11 @@ def test_wbs_levels_add_breakdown_levels_from_the_wbs():
     assert "zone" not in parsed.groups
     # A name the grammar can't read is still unmatched: the WBS alone never makes a link.
     assert parse(row("Mobilisation", wbs_chain=chain), build(rows)).groups is None
+
+
+def test_provisional_sums_without_an_rsw_are_out_of_scope():
+    for name in ("PPT / Prov Sums / Painters", "PPT / Prov.Sums / Mechanical"):
+        r = row(name)
+        assert eligible(r, parse(r, rules()), rules())[0] is False
+    r = row("Site mobilisation")
+    assert eligible(r, parse(r, rules()), rules()) == (True, None)

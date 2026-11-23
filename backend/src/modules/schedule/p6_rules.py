@@ -12,6 +12,12 @@ the list separator are a range (``728 - 732`` is 728, 729, 730, 731 and 732), up
 codes; anything else is taken as listed. ``qualifier`` keeps a trailing note such as ``OHP``, ``Access`` or
 ``Props`` (part of an RSW waiting on access, a shutdown or a scaffold); it never changes which RSW is meant.
 
+``anchor_chain`` is a run of codes joined by bare dashes. When every later part has as many digits as the first,
+they are full codes (``804-805-806`` is 804, 805 and 806); when there are three or more parts and the later ones
+are shorter, they number items of the first (``410-2-3`` is 410, 410.2 and 410.3, so a 410.1 done by someone
+else is simply not named). Gaps are never filled in. A single shorter part stays a suffix (``900-16``), and a
+suffix as long as the code (``914-915``) is read as two codes.
+
 ``wbs_level`` rules copy a level of the activity's WBS onto a breakdown level (for example WBS level 3 is the
 Site and level 4 the Area), so the tree follows how each project's programme is structured.
 """
@@ -28,6 +34,10 @@ DEFAULT_GRAMMAR = (
 )
 DEFAULT_LIST_GRAMMAR = (
     r"^(?P<asset>.+?) / (?P<activity_type>[^/]+?) / (?P<anchor_list>\d+(?:\.\d+)?(?: - \d+(?:\.\d+)?)+)"
+    r"(?: (?P<window>Online|Shut))?" + QUALIFIER + "$"
+)
+DEFAULT_CHAIN_GRAMMAR = (
+    r"^(?P<asset>.+?) / (?P<activity_type>[^/]+?) / (?P<anchor_chain>\d+(?:-\d+){2,})"
     r"(?: (?P<window>Online|Shut))?" + QUALIFIER + "$"
 )
 LIST_SEPARATOR = " - "
@@ -51,6 +61,14 @@ DEFAULT_RULES: list[dict[str, Any]] = [
         "sort_order": 20,
     },
     {
+        "kind": "grammar",
+        "name": "<asset> / <activity type> / <RSW>-<RSW>-<RSW> or <RSW>-<item>-<item>",
+        "pattern": DEFAULT_CHAIN_GRAMMAR,
+        "source": "name",
+        "params": {"window": "same"},
+        "sort_order": 30,
+    },
+    {
         "kind": "eligibility",
         "name": "Milestones never expect work",
         "params": {"field": "task_type", "op": "in", "values": ["TT_Mile", "TT_FinMile"]},
@@ -61,6 +79,12 @@ DEFAULT_RULES: list[dict[str, Any]] = [
         "name": "Provisional sums and custom activities",
         "params": {"field": "activity_type", "op": "in", "values": ["Prov Sums", "Custom"]},
         "sort_order": 20,
+    },
+    {
+        "kind": "eligibility",
+        "name": "Provisional sums named without an RSW",
+        "params": {"field": "name", "op": "contains", "values": ["Prov Sums", "Prov.Sums"]},
+        "sort_order": 30,
     },
     {"kind": "alias", "name": "SCA-Dism", "pattern": "SCA-Dism", "params": {"to": "SCA Dism"}, "sort_order": 10},
     {"kind": "alias", "name": "Prov.Sums", "pattern": "Prov.Sums", "params": {"to": "Prov Sums"}, "sort_order": 20},
@@ -195,6 +219,25 @@ def expand_list(text: str, separator: str = LIST_SEPARATOR, max_range: int = MAX
     return out
 
 
+def split_chain(text: str) -> list[str] | None:
+    """Codes named by a bare-dash run, or ``None`` when the run isn't one of the two clear shapes.
+
+    ``804-805-806`` (later parts as long as the first) → ``804, 805, 806``; ``410-2-3`` (three or more parts,
+    later ones shorter) → ``410, 410.2, 410.3``. Anything else (``900-16``, mixed lengths, decimals) is ``None``.
+    """
+    parts = text.split("-")
+    first, rest = parts[0], parts[1:]
+    if not rest or not first.isdigit() or not all(p.isdigit() for p in rest):
+        return None
+    if all(len(p) == len(first) for p in rest):
+        codes = [first, *rest]
+    elif len(rest) >= 2 and all(len(p) < len(first) for p in rest):
+        codes = [first, *(f"{first}.{p}" for p in rest)]
+    else:
+        return None
+    return list(dict.fromkeys(codes))
+
+
 def wbs_values(row: dict[str, Any], rules: RuleSet) -> dict[str, str]:
     """Breakdown level → value taken from the activity's WBS by the ``wbs_level`` rules."""
     chain = row.get("wbs_chain") or []
@@ -227,6 +270,17 @@ def parse(row: dict[str, Any], rules: RuleSet) -> Parsed:
         suffix = groups.pop("suffix", None)
         qualifier = groups.pop("qualifier", None)
         anchors: list[str] = []
+        chain = groups.pop("anchor_chain", None)
+        if chain is not None:
+            codes = split_chain(chain)
+            if codes is None:
+                continue  # not a clear shape: try the next grammar, else manual linking
+            anchors = codes
+            groups["anchor_code"] = codes[0]
+        elif suffix and "anchor_code" in groups:
+            codes = split_chain(f"{groups['anchor_code']}-{suffix}")
+            if codes is not None:  # 914-915: two codes, not code 914 with suffix 915
+                anchors, suffix = codes, None
         listed = groups.pop("anchor_list", None)
         if listed:
             try:
