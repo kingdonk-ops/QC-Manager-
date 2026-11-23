@@ -186,6 +186,8 @@ class Ncr(Base, TimestampMixin):
     other_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"))
     days_delay: Mapped[int] = mapped_column(Integer, default=0)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    source_data: Mapped[dict | None] = mapped_column(JSON, default=None)
+    """Structured facts of an automatically raised report: source record, outcome, criterion, measured value."""
 
 
 class NcrAction(Base, TimestampMixin):

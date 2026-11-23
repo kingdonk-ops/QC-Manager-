@@ -31,12 +31,17 @@ class ItpLineRead(BaseModel):
     verifying_document: str | None
     spec_ref: str | None
     required_qualification: str | None
+    criterion_id: int | None = None
     item_count: int
     has_hold: bool
     hold_released_at: datetime | None
     hold_released_by_id: int | None
     blocked: bool
     blocked_by: list[str]
+    gate_state: str = "review"
+    """``review``, ``passed``, ``released``, ``blocked`` or ``pending``: the line's traffic light."""
+    gate_satisfied: bool = True
+    gate_reason: str | None = None
     witness_status: str
     witness_by_party: dict[str, str]
     request: dict[str, Any] | None

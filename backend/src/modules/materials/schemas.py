@@ -1,14 +1,27 @@
 from datetime import date, datetime
 from decimal import Decimal
+from enum import StrEnum
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..common.schemas import EncodableText
 from .constants import CertificateType, HoldStatus, PmiResult, ProductForm, ReceiptStatus, SuppliedBy, VerificationStatus
 
 Text120 = Annotated[str, Field(max_length=120)]
 Text200 = Annotated[str, Field(max_length=200)]
+Severity = Annotated[str, Field(pattern=r"^(minor|major|critical)$")]
+MeasuredValue = Annotated[str, Field(max_length=40)]
+
+
+class Outcome(StrEnum):
+    """The pass, fail and conditional grammar shared with inspections; stored as accepted or rejected."""
+
+    PASS = "pass"
+    FAIL = "fail"
+    CONDITIONAL = "conditional"
+
+
 Qty = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)]
 Values = Annotated[dict[Annotated[str, Field(max_length=40)], Any], Field(max_length=60)]
 
@@ -40,8 +53,21 @@ class MaterialReceiptUpdate(_Body):
 
 
 class MaterialReceiptStatusIn(_Body):
-    status: ReceiptStatus
+    """Send a ``status`` (accepted, rejected, received) as before, or an ``outcome``: pass accepts, fail rejects,
+    conditional accepts with a flag. A fail or conditional outcome (and a rejection) raises a report."""
+
+    status: ReceiptStatus | None = None
     note: Annotated[str, Field(max_length=2000)] | None = None
+    outcome: Outcome | None = None
+    criterion_id: int | None = Field(None, ge=1, description="An acceptance criterion of this project")
+    measured_value: MeasuredValue | None = None
+    severity: Severity | None = Field(None, description="Severity of the report raised (default major / minor)")
+
+    @model_validator(mode="after")
+    def _one_of(self) -> "MaterialReceiptStatusIn":
+        if self.status is None and self.outcome is None:
+            raise ValueError("Send a status or an outcome")
+        return self
 
 
 class MaterialReceiptRead(BaseModel):
@@ -60,6 +86,11 @@ class MaterialReceiptRead(BaseModel):
     inspected_by_id: int | None
     notes: str | None
     heats: int = 0
+    outcome: str | None = None
+    criterion_id: int | None = None
+    measured_value: str | None = None
+    conditional: bool = False
+    report_id: int | None = None
 
 
 # --- heats -------------------------------------------------------------------------------------------
@@ -175,14 +206,30 @@ class MillCertificateRead(BaseModel):
 
 
 class PmiIn(_Body):
+    """Send a ``result`` (accepted, rejected) as before, or an ``outcome`` (pass, fail, conditional)."""
+
     tested_on: date
-    result: PmiResult
+    result: PmiResult | None = None
     item_id: int | None = Field(None, ge=1)
     grade_found: Annotated[str, Field(max_length=80)] | None = None
     readings: Values = Field(default_factory=dict)
     equipment_id: int | None = Field(None, ge=1, description="The calibrated analyser")
     report_ref: Text120 | None = None
     notes: str | None = None
+    outcome: Outcome | None = None
+    criterion_id: int | None = Field(None, ge=1, description="An acceptance criterion of this project")
+    measured_value: MeasuredValue | None = None
+    severity: Severity | None = Field(None, description="Severity of the report raised (default major / minor)")
+
+    @model_validator(mode="after")
+    def _one_of(self) -> "PmiIn":
+        if self.result is None and self.outcome is None:
+            raise ValueError("Send a result or an outcome")
+        if self.result is not None and self.outcome is not None:
+            rejected = self.result == PmiResult.REJECTED
+            if rejected != (self.outcome == Outcome.FAIL):
+                raise ValueError("The result does not match the outcome")
+        return self
 
 
 class PmiRead(BaseModel):
@@ -198,6 +245,11 @@ class PmiRead(BaseModel):
     equipment_id: int | None
     report_ref: str | None
     notes: str | None
+    outcome: str | None = None
+    criterion_id: int | None = None
+    measured_value: str | None = None
+    conditional: bool = False
+    report_id: int | None = None
 
 
 class MaterialHoldIn(_Body):

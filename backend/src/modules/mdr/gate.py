@@ -45,6 +45,12 @@ HOOKS: tuple[Hook, ...] = (
         "inspections.eligibility:unsigned_hold_points",
     ),
     Hook(
+        "quality_gates",
+        "No pending blocking quality gate in scope",
+        "inspections",
+        "inspections.gates:pending_blocking_gates",
+    ),
+    Hook(
         "equipment_calibrated",
         "Equipment used in scope was in calibration",
         "calibration",

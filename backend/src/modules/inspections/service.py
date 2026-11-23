@@ -6,20 +6,23 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...infrastructure.http_exceptions import UnprocessableEntityException
-from ...infrastructure.modules import publish
-from ...infrastructure.modules.state import is_enabled
 from ...infrastructure.pdf import Document, render_pdf
 from ...infrastructure.records import assert_transition, history_of, next_reference, record_transition
 from ..common.exceptions import ResourceNotFoundError
 from ..files.models import StoredFile
-from ..ncr.service import create_ncr
 from ..notifications.constants import Category
 from ..notifications.service import notify
 from ..projects.models import Project
 from ..role.models import RolePermission, UserRole
-from ..tasks.service import create_task
 from ..user.models import User
-from . import anchoring, eligibility, signing
+from . import anchoring, criteria, eligibility, signing
+from .completion import ENTITY as ENTITY  # re-exported: importers of the moved completion section keep working
+from .completion import ITEM_ENTITY, finish, items_of, pass_rate, photo_counts, photos_for_failures, raise_record_report
+from .completion import NCR_REQUESTED as NCR_REQUESTED
+from .completion import complete as complete
+from .completion import outcome_of as outcome_of
+from .completion import publish_completion as publish_completion
+from .completion import rescore as rescore
 from .constants import (
     DEDICATED,
     EDITABLE,
@@ -34,6 +37,7 @@ from .constants import (
     SignatureStatus,
     has_hold,
 )
+from .dashboard_schemas import InspectionTrendGroup, InspectionTrendMonth, InspectionTrendPoint
 from .models import (
     AnswerComment,
     ChecklistTemplate,
@@ -50,17 +54,11 @@ from .schemas import (
     ChecklistTemplateRead,
     InspectionItemRead,
     InspectionRead,
-    InspectionTrendGroup,
-    InspectionTrendMonth,
-    InspectionTrendPoint,
     LinkRead,
     SignatureRead,
 )
 from .starters import STARTERS
 
-ENTITY = "inspection"
-ITEM_ENTITY = "inspection_item"
-NCR_REQUESTED = "inspections.item.ncr_requested"
 LOCKED_SETTINGS = ("area", "is_formal", "audit_scope")
 """Template settings only ``inspections.manage`` may change (KERP: the QA authority or PER-09)."""
 REVISED_FIELDS = (
@@ -161,6 +159,7 @@ async def check_activities(db: AsyncSession, project_id: int, activities: list[d
 async def create_template(db: AsyncSession, values: dict[str, Any], user_id: int) -> ChecklistTemplate:
     if values.get("activities"):
         values["activities"] = await check_activities(db, values["project_id"], values["activities"])
+    await criteria.check_template_refs(db, values["project_id"], values.get("sections"), values.get("activities"))
     t = ChecklistTemplate(created_by_id=user_id, **values)
     db.add(t)
     await db.flush()
@@ -181,6 +180,7 @@ async def update_template(db: AsyncSession, t: ChecklistTemplate, changes: dict[
         raise UnprocessableEntityException("Only an ITP template has activities.")
     if changes.get("activities"):
         changes["activities"] = await check_activities(db, t.project_id, changes["activities"])
+    await criteria.check_template_refs(db, t.project_id, changes.get("sections"), changes.get("activities"))
     if t.kind == Kind.INSPECTION and changes.get("is_formal") is False:
         used = [a for a in await _itp_templates_using(db, t) if a]
         if used:
@@ -227,39 +227,6 @@ async def ensure_starters(db: AsyncSession, project_id: int, user_id: int | None
         await seed_starters(db, project_id, user_id)
 
 
-# --- scoring -----------------------------------------------------------------------------------------
-
-
-def outcome_of(item: InspectionItem) -> str | None:
-    """N/A stays N/A. A numeric reading outside its limits fails whatever was chosen; inside them it
-    passes unless the inspector failed it. Without a reading the chosen result stands."""
-    if item.result == Result.NA:
-        return Result.NA.value
-    if item.response_type == ResponseType.NUMERIC and item.reading is not None:
-        low = item.min_value is not None and item.reading < item.min_value
-        high = item.max_value is not None and item.reading > item.max_value
-        return Result.FAIL.value if low or high or item.result == Result.FAIL else Result.PASS.value
-    return item.result
-
-
-def pass_rate(passed: int, failed: int) -> float | None:
-    """passed / (passed + failed) as a percentage, to one decimal; N/A is left out."""
-    scored = passed + failed
-    return round(passed * 100.0 / scored, 1) if scored else None
-
-
-def rescore(inspection: Inspection, items: list[InspectionItem]) -> None:
-    counts: dict[str | None, int] = defaultdict(int)
-    for item in items:
-        item.outcome = outcome_of(item)
-        counts[item.outcome] += 1
-    inspection.passed = counts[Result.PASS.value]
-    inspection.failed = counts[Result.FAIL.value]
-    inspection.not_applicable = counts[Result.NA.value]
-    inspection.unanswered = counts[None]
-    inspection.pass_rate = pass_rate(inspection.passed, inspection.failed)
-
-
 # --- inspections -------------------------------------------------------------------------------------
 
 
@@ -268,24 +235,6 @@ async def get_inspection(db: AsyncSession, inspection_id: int) -> Inspection:
     if i is None:
         raise InspectionNotFoundError("No such inspection")
     return i
-
-
-async def items_of(db: AsyncSession, inspection_id: int) -> list[InspectionItem]:
-    rows = await db.execute(
-        select(InspectionItem).where(InspectionItem.inspection_id == inspection_id).order_by(InspectionItem.position)
-    )
-    return list(rows.scalars())
-
-
-async def photo_counts(db: AsyncSession, item_ids: list[int]) -> dict[int, int]:
-    if not item_ids:
-        return {}
-    rows = await db.execute(
-        select(StoredFile.entity_id, func.count())
-        .where(StoredFile.entity_type == ITEM_ENTITY, StoredFile.entity_id.in_(item_ids), StoredFile.is_latest.is_(True))
-        .group_by(StoredFile.entity_id)
-    )
-    return {eid: n for eid, n in rows.tuples().all() if eid is not None}
 
 
 def read_signature(sig: InspectionSignature) -> SignatureRead:
@@ -356,6 +305,7 @@ def checklist_items(inspection_id: int, sections: list[dict[str, Any]]) -> list[
                     max_value=raw.get("max_value"),
                     requires_photo_on_fail=bool(raw.get("requires_photo_on_fail")),
                     guidance=raw.get("guidance"),
+                    criterion_id=raw.get("criterion_id"),
                 )
             )
     return items
@@ -365,6 +315,7 @@ async def create_inspection(db: AsyncSession, template: ChecklistTemplate, value
     if template.kind == Kind.ITP:
         raise UnprocessableEntityException("An ITP template is applied to an anchor through /itp/instances.")
     links = values.pop("links", [])
+    await criteria.check_record_criterion(db, template.project_id, values.get("criterion_id"))
     await anchoring.check_placement(
         db,
         template.project_id,
@@ -396,7 +347,7 @@ async def create_inspection(db: AsyncSession, template: ChecklistTemplate, value
     )
     db.add(inspection)
     await db.flush()
-    items = checklist_items(inspection.id, template.sections)
+    items = checklist_items(inspection.id, await criteria.snapshot_sections(db, template.project_id, template.sections))
     db.add_all(items)
     await anchoring.add_links(db, inspection.id, links)
     rescore(inspection, items)
@@ -419,6 +370,7 @@ async def _blocking(db: AsyncSession, inspection: Inspection, action: str, user_
 
 
 async def update_details(db: AsyncSession, inspection: Inspection, changes: dict[str, Any]) -> None:
+    await criteria.check_record_edit(db, inspection, changes)
     for key, value in changes.items():
         setattr(inspection, key, value)
     await db.flush()
@@ -465,140 +417,6 @@ async def change_status(db: AsyncSession, inspection: Inspection, target: str, n
     await db.commit()
 
 
-async def complete(
-    db: AsyncSession, inspection: Inspection, choice: dict[str, Any], user: dict[str, Any]
-) -> list[dict[str, Any]]:
-    """Complete an informal record: submit is final (KERP: no review step)."""
-    if inspection.is_formal:
-        raise UnprocessableEntityException("A formal inspection is submitted for review (/submit), not completed directly.")
-    if inspection.status == InspectionStatus.PLANNED:
-        raise UnprocessableEntityException("Fill the checklist before completing the inspection.")
-    assert_transition(FLOW, inspection.status, InspectionStatus.COMPLETED)
-    events = await _finish(db, inspection, choice, user)
-    inspection.result = Result.FAIL.value if inspection.failed else Result.PASS.value
-    await db.commit()
-    return events
-
-
-async def _finish(
-    db: AsyncSession, inspection: Inspection, choice: dict[str, Any], user: dict[str, Any]
-) -> list[dict[str, Any]]:
-    """Score, then raise a follow-up for every failed item that has none yet: a task by default, or an NCR
-    (when that module is on for the project; the ``inspections.item.ncr_requested`` event goes out either way).
-    Moves the record to completed; the caller commits. Returns the events to publish once committed."""
-    items = await items_of(db, inspection.id)
-    rescore(inspection, items)
-    if inspection.unanswered and not choice.get("allow_unanswered"):
-        raise UnprocessableEntityException(f"{inspection.unanswered} item(s) are unanswered.")
-    failed = [i for i in items if i.outcome == Result.FAIL]
-    await _photos_for_failures(db, failed)
-
-    choices = {c["item_id"]: c for c in choice.get("follow_ups", [])}
-    ncr_on = await is_enabled(db, "ncr", inspection.project_id)
-    events: list[dict[str, Any]] = []
-    for item in failed:
-        if item.task_id or item.ncr_id:
-            continue
-        picked = choices.get(item.id, {})
-        action = str(picked.get("action") or "task")
-        assignee = picked.get("assignee_id") or choice.get("default_assignee_id")
-        due = picked.get("due_date") or choice.get("default_due_date")
-        title = f"{inspection.code} #{item.position}: {item.text}"
-        reading = f"Reading {item.reading:g}{' ' + item.unit if item.unit else ''}. " if item.reading is not None else ""
-        limits = _limits(item)
-        detail = f"{item.section}: {item.text}\n{reading}{limits}{item.notes or ''}".strip()
-        item.follow_up = action
-        if action == "ncr":
-            if ncr_on:
-                ncr = await create_ncr(
-                    db,
-                    project_id=inspection.project_id,
-                    title=title,
-                    raised_by_id=user["id"],
-                    commit=False,
-                    description=detail,
-                    location=" / ".join(p for p in (inspection.location, inspection.area) if p) or None,
-                    trade=inspection.trade,
-                    responsible_user_id=assignee,
-                    source="inspection",
-                    source_reference=f"{inspection.code} item {item.position}",
-                    inspection_id=inspection.id,
-                    inspection_item_id=item.id,
-                    severity=picked.get("severity") or "minor",
-                )
-                item.ncr_id = ncr.id
-            events.append(
-                {
-                    "project_id": inspection.project_id,
-                    "inspection_id": inspection.id,
-                    "item_id": item.id,
-                    "ncr_id": item.ncr_id,
-                    "title": title,
-                }
-            )
-        elif action == "task":
-            task = await create_task(
-                db,
-                project_id=inspection.project_id,
-                title=title[:300],
-                created_by_id=user["id"],
-                entity=(ENTITY, inspection.id),
-                commit=False,
-                description=detail,
-                type="construction",
-                priority="high",
-                assignee_id=assignee,
-                due_date=due,
-                type_fields={"location": inspection.location or "", "trade": inspection.trade or ""},
-            )
-            item.task_id = task.id
-    await record_transition(
-        db, ENTITY, inspection.id, inspection.status, InspectionStatus.COMPLETED, user["id"], choice.get("note")
-    )
-    inspection.status = InspectionStatus.COMPLETED.value
-    inspection.completed_at = datetime.now(UTC)
-    if inspection.inspected_date is None:
-        inspection.inspected_date = date.today()
-    return events
-
-
-async def _photos_for_failures(db: AsyncSession, failed: list[InspectionItem]) -> None:
-    photos = await photo_counts(db, [i.id for i in failed if i.requires_photo_on_fail])
-    missing = [i for i in failed if i.requires_photo_on_fail and not photos.get(i.id)]
-    if missing:
-        listed = "; ".join(f"{i.position}. {i.text}" for i in missing[:5])
-        raise UnprocessableEntityException(f"Failed items need a photo: {listed}")
-
-
-async def publish_completion(inspection: Inspection, events: list[dict[str, Any]]) -> None:
-    for payload in events:
-        await publish(NCR_REQUESTED, payload)
-    await publish(
-        "inspections.inspection.completed",
-        {
-            "project_id": inspection.project_id,
-            "inspection_id": inspection.id,
-            "pass_rate": inspection.pass_rate,
-            "failed": inspection.failed,
-            "result": inspection.result,
-            "kind": inspection.kind,
-        },
-    )
-
-
-def _limits(item: InspectionItem) -> str:
-    if item.response_type != ResponseType.NUMERIC:
-        return ""
-    unit = f" {item.unit}" if item.unit else ""
-    if item.min_value is not None and item.max_value is not None:
-        return f"Acceptance {item.min_value:g}-{item.max_value:g}{unit}. "
-    if item.min_value is not None:
-        return f"Acceptance ≥ {item.min_value:g}{unit}. "
-    if item.max_value is not None:
-        return f"Acceptance ≤ {item.max_value:g}{unit}. "
-    return ""
-
-
 async def history(db: AsyncSession, inspection: Inspection) -> list[dict[str, Any]]:
     rows = await history_of(db, ENTITY, inspection.id)
     names = await user_names(db, {r["changed_by_id"] for r in rows})
@@ -639,7 +457,7 @@ async def submit(
     if inspection.unanswered and not body.get("allow_unanswered"):
         raise UnprocessableEntityException(f"{inspection.unanswered} item(s) are unanswered.")
     if body.get("proposed_result") == Result.FAIL or inspection.failed:
-        await _photos_for_failures(db, [i for i in items if i.outcome == Result.FAIL])
+        await photos_for_failures(db, [i for i in items if i.outcome == Result.FAIL])
     await _blocking(db, inspection, "submit", user["id"])
     if inspection.status == InspectionStatus.PLANNED:  # a line without a checklist: started and submitted at once
         await record_transition(db, ENTITY, inspection.id, inspection.status, InspectionStatus.IN_PROGRESS, user["id"])
@@ -658,6 +476,10 @@ async def submit(
     )
     inspection.status = InspectionStatus.SUBMITTED.value
     inspection.proposed_result = str(body["proposed_result"])
+    inspection.conditional = bool(body.get("conditional"))
+    inspection.proposed_severity = body.get("report_severity")
+    if body.get("measured_value") is not None:
+        inspection.measured_value = body["measured_value"]
     inspection.submitted_at = datetime.now(UTC)
     inspection.submitted_by_id = user["id"]
     inspection.review_round += 1
@@ -724,8 +546,9 @@ async def review(
             raise UnprocessableEntityException("Accept the signing statement to approve (accept_intent).")
         inspection.self_approved = user["id"] in (inspection.inspector_id, inspection.submitted_by_id)
         await signing.sign(db, inspection, SignatureRole.REVIEWER, user["id"], held=held)
-        events = await _finish(db, inspection, {**body, "allow_unanswered": True, "note": body.get("reason")}, user)
+        events = await finish(db, inspection, {**body, "allow_unanswered": True, "note": body.get("reason")}, user)
         inspection.result = inspection.proposed_result
+        await raise_record_report(db, inspection, {**body, "note": body.get("reason")}, user, events)
         title = f"{inspection.code} accepted" if inspection.result == Result.PASS else f"{inspection.code} rejected"
     inspection.reviewed_by_id = user["id"]
     inspection.reviewed_at = now

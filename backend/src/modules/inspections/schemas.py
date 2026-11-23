@@ -5,10 +5,18 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..common.schemas import EncodableText, PartialUpdate
 from .constants import Area, AuditScope, FollowUp, InspectionStatus, Kind, LinkKind, Point, ProposedResult, ResponseType, Result
+from .dashboard_schemas import InspectionDashboard as InspectionDashboard  # re-exported: moved to dashboard_schemas
+from .dashboard_schemas import InspectionSettingsRead as InspectionSettingsRead
+from .dashboard_schemas import InspectionSettingsUpdate as InspectionSettingsUpdate
+from .dashboard_schemas import InspectionTrendGroup as InspectionTrendGroup
+from .dashboard_schemas import InspectionTrendMonth as InspectionTrendMonth
+from .dashboard_schemas import InspectionTrendPoint as InspectionTrendPoint
+from .dashboard_schemas import InspectionTrends as InspectionTrends
 
 Short = Annotated[str | None, Field(max_length=200)]
 Reading = Annotated[float, Field(ge=-1e9, le=1e9)]
 Qualification = Annotated[str | None, Field(max_length=120)]
+ReportSeverity = Annotated[str, Field(pattern=r"^(minor|major|critical)$")]
 
 
 class ChecklistItem(BaseModel):
@@ -21,6 +29,7 @@ class ChecklistItem(BaseModel):
     max_value: Reading | None = Field(None, description="Highest acceptable reading (numeric items)")
     requires_photo_on_fail: bool = False
     guidance: Annotated[str | None, Field(max_length=2000)] = None
+    criterion_id: int | None = Field(None, ge=1, description="An acceptance criterion; numeric limits and unit are copied")
 
     @model_validator(mode="after")
     def _limits(self) -> "ChecklistItem":
@@ -60,6 +69,7 @@ class ItpActivity(BaseModel):
         None, ge=1, description="A formal inspection template whose checklist the line carries (the ITR form)"
     )
     acceptance_criteria: Annotated[str | None, Field(max_length=2000)] = None
+    criterion_id: int | None = Field(None, ge=1, description="Library criterion the line carries at record level")
     spec_ref: Annotated[str | None, Field(max_length=200)] = None
     required_qualification: Qualification = None
     points: ItpPoints = ItpPoints()
@@ -206,6 +216,8 @@ class InspectionCreate(EncodableText):
     inspector_id: int | None = Field(None, ge=1)
     scheduled_date: date | None = None
     notes: Annotated[str | None, Field(max_length=5000)] = None
+    criterion_id: int | None = Field(None, ge=1, description="A record-level acceptance criterion of this project")
+    measured_value: Annotated[str | None, Field(max_length=40)] = None
     node_id: int | None = Field(None, ge=1, description="qa_itp only: an inspection-anchor node")
     item_id: int | None = Field(None, ge=1, description="qa_itp only: an asset Item")
     location_node_id: int | None = Field(None, ge=1, description="Other areas: where the check was done (informational)")
@@ -226,6 +238,8 @@ class InspectionUpdate(EncodableText, PartialUpdate):
     scheduled_date: date | None = None
     inspected_date: date | None = None
     notes: Annotated[str | None, Field(max_length=5000)] = None
+    criterion_id: int | None = Field(None, ge=1, description="Refused while a result stands; reopen first")
+    measured_value: Annotated[str | None, Field(max_length=40)] = None
 
 
 class InspectionItemAnswer(BaseModel):
@@ -272,6 +286,11 @@ class InspectionCompletion(EncodableText):
     default_due_date: date | None = None
     allow_unanswered: bool = Field(False, description="Complete even with unanswered items")
     note: Annotated[str | None, Field(max_length=2000)] = None
+    conditional: bool | None = Field(
+        None, description="Accepted with a condition: the result stays pass and a report is raised (omitted: false)"
+    )
+    measured_value: Annotated[str | None, Field(max_length=40)] = None
+    report_severity: ReportSeverity | None = Field(None, description="Severity of the report raised (default: major / minor)")
 
 
 class InspectionSubmit(EncodableText):
@@ -283,6 +302,9 @@ class InspectionSubmit(EncodableText):
     accept_intent: bool = Field(False, description="The inspector accepts the signing statement")
     allow_unanswered: bool = False
     note: Annotated[str | None, Field(max_length=2000)] = None
+    conditional: bool | None = Field(None, description="Proposed: accepted with a condition (result pass; omitted: false)")
+    measured_value: Annotated[str | None, Field(max_length=40)] = None
+    report_severity: ReportSeverity | None = Field(None, description="Proposed severity of the report raised on approval")
 
 
 class AnswerCommentIn(BaseModel):
@@ -304,6 +326,7 @@ class InspectionReview(EncodableText):
     follow_ups: Annotated[list[InspectionFollowUp], Field(max_length=500)] = []
     default_assignee_id: int | None = Field(None, ge=1)
     default_due_date: date | None = None
+    report_severity: ReportSeverity | None = Field(None, description="Overrides the severity proposed on submit")
 
     @model_validator(mode="after")
     def _reason(self) -> "InspectionReview":
@@ -332,6 +355,7 @@ class InspectionItemRead(BaseModel):
     follow_up: str | None
     task_id: int | None
     ncr_id: int | None
+    criterion_id: int | None = None
     photo_count: int = 0
 
 
@@ -436,6 +460,10 @@ class InspectionRead(BaseModel):
     reviewed_at: datetime | None = None
     return_reason: str | None = None
     self_approved: bool = False
+    criterion_id: int | None = None
+    measured_value: str | None = None
+    conditional: bool = False
+    report_id: int | None = None
     content_sha256: str | None = None
     items: list[InspectionItemRead] = []
     signatures: list[SignatureRead] = []
@@ -452,71 +480,3 @@ class InspectionEligibility(BaseModel):
     action: str
     eligible: bool
     findings: list[EligibilityFinding]
-
-
-class InspectionTrendPoint(BaseModel):
-    inspection_id: int
-    code: str
-    date: date | None
-    pass_rate: float | None
-    passed: int
-    failed: int
-
-
-class InspectionTrendMonth(BaseModel):
-    month: str
-    inspections: int
-    passed: int
-    failed: int
-    pass_rate: float | None
-
-
-class InspectionTrendGroup(BaseModel):
-    key: str
-    inspections: int
-    passed: int
-    failed: int
-    pass_rate: float | None
-    points: list[InspectionTrendPoint]
-    monthly: list[InspectionTrendMonth]
-
-
-class InspectionTrends(BaseModel):
-    project_id: int
-    group_by: str
-    groups: list[InspectionTrendGroup]
-
-
-class InspectionDashboard(BaseModel):
-    project_id: int
-    open_requests: int
-    requests_today: int
-    holds_awaiting_release: int
-    holds_open: int
-    inspections_due: int
-    overdue: int
-    awaiting_review: int
-    pass_rate: float | None
-    passed: int
-    failed: int
-    computed_at: datetime
-
-
-class InspectionSettingsRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    project_id: int
-    min_notice_hours: int = 24
-    block_short_notice: bool = False
-    no_show_grace_minutes: int = 30
-    allow_self_approval: bool = False
-
-
-class InspectionSettingsUpdate(EncodableText, PartialUpdate):
-    model_config = ConfigDict(extra="forbid")
-    NOT_NULLABLE = ("min_notice_hours", "block_short_notice", "no_show_grace_minutes", "allow_self_approval")
-
-    min_notice_hours: int | None = Field(None, ge=0, le=336)
-    block_short_notice: bool | None = None
-    no_show_grace_minutes: int | None = Field(None, ge=0, le=720)
-    allow_self_approval: bool | None = None
