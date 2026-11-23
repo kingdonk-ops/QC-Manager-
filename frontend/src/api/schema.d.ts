@@ -27858,7 +27858,7 @@ export interface components {
          * RuleKind
          * @enum {string}
          */
-        RuleKind: "grammar" | "eligibility" | "alias";
+        RuleKind: "grammar" | "eligibility" | "alias" | "wbs_level";
         /** RuleSample */
         RuleSample: {
             /** Name */
@@ -27915,6 +27915,13 @@ export interface components {
             node_path: string | null;
             /** Reason */
             reason: string | null;
+            /**
+             * Anchors
+             * @default []
+             */
+            anchors: string[];
+            /** Qualifier */
+            qualifier?: string | null;
         };
         /** RunRead */
         RunRead: {
@@ -28643,6 +28650,16 @@ export interface components {
              * @default active
              */
             schedule_state: string;
+            /**
+             * P6 Float Days
+             * @description P6's own total float (working days on the activity's P6 calendar); null unless mirrored from P6
+             */
+            p6_float_days?: number | null;
+            /**
+             * P6 Critical
+             * @description Critical as P6 reports it; null unless mirrored from P6
+             */
+            p6_critical?: boolean | null;
         };
         /**
          * ScheduleActivityStatus

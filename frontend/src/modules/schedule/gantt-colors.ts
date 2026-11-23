@@ -14,9 +14,19 @@ export const COLORS = {
   nonWorking: '#94a3b8',
 }
 
+/** Critical as P6 reports it for an activity mirrored from P6; otherwise the CPM's own result. */
+export function isCritical(a: Activity): boolean {
+  return a.p6_critical ?? a.is_critical
+}
+
+/** Total float in working days: P6's own for a mirrored activity, else the CPM's. */
+export function floatOf(a: Activity): number | null {
+  return a.p6_float_days ?? a.total_float
+}
+
 export function barColor(a: Activity): string {
   if (a.type === 'summary') return COLORS.summary
-  if (a.is_critical && a.status !== 'completed') return COLORS.critical
+  if (isCritical(a) && a.status !== 'completed') return COLORS.critical
   return (
     COLORS[a.status as 'pending' | 'in_progress' | 'completed'] ??
     COLORS.pending

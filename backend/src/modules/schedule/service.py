@@ -183,6 +183,11 @@ async def read_activities(
                     "start_variance": _variance(cal, forecast_start, a.planned_start, False),
                     "finish_variance": _variance(cal, forecast_finish, a.planned_finish, True),
                     "baseline_variance": _variance(cal, forecast_finish, b_finish, True),
+                    "p6_critical": (
+                        a.p6_critical_by(settings.p6_critical_definition, settings.p6_critical_float_hours)
+                        if settings
+                        else None
+                    ),
                 }
             )
             .model_dump(mode="json")

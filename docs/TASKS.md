@@ -168,6 +168,22 @@ EspoCRM, KERP ADRs, CEOClaw).
 | 10.11 | Signed, published or locked records close their room and open read-only; signing and publishing still go through the API, never through the shared document. | todo |
 | 10.12 | Tests: two clients editing one record merge correctly; a user without access cannot join; a locked record rejects updates. | todo |
 
+## 11. P6 programme into the breakdown, schedule and planner
+
+Proven against a real client XER (P6 24.12, ~3,000 activities); the file itself is never committed, tests use
+synthetic schedules of the same shape.
+
+| # | Task | Status |
+|---|---|---|
+| 11.1 | Activity names with several RSWs: `902 - 903 - 904` links each RSW, `728 - 732` is the range 728–732 (up to `max_range`); a trailing note (`OHP`, `Access`, `Props`, `North`) is kept on the link and never changes which RSW is meant. Unclear chains (`410-2-3`) go to manual linking. | done |
+| 11.2 | Breakdown levels from the WBS, per project (`wbs_level` rules on the P6 Rules tab, e.g. WBS level 3 → Site, level 4 → Area). | done |
+| 11.3 | P6-created RSWs are named after their activity types (code stays the RSW number) and take planned start/finish and budget hours from their activities; a value someone changed since the last import is never overwritten. | done |
+| 11.4 | Durations and lags use each activity's own P6 calendar; holidays from years before the programme are dropped. | done |
+| 11.5 | The Schedule shows P6's own float and critical flag (per the project's critical definition) for mirrored activities; hand-made activities keep the CPM's. | done |
+| 11.6 | Planner "Add from programme": pick P6 activities (window, WBS, asset, activity code) into a plan; packs per RSW (default) or per P6 activity, lines on the linked RSWs with P6 dates and hours. | todo |
+| 11.7 | Generate the RSW's inspections / ITPs from the RSW's activity types and templates once it is released. | later |
+| 11.8 | RSW document intake (bulk PDF/ZIP, splitting, OCR, matching to the expected RSWs from P6, missing-document register). | later |
+
 ## Later
 
 | # | Task | Status |

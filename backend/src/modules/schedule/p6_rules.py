@@ -6,16 +6,33 @@ A grammar is a regular expression with named groups. Groups named after a breakd
 ``suffix`` and ``window`` follow the rule's ``params``: by default a suffix (``512-21``) is part of the
 anchor's code (a different RSW) and a window (``512 Online`` / ``512 Shut``) is the same RSW in another work
 window, recorded on the link (KERP TD-076).
+
+``anchor_list`` names several work anchors in one activity (``902 - 903 - 904``). Two whole numbers joined by
+the list separator are a range (``728 - 732`` is 728, 729, 730, 731 and 732), up to ``params.max_range``
+codes; anything else is taken as listed. ``qualifier`` keeps a trailing note such as ``OHP``, ``Access`` or
+``Props`` (part of an RSW waiting on access, a shutdown or a scaffold); it never changes which RSW is meant.
+
+``wbs_level`` rules copy a level of the activity's WBS onto a breakdown level (for example WBS level 3 is the
+Site and level 4 the Area), so the tree follows how each project's programme is structured.
 """
 
 import re
 from dataclasses import dataclass, field
 from typing import Any
 
+QUALIFIER = r"(?:(?: - |-| )(?P<qualifier>[A-Za-z][A-Za-z .]*?))?"
+"""A trailing note after the code (``305 OHP``, ``305 - Access``, ``305-North``): letters, after a space or dash."""
 DEFAULT_GRAMMAR = (
     r"^(?P<asset>.+?) / (?P<activity_type>[^/]+?) / (?P<anchor_code>\d+(?:\.\d+)?)"
-    r"(?:-(?P<suffix>\d+))?(?: (?P<window>Online|Shut))?$"
+    r"(?:-(?P<suffix>\d+))?(?: (?P<window>Online|Shut))?" + QUALIFIER + "$"
 )
+DEFAULT_LIST_GRAMMAR = (
+    r"^(?P<asset>.+?) / (?P<activity_type>[^/]+?) / (?P<anchor_list>\d+(?:\.\d+)?(?: - \d+(?:\.\d+)?)+)"
+    r"(?: (?P<window>Online|Shut))?" + QUALIFIER + "$"
+)
+LIST_SEPARATOR = " - "
+MAX_RANGE = 50
+LEVEL_VALUES = ("name", "code")
 DEFAULT_RULES: list[dict[str, Any]] = [
     {
         "kind": "grammar",
@@ -24,6 +41,14 @@ DEFAULT_RULES: list[dict[str, Any]] = [
         "source": "name",
         "params": {"suffix": "separate", "window": "same"},
         "sort_order": 10,
+    },
+    {
+        "kind": "grammar",
+        "name": "<asset> / <activity type> / <RSW> - <RSW> (list or range)",
+        "pattern": DEFAULT_LIST_GRAMMAR,
+        "source": "name",
+        "params": {"window": "same", "list_separator": LIST_SEPARATOR, "max_range": MAX_RANGE},
+        "sort_order": 20,
     },
     {
         "kind": "eligibility",
@@ -39,6 +64,7 @@ DEFAULT_RULES: list[dict[str, Any]] = [
     },
     {"kind": "alias", "name": "SCA-Dism", "pattern": "SCA-Dism", "params": {"to": "SCA Dism"}, "sort_order": 10},
     {"kind": "alias", "name": "Prov.Sums", "pattern": "Prov.Sums", "params": {"to": "Prov Sums"}, "sort_order": 20},
+    {"kind": "alias", "name": "SCA-Erect", "pattern": "SCA-Erect", "params": {"to": "SCA Erect"}, "sort_order": 30},
 ]
 SOURCES = ("name", "code", "wbs")
 FIELDS = ("task_type", "activity_type", "name", "code", "wbs", "status_code")
@@ -85,9 +111,20 @@ class Eligibility:
 
 
 @dataclass
+class WbsLevel:
+    id: int | None
+    name: str
+    depth: int
+    """1 = the first WBS level under the project node."""
+    level: str
+    value: str = "name"
+
+
+@dataclass
 class RuleSet:
     grammars: list[Grammar] = field(default_factory=list)
     eligibility: list[Eligibility] = field(default_factory=list)
+    wbs_levels: list[WbsLevel] = field(default_factory=list)
     aliases: dict[str, str] = field(default_factory=dict)
     """``norm(found) -> replacement``."""
 
@@ -101,6 +138,9 @@ class Parsed:
     rule: str | None = None
     rule_id: int | None = None
     window: str | None = None
+    anchors: list[str] = field(default_factory=list)
+    """Every work-anchor code the name addresses (one, or several for a list or range)."""
+    qualifier: str | None = None
 
 
 def build(rows: list[Any]) -> RuleSet:
@@ -122,7 +162,50 @@ def build(rows: list[Any]) -> RuleSet:
             )
         elif r.kind == "alias" and (r.params or {}).get("to"):
             rules.aliases[norm(r.pattern)] = str(r.params["to"])
+        elif r.kind == "wbs_level":
+            p = r.params or {}
+            try:
+                depth = int(p.get("depth") or 0)
+            except (TypeError, ValueError):
+                continue
+            if depth >= 1 and p.get("level"):
+                value = str(p["value"]) if p.get("value") in LEVEL_VALUES else "name"
+                rules.wbs_levels.append(WbsLevel(r.id, r.name, depth, str(p["level"]), value))
     return rules
+
+
+def expand_list(text: str, separator: str = LIST_SEPARATOR, max_range: int = MAX_RANGE) -> list[str]:
+    """``902 - 903 - 905`` → listed codes; two whole numbers ``728 - 732`` → the range 728..732.
+
+    A range longer than ``max_range`` codes, or one that runs backwards, is taken as listed (never guessed).
+    """
+    parts = [p.strip() for p in text.split(separator) if p.strip()]
+    out: list[str] = []
+    for i, part in enumerate(parts):
+        if part not in out:
+            out.append(part)
+        if i + 1 < len(parts):
+            a, b = part, parts[i + 1]
+            if a.isdigit() and b.isdigit() and 0 < int(b) - int(a) < max_range:
+                width = len(a) if a.startswith("0") else 0
+                for n in range(int(a) + 1, int(b)):
+                    code = str(n).zfill(width)
+                    if code not in out:
+                        out.append(code)
+    return out
+
+
+def wbs_values(row: dict[str, Any], rules: RuleSet) -> dict[str, str]:
+    """Breakdown level → value taken from the activity's WBS by the ``wbs_level`` rules."""
+    chain = row.get("wbs_chain") or []
+    out: dict[str, str] = {}
+    for w in rules.wbs_levels:
+        if w.depth <= len(chain):
+            node = chain[w.depth - 1] or {}
+            value = str(node.get(w.value) or node.get("name") or node.get("code") or "").strip()
+            if value:
+                out.setdefault(w.level, value[:120])
+    return out
 
 
 def source_text(row: dict[str, Any], source: str) -> str:
@@ -142,14 +225,48 @@ def parse(row: dict[str, Any], rules: RuleSet) -> Parsed:
         groups = {k: rules.alias(v.strip()) for k, v in m.groupdict().items() if v is not None and v.strip()}
         window = groups.pop("window", None)
         suffix = groups.pop("suffix", None)
+        qualifier = groups.pop("qualifier", None)
+        anchors: list[str] = []
+        listed = groups.pop("anchor_list", None)
+        if listed:
+            try:
+                max_range = int(g.params.get("max_range") or MAX_RANGE)
+            except (TypeError, ValueError):
+                max_range = MAX_RANGE
+            anchors = expand_list(listed, str(g.params.get("list_separator") or LIST_SEPARATOR), max_range)
+            groups["anchor_code"] = anchors[0]
         if "anchor_code" in groups:
             if suffix and g.params.get("suffix", "separate") == "separate":
                 groups["anchor_code"] = f"{groups['anchor_code']}-{suffix}"
             if window and g.params.get("window", "same") == "separate":
+                anchors = [f"{a} {window}" for a in anchors]
                 groups["anchor_code"] = f"{groups['anchor_code']} {window}"
                 window = None
-        return Parsed(groups, g.name, g.id, window)
+            if not anchors:
+                anchors = [groups["anchor_code"]]
+        for level, value in wbs_values(row, rules).items():
+            groups.setdefault(level, value)
+        return Parsed(groups, g.name, g.id, window, anchors, qualifier)
     return Parsed(None)
+
+
+def groups_for(parsed: Parsed) -> list[dict[str, str]]:
+    """One set of groups per work anchor the name addresses."""
+    if parsed.groups is None:
+        return []
+    if len(parsed.anchors) <= 1:
+        return [parsed.groups]
+    return [{**parsed.groups, "anchor_code": a} for a in parsed.anchors]
+
+
+def link_info(parsed: Parsed) -> dict[str, Any]:
+    """What a link keeps of the parse: the groups, the qualifier note and the other anchors of a list."""
+    info: dict[str, Any] = dict(parsed.groups or {})
+    if parsed.qualifier:
+        info["qualifier"] = parsed.qualifier
+    if len(parsed.anchors) > 1:
+        info["anchors"] = parsed.anchors
+    return info
 
 
 def _value(row: dict[str, Any], parsed: Parsed, name: str) -> str:

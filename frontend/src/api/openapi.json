@@ -104938,7 +104938,8 @@
     "enum": [
      "grammar",
      "eligibility",
-     "alias"
+     "alias",
+     "wbs_level"
     ],
     "title": "RuleKind"
    },
@@ -105136,6 +105137,25 @@
        }
       ],
       "title": "Reason"
+     },
+     "anchors": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Anchors",
+      "default": []
+     },
+     "qualifier": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Qualifier"
      }
     },
     "type": "object",
@@ -107895,6 +107915,30 @@
       "title": "Schedule State",
       "description": "`removed_from_schedule` once missing from the latest P6 import",
       "default": "active"
+     },
+     "p6_float_days": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "P6 Float Days",
+      "description": "P6's own total float (working days on the activity's P6 calendar); null unless mirrored from P6"
+     },
+     "p6_critical": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "P6 Critical",
+      "description": "Critical as P6 reports it; null unless mirrored from P6"
      }
     },
     "type": "object",

@@ -4,7 +4,18 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.modules.schedule.p6_rules import DEFAULT_RULES, GrammarError, build, compile_pattern, eligible, norm, parse
+from src.modules.schedule.p6_rules import (
+    DEFAULT_RULES,
+    GrammarError,
+    build,
+    compile_pattern,
+    eligible,
+    expand_list,
+    groups_for,
+    link_info,
+    norm,
+    parse,
+)
 from src.modules.schedule.p6_service import Existing, diff, row_hash
 
 
@@ -110,3 +121,96 @@ def test_diff_classifies_every_change():
     assert dates["impact"] == {"linked_nodes": ["S / 101 / 305"], "start_shift_days": 2, "finish_shift_days": 4}
     gone, _ = diff([_row("A2", "Pour")], {k: v for k, v in existing.items() if k != "A9"}, {})
     assert {(c["p6_activity_id"], c["change_type"]) for c in gone} == {("A1", "removed"), ("A3", "removed")}
+
+
+# --- several RSWs in one name, qualifiers and WBS levels ------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("name", "anchors", "qualifier", "window"),
+    [
+        ("CV-01 / WFE / 902 - 903 - 904", ["902", "903", "904"], None, None),
+        ("CV-01 / WFE / 728 - 732", ["728", "729", "730", "731", "732"], None, None),
+        ("CV-01 / WFE / 904 - 905 Props", ["904", "905"], "Props", None),
+        ("CV-01 / WFE / 410.2 - 410.5 Shut", ["410.2", "410.5"], None, "Shut"),
+        ("CV-01 / B / 305 OHP", ["305"], "OHP", None),
+        ("CV-01 / B / 305 - Access", ["305"], "Access", None),
+        ("CV-01 / B / 305-North", ["305"], "North", None),
+        ("CV-01 / B / 305 Water Diversion", ["305"], "Water Diversion", None),
+        ("CV-01 / B / 512-21", ["512-21"], None, None),
+        ("CV-01 / B / 512 Online", ["512"], None, "Online"),
+    ],
+)
+def test_lists_ranges_and_qualifiers(name, anchors, qualifier, window):
+    parsed = parse(row(name), rules())
+    assert parsed.anchors == anchors
+    assert parsed.groups is not None and parsed.groups["anchor_code"] == anchors[0]
+    assert (parsed.qualifier, parsed.window) == (qualifier, window)
+
+
+@pytest.mark.parametrize("name", ["CV-01 / P / 410-2-3", "CV-01 / Prov Sums / Painters", "Site mobilisation"])
+def test_unclear_codes_stay_unmatched(name):
+    assert parse(row(name), rules()).groups is None
+
+
+def test_expand_list_never_guesses_a_long_or_backwards_range():
+    assert expand_list("905 - 902") == ["905", "902"]
+    assert expand_list("100 - 900") == ["100", "900"]  # longer than max_range: as listed
+    assert expand_list("100 - 104", max_range=3) == ["100", "104"]
+    assert expand_list("098 - 101") == ["098", "099", "100", "101"]
+    assert expand_list("902 - 903 - 903") == ["902", "903"]
+
+
+def test_groups_for_and_link_info():
+    parsed = parse(row("CV-01 / WFE / 728 - 730 OHP"), rules())
+    assert [g["anchor_code"] for g in groups_for(parsed)] == ["728", "729", "730"]
+    info = link_info(parsed)
+    assert info["qualifier"] == "OHP" and info["anchors"] == ["728", "729", "730"]
+    single = parse(row("CV-01 / B / 305"), rules())
+    assert groups_for(single) == [single.groups] and "anchors" not in link_info(single)
+
+
+def test_wbs_levels_add_breakdown_levels_from_the_wbs():
+    rows = [
+        SimpleNamespace(**{"id": n, "enabled": True, "pattern": "", "source": "name", "params": {}, **r})
+        for n, r in enumerate(DEFAULT_RULES, 1)
+    ]
+    rows += [
+        SimpleNamespace(
+            id=90,
+            kind="wbs_level",
+            name="Region",
+            enabled=True,
+            pattern="",
+            source="name",
+            sort_order=0,
+            params={"depth": 2, "level": "site"},
+        ),
+        SimpleNamespace(
+            id=91,
+            kind="wbs_level",
+            name="Site",
+            enabled=True,
+            pattern="",
+            source="name",
+            sort_order=1,
+            params={"depth": 3, "level": "area", "value": "code"},
+        ),
+        SimpleNamespace(
+            id=92,
+            kind="wbs_level",
+            name="Too deep",
+            enabled=True,
+            pattern="",
+            source="name",
+            sort_order=2,
+            params={"depth": 9, "level": "zone"},
+        ),
+    ]
+    chain = [{"code": "8", "name": "Construction"}, {"code": "2", "name": "North Region"}, {"code": "EI", "name": "Island"}]
+    parsed = parse(row("CV-01 / B / 305", wbs_chain=chain), build(rows))
+    assert parsed.groups is not None
+    assert (parsed.groups["site"], parsed.groups["area"]) == ("North Region", "EI")
+    assert "zone" not in parsed.groups
+    # A name the grammar can't read is still unmatched: the WBS alone never makes a link.
+    assert parse(row("Mobilisation", wbs_chain=chain), build(rows)).groups is None

@@ -239,11 +239,19 @@ def parse_xer(data: bytes) -> Imported:
 
     codes = _xer_codes(tables)
     udfs = _xer_udfs(tables)
+
+    def day_hours(clndr_id: str | None) -> float:
+        """Hours in a working day on this calendar (P6 durations, float and lags are hours); else the project's."""
+        c = calendars.get(clndr_id)
+        return (_float(c.get("day_hr_cnt"), per_day) or per_day) if c else per_day
+
+    task_day: dict[str, float] = {}
     for t in tables["TASK"]:
         if proj_id and t.get("proj_id") not in (None, "", proj_id):
             continue
         task_type = t.get("task_type", "")
         hours = _float(t.get("target_drtn_hr_cnt"))
+        t_day = task_day[t["task_id"]] = day_hours(t.get("clndr_id"))
         status = t.get("status_code", "")
         pct = _float(t.get("phys_complete_pct"))
         if status == "TK_Complete":
@@ -256,7 +264,7 @@ def parse_xer(data: bytes) -> Imported:
                 code=t.get("task_code") or None,
                 parent_key=f"wbs:{wbs}" if wbs and wbs not in root_ids else None,
                 type="milestone" if task_type in ("TT_Mile", "TT_FinMile") else "task",
-                duration=0 if task_type in ("TT_Mile", "TT_FinMile") else _days(hours, per_day),
+                duration=0 if task_type in ("TT_Mile", "TT_FinMile") else _days(hours, t_day),
                 planned_start=_date(t.get("target_start_date") or t.get("early_start_date")),
                 planned_finish=_date(t.get("target_end_date") or t.get("early_end_date")),
                 actual_start=_date(t.get("act_start_date")),
@@ -272,6 +280,7 @@ def parse_xer(data: bytes) -> Imported:
                     "total_float_hours": _float(t["total_float_hr_cnt"]) if t.get("total_float_hr_cnt") else None,
                     "longest_path": t.get("driving_path_flag") == "Y",
                     "late_finish": (lf.isoformat() if (lf := _date(t.get("late_end_date"))) else None),
+                    "day_hours": t_day,
                     "codes": codes.get(t["task_id"], {}),
                     "udfs": udfs.get(t["task_id"], {}),
                 },
@@ -284,9 +293,18 @@ def parse_xer(data: bytes) -> Imported:
         if pred in keys and succ in keys:
             out.links.append(
                 ImportedLink(
-                    pred, succ, XER_LINK.get(r.get("pred_type", ""), "FS"), _days(_float(r.get("lag_hr_cnt")), per_day)
+                    pred,
+                    succ,
+                    XER_LINK.get(r.get("pred_type", ""), "FS"),
+                    # P6's default: a lag runs on the predecessor's calendar.
+                    _days(_float(r.get("lag_hr_cnt")), task_day.get(r.get("pred_task_id") or "", per_day)),
                 )
             )
+    # Base calendars often carry decades of old holidays; keep those from a year before the programme on.
+    starts = [a.planned_start for a in out.activities if a.planned_start]
+    if starts and out.holidays:
+        cutoff = min(starts) - timedelta(days=366)
+        out.holidays = [h for h in out.holidays if h >= cutoff]
     _number_wbs(out.activities)
     return out
 
