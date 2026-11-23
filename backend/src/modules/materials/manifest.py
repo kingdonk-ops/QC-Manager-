@@ -6,5 +6,5 @@ manifest = ModuleManifest(
     display_name="Materials & Traceability",
     description="Receipts, heats with mill certificates, PMI, quarantine holds, issue to work, two-way traceability.",
     depends=("projects", "asset_tree", "files"),
-    optional_depends=("procurement", "calibration"),
+    optional_depends=("procurement", "calibration", "inspections", "ncr"),
 )

@@ -12,7 +12,7 @@ from ...infrastructure.http_exceptions import UnprocessableEntityException
 from ...infrastructure.records import next_reference, record_transition
 from ..asset_tree import service as tree
 from ..common.exceptions import ResourceNotFoundError
-from . import anchoring, eligibility, signing
+from . import anchoring, criteria, eligibility, signing
 from .callouts import latest_request_summary
 from .constants import Area, DelegationKind, InspectionStatus, Kind, SignatureRole, has_hold
 from .models import ChecklistTemplate, Inspection, ItpInstance
@@ -93,12 +93,14 @@ async def instantiate(
             itp_position=position,
             points={k: str(v) for k, v in (act.get("points") or {}).items()},
             acceptance_criteria=act.get("acceptance_criteria"),
+            criterion_id=act.get("criterion_id"),
             verifying_document=act.get("verifying_document") or (form.name if form else None),
             spec_ref=act.get("spec_ref"),
         )
         db.add(line)
         await db.flush()
-        items = checklist_items(line.id, form.sections if form else [])
+        sections = await criteria.snapshot_sections(db, template.project_id, form.sections if form else [])
+        items = checklist_items(line.id, sections)
         db.add_all(items)
         rescore(line, items)
         await record_transition(db, ENTITY, line.id, None, line.status, user_id, note=f"{instance.code} line {position}")
@@ -152,12 +154,14 @@ async def read_instance(db: AsyncSession, instance: ItpInstance, *, with_lines: 
                     "verifying_document": line.verifying_document,
                     "spec_ref": line.spec_ref,
                     "required_qualification": line.required_qualification,
+                    "criterion_id": line.criterion_id,
                     "item_count": line.passed + line.failed + line.not_applicable + line.unanswered,
                     "has_hold": has_hold(line.points),
                     "hold_released_at": line.hold_released_at,
                     "hold_released_by_id": line.hold_released_by_id,
                     "blocked": bool(blocked),
                     "blocked_by": [f.message for f in blocked],
+                    **eligibility.line_gate_state(line, blocked),
                     "witness_status": witness,
                     "witness_by_party": per_party,
                     "request": await latest_request_summary(db, line.id),

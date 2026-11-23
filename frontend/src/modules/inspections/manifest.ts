@@ -1,6 +1,8 @@
 import { lazy } from 'react'
-import { CalendarClock, ClipboardCheck } from 'lucide-react'
+import { CalendarClock, ClipboardCheck, Flag, Ruler } from 'lucide-react'
 import type { ModuleManifest } from '../_types'
+import { criteriaMessages } from './criteria-messages'
+import { gateMessages } from './gate-messages'
 import { qualityMessages } from './quality-messages'
 
 export const manifest: ModuleManifest = {
@@ -44,6 +46,18 @@ export const manifest: ModuleManifest = {
       permission: 'inspections.read',
     },
     {
+      path: '/inspections/criteria',
+      component: lazy(() => import('./criteria-page')),
+      permission: 'inspections.read',
+      accountTypes: ['staff'],
+    },
+    {
+      path: '/inspections/gates',
+      component: lazy(() => import('./gates-page')),
+      permission: 'inspections.read',
+      accountTypes: ['staff'],
+    },
+    {
       path: '/inspections/:inspectionId',
       component: lazy(() => import('./inspection-page')),
       permission: 'inspections.read',
@@ -67,10 +81,30 @@ export const manifest: ModuleManifest = {
       order: 11,
       permission: 'inspections.read',
     },
+    {
+      labelKey: 'nav.inspection_criteria',
+      to: '/inspections/criteria',
+      icon: Ruler,
+      group: 'quality_safety',
+      order: 12,
+      permission: 'inspections.read',
+      accountTypes: ['staff'],
+    },
+    {
+      labelKey: 'nav.inspection_gates',
+      to: '/inspections/gates',
+      icon: Flag,
+      group: 'quality_safety',
+      order: 13,
+      permission: 'inspections.read',
+      accountTypes: ['staff'],
+    },
   ],
   messages: {
     en: {
       ...qualityMessages,
+      ...criteriaMessages,
+      ...gateMessages,
       'nav.inspections': 'Inspections',
       'inspections.page_title': 'Quality inspections',
       'inspections.description':

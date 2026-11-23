@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ...infrastructure.database.models import TimestampMixin
@@ -28,6 +28,14 @@ class MaterialReceipt(Base, TimestampMixin):
     inspected_by_id: Mapped[int | None] = mapped_column(Integer, default=None)
     notes: Mapped[str | None] = mapped_column(Text, default=None)
     created_by_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    outcome: Mapped[str | None] = mapped_column(String(12), default=None)
+    """``pass``, ``fail`` or ``conditional`` (accepted plus the flag); None until reviewed."""
+    criterion_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    """An inspections acceptance criterion (a plain id, so materials works without inspections)."""
+    measured_value: Mapped[str | None] = mapped_column(String(40), default=None)
+    conditional: Mapped[bool] = mapped_column(Boolean, default=False)
+    report_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    """The report raised from the review (an issues record id; no foreign key)."""
 
 
 class Heat(Base, TimestampMixin):
@@ -106,6 +114,12 @@ class PmiTest(Base, TimestampMixin):
     report_ref: Mapped[str | None] = mapped_column(String(120), default=None)
     notes: Mapped[str | None] = mapped_column(Text, default=None)
     recorded_by_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    outcome: Mapped[str | None] = mapped_column(String(12), default=None)
+    """``pass``, ``fail`` or ``conditional``; the stored ``result`` is accepted or rejected."""
+    criterion_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    measured_value: Mapped[str | None] = mapped_column(String(40), default=None)
+    conditional: Mapped[bool] = mapped_column(Boolean, default=False)
+    report_id: Mapped[int | None] = mapped_column(Integer, default=None)
 
 
 class MaterialIssue(Base, TimestampMixin):
