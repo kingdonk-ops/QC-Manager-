@@ -4,8 +4,8 @@ Sanitized behaviour specifications produced by the clean-room process. They desc
 
 | # | Spec | Behaviours | Test cases | Open questions |
 |---|---|---|---|---|
-| 01 | [Acceptance criteria and automatic NCRs](01-quality-tolerance-ncr.md) | 16 | 17 | 14 |
-| 02 | [Hold and witness gates](02-hold-witness.md) | 19 | 19 | 14 |
+| 01 | [Acceptance criteria and automatic NCRs](01-quality-tolerance-ncr.md) | 22 | 27 | 0 |
+| 02 | [Hold and witness gates](02-hold-witness.md) | 24 | 28 | 3 |
 | 03 | [Temporary works and scaffold permits](03-scaffold-permits.md) | 28 | 24 | 14 |
 | 04 | [Commissioning readiness](04-commissioning.md) | 28 | 21 | 7 |
 | 05 | [Handover / closeout dossier check](05-handover-dossier.md) | 28 | 21 | 10 |
@@ -15,7 +15,7 @@ Sanitized behaviour specifications produced by the clean-room process. They desc
 | 09 | [Cross-project inbox and alerts](09-inbox-alerts.md) | 45 | 48 | 20 |
 | 10 | [Field time (incl. offline)](10-field-time.md) | 41 | 40 | 15 |
 | 11 | [NCR cost, cost of quality, back-charges](11-ncr-cost-quality.md) | 23 | 21 | 12 |
-| 12 | [As-built survey records](12-as-built-survey.md) | 19 | 18 | 9 |
+| 12 | [As-built survey records](12-as-built-survey.md) | 23 | 22 | 0 |
 | 13 | [BCF issue exchange](13-bcf-exchange.md) | 14 | 19 | 10 |
 | 14 | [Daily site log](14-daily-log.md) | 23 | 25 | 12 |
 | 15 | [Photo archive](15-photo-archive.md) | 24 | 26 | 9 |
@@ -32,4 +32,4 @@ Sanitized behaviour specifications produced by the clean-room process. They desc
 | 26 | [Forms library and live preview](26-forms.md) | 22 | 30 | 10 |
 | 27 | [Presence and edit locks](27-presence.md) | 26 | 28 | 6 |
 | 28 | [AI drafting with citations](28-ai-drafting.md) | 58 | 59 | 9 |
-| 29 | [Cross-cutting conventions](29-foundation.md) | 50 | 46 | 17 |
+| 29 | [Cross-cutting conventions](29-foundation.md) | 57 | 51 | 0 |
