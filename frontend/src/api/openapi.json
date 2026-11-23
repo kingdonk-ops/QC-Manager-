@@ -48190,6 +48190,1517 @@
     }
    }
   },
+  "/api/v1/temporary-works/register": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Register"
+    ],
+    "summary": "Register Rollup",
+    "description": "Counts by status and design check category, the design clearance percentage, the overdue-to-load and overdue-to-strike lists, the breaches (an item loaded or in use with no valid permit to load) with the compliant flag, per-item gates and separate advisory warnings. Worked out for the as-of day on every request; nothing is stored.",
+    "operationId": "rollup_api_v1_temporary_works_register_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "as_of",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "The day to judge on, as YYYY-MM-DD; default: today at the site",
+       "title": "As Of"
+      },
+      "description": "The day to judge on, as YYYY-MM-DD; default: today at the site"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwRegisterRollup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/load-status": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Register"
+    ],
+    "summary": "Load Status",
+    "description": "Whether each item is cleared to load and to strike on the as-of day, and the breaches.",
+    "operationId": "load_status_api_v1_temporary_works_load_status_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "as_of",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "The day to judge on, as YYYY-MM-DD; default: today at the site",
+       "title": "As Of"
+      },
+      "description": "The day to judge on, as YYYY-MM-DD; default: today at the site"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwLoadStatusRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "List Permits",
+    "description": "A project's permits in creation order, filtered by item and status.",
+    "operationId": "list_permits_api_v1_temporary_works_permits__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "item_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "maximum": 2147483647,
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Item Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/PermitStatus"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_TwPermitRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Create a Permit",
+    "description": "Always a draft, for the item named in the query. An item of another project, or a missing one, answers not-found. Issue it with the issue action.",
+    "operationId": "create_permit_api_v1_temporary_works_permits__post",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "The item the permit is for",
+       "title": "Item Id"
+      },
+      "description": "The item the permit is for"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwPermitCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/{permit_id}": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Get a Permit",
+    "operationId": "get_permit_api_v1_temporary_works_permits__permit_id__get",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Edit a Draft Permit",
+    "description": "Only while the permit is a draft (conflict otherwise). The status is not part of an edit.",
+    "operationId": "update_permit_api_v1_temporary_works_permits__permit_id__patch",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwPermitUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Delete a Draft Permit",
+    "description": "Only a permit in draft. A soft delete, audit-logged: a permit with no history beyond its creation goes to the recycle bin (removed by the scheduled purge after the project's retention), any other to the hidden Deleted folder (kept). The response names which. Both are restorable with the restore permission.",
+    "operationId": "delete_permit_api_v1_temporary_works_permits__permit_id__delete",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Permit Api V1 Temporary Works Permits  Permit Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/{permit_id}/issue": {
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Issue a Permit",
+    "description": "Draft to issued. A permit to load must record both the design check and the inspection: one error per missing flag, and it stays a draft.",
+    "operationId": "issue_permit_api_v1_temporary_works_permits__permit_id__issue_post",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/{permit_id}/activate": {
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Activate a Permit",
+    "operationId": "activate_permit_api_v1_temporary_works_permits__permit_id__activate_post",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/{permit_id}/close": {
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Close a Permit",
+    "description": "Issued or active to closed, recording the closing user and day.",
+    "operationId": "close_permit_api_v1_temporary_works_permits__permit_id__close_post",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/{permit_id}/return-to-draft": {
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Return a Permit to Draft",
+    "description": "Needs its own permission, separate from edit, and a reason that is audit-logged. Clears the issued and closed days.",
+    "operationId": "return_permit_to_draft_api_v1_temporary_works_permits__permit_id__return_to_draft_post",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwReasonBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/permits/{permit_id}/history": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Permits"
+    ],
+    "summary": "Permit Status History",
+    "operationId": "permit_history_api_v1_temporary_works_permits__permit_id__history_get",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/TwHistoryRead"
+         },
+         "title": "Response Permit History Api V1 Temporary Works Permits  Permit Id  History Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/trash/settings": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Deleted Records"
+    ],
+    "summary": "Recycle Bin Retention",
+    "description": "Days a deleted draft with no history beyond its creation stays in the recycle bin before the scheduled purge removes it. Default 30, one to 60.",
+    "operationId": "get_retention_api_v1_temporary_works_trash_settings_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwRetentionRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Deleted Records"
+    ],
+    "summary": "Set Recycle Bin Retention",
+    "description": "Whole days, one to 60. Audit-logged. Applies to records already in the bin, which are judged against the setting as it stands when the purge runs.",
+    "operationId": "put_retention_api_v1_temporary_works_trash_settings_put",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwRetentionUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwRetentionRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/trash/{view}/items": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Deleted Records"
+    ],
+    "summary": "List Deleted Items",
+    "description": "The recycle bin (view bin) or the hidden Deleted folder (view deleted): a project's deleted items, most recently deleted first. The bin shows when the purge may remove each one.",
+    "operationId": "list_deleted_items_api_v1_temporary_works_trash__view__items_get",
+    "parameters": [
+     {
+      "name": "view",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "$ref": "#/components/schemas/TwTrashView"
+      }
+     },
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_TwDeletedItemRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/trash/{view}/permits": {
+   "get": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Deleted Records"
+    ],
+    "summary": "List Deleted Permits",
+    "description": "As for items: the recycle bin (view bin) or the hidden Deleted folder (view deleted).",
+    "operationId": "list_deleted_permits_api_v1_temporary_works_trash__view__permits_get",
+    "parameters": [
+     {
+      "name": "view",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "$ref": "#/components/schemas/TwTrashView"
+      }
+     },
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_TwDeletedPermitRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/trash/items/{item_id}/restore": {
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Deleted Records"
+    ],
+    "summary": "Restore a Deleted Item",
+    "description": "From the recycle bin or the Deleted folder, back to draft. Its permits are left as they were: a permit deleted earlier stays deleted until it is restored itself.",
+    "operationId": "restore_item_api_v1_temporary_works_trash_items__item_id__restore_post",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwItemWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/trash/permits/{permit_id}/restore": {
+   "post": {
+    "tags": [
+     "Temporary Works",
+     "Temporary Works Deleted Records"
+    ],
+    "summary": "Restore a Deleted Permit",
+    "description": "From the recycle bin or the Deleted folder, back to draft. Its item must not be deleted (conflict otherwise): restore the item first.",
+    "operationId": "restore_permit_api_v1_temporary_works_trash_permits__permit_id__restore_post",
+    "parameters": [
+     {
+      "name": "permit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Permit Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwPermitWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/": {
+   "get": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "List Temporary Works Items",
+    "description": "A project's items, ascending sort order then creation time, filtered by family, status, design check category and linked scaffold. Deleted items are not listed.",
+    "operationId": "list_items_api_v1_temporary_works__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "family",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/Family"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Family"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/ItemStatus"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "category",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "maximum": 3,
+         "minimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Design check category",
+       "title": "Category"
+      },
+      "description": "Design check category"
+     },
+     {
+      "name": "scaffold_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "maximum": 2147483647,
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Scaffold Id"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "description": "Page number",
+       "default": 1,
+       "title": "Page"
+      },
+      "description": "Page number"
+     },
+     {
+      "name": "items_per_page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "description": "Items per page (max 100)",
+       "default": 50,
+       "title": "Items Per Page"
+      },
+      "description": "Items per page (max 100)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedListResponse_TwItemRead_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Create a Temporary Works Item",
+    "description": "Starts in identified. A duplicate reference in the project is a conflict, checked before the rules. Non-blocking warnings come back in the response.",
+    "operationId": "create_item_api_v1_temporary_works__post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwItemCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwItemWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/{item_id}": {
+   "get": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Get a Temporary Works Item",
+    "operationId": "get_item_api_v1_temporary_works__item_id__get",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwItemRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Edit a Temporary Works Item",
+    "description": "Any subset of fields; an explicit null clears an optional one. The rules run only when a rule-relevant field is supplied. The status is not editable: use the transition action.",
+    "operationId": "update_item_api_v1_temporary_works__item_id__patch",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwItemUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwItemWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Delete a Draft Temporary Works Item",
+    "description": "Only an item in draft whose permits have each been deleted first (conflict otherwise). A soft delete, audit-logged: an item with no history beyond its creation goes to the recycle bin (removed by the scheduled purge after the project's retention), any other to the hidden Deleted folder (kept). The response names which. Both are restorable with the restore permission.",
+    "operationId": "delete_item_api_v1_temporary_works__item_id__delete",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Item Api V1 Temporary Works  Item Id  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/{item_id}/transition": {
+   "post": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Move an Item Along Its Guarded Flow",
+    "description": "One step forward, one step back with a note, on hold from any live status, and from on hold only back to the status held from. Entering approved to load needs a category and a coordinator; loaded needs the load gate open (and, for a linked scaffold, a green or yellow tag with the inspection not overdue); in use only from loaded with no breach; struck needs the strike gate open.",
+    "operationId": "transition_item_api_v1_temporary_works__item_id__transition_post",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwItemTransition"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwItemWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/{item_id}/return-to-draft": {
+   "post": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Return an Item to Draft",
+    "description": "Needs its own permission, separate from edit, and a reason that is audit-logged.",
+    "operationId": "return_item_to_draft_api_v1_temporary_works__item_id__return_to_draft_post",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TwReasonBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TwItemWriteRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/temporary-works/{item_id}/history": {
+   "get": {
+    "tags": [
+     "Temporary Works"
+    ],
+    "summary": "Item Status History",
+    "operationId": "item_history_api_v1_temporary_works__item_id__history_get",
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/TwHistoryRead"
+         },
+         "title": "Response Item History Api V1 Temporary Works  Item Id  History Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/transmittals/": {
    "get": {
     "tags": [
@@ -76403,6 +77914,23 @@
     ],
     "title": "ExternalUserRead"
    },
+   "Family": {
+    "type": "string",
+    "enum": [
+     "falsework",
+     "formwork",
+     "propping",
+     "excavation_support",
+     "scaffold",
+     "facade_retention",
+     "crane_base",
+     "edge_protection",
+     "dewatering",
+     "hoarding",
+     "other"
+    ],
+    "title": "Family"
+   },
    "FieldDef": {
     "properties": {
      "key": {
@@ -83227,6 +84755,23 @@
      "notes"
     ],
     "title": "ItemRead"
+   },
+   "ItemStatus": {
+    "type": "string",
+    "enum": [
+     "identified",
+     "design_brief",
+     "design_submitted",
+     "design_checked",
+     "approved_to_load",
+     "loaded",
+     "in_use",
+     "approved_to_strike",
+     "struck",
+     "removed",
+     "on_hold"
+    ],
+    "title": "ItemStatus"
    },
    "ItemTrace": {
     "properties": {
@@ -98544,6 +100089,198 @@
     ],
     "title": "PaginatedListResponse[TransmittalRead]"
    },
+   "PaginatedListResponse_TwDeletedItemRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/TwDeletedItemRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[TwDeletedItemRead]"
+   },
+   "PaginatedListResponse_TwDeletedPermitRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/TwDeletedPermitRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[TwDeletedPermitRead]"
+   },
+   "PaginatedListResponse_TwItemRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/TwItemRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[TwItemRead]"
+   },
+   "PaginatedListResponse_TwPermitRead_": {
+    "properties": {
+     "data": {
+      "items": {
+       "$ref": "#/components/schemas/TwPermitRead"
+      },
+      "type": "array",
+      "title": "Data"
+     },
+     "total_count": {
+      "type": "integer",
+      "title": "Total Count"
+     },
+     "has_more": {
+      "type": "boolean",
+      "title": "Has More"
+     },
+     "page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Page"
+     },
+     "items_per_page": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items Per Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "data",
+     "total_count",
+     "has_more"
+    ],
+    "title": "PaginatedListResponse[TwPermitRead]"
+   },
    "PaginatedListResponse_UnmatchedActivity_": {
     "properties": {
      "data": {
@@ -98931,6 +100668,26 @@
      "recorded_by_id"
     ],
     "title": "PendingCosign"
+   },
+   "PermitKind": {
+    "type": "string",
+    "enum": [
+     "load",
+     "strike",
+     "dismantle"
+    ],
+    "title": "PermitKind"
+   },
+   "PermitStatus": {
+    "type": "string",
+    "enum": [
+     "draft",
+     "issued",
+     "active",
+     "expired",
+     "closed"
+    ],
+    "title": "PermitStatus"
    },
    "Person": {
     "properties": {
@@ -119204,6 +120961,2677 @@
      "parent_row"
     ],
     "title": "TreeMode"
+   },
+   "TwBreachRead": {
+    "properties": {
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "reference": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reference"
+     },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "reference",
+     "title",
+     "reason"
+    ],
+    "title": "TwBreachRead",
+    "description": "An item bearing load without a valid permit to load; the reason names the status and the day."
+   },
+   "TwDeletedItemRead": {
+    "properties": {
+     "deleted_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deleted At"
+     },
+     "deleted_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deleted By Id"
+     },
+     "deleted_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deleted Kind"
+     },
+     "purge_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Purge On"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "family": {
+      "type": "string",
+      "title": "Family"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "design_check_category": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Check Category"
+     },
+     "designer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Designer"
+     },
+     "checker": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checker"
+     },
+     "coordinator_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator Name"
+     },
+     "coordinator_user_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator User Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "held_from": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Held From"
+     },
+     "required_load_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Load On"
+     },
+     "required_strike_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Strike On"
+     },
+     "design_due_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Due On"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "asset_node_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asset Node Id"
+     },
+     "sort_order": {
+      "type": "integer",
+      "title": "Sort Order"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "scaffold_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scaffold Id"
+     },
+     "related_refs": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Related Refs"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "breach_notified_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Breach Notified On"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "deleted_at",
+     "deleted_by_id",
+     "deleted_kind",
+     "id",
+     "project_id",
+     "reference",
+     "title",
+     "family",
+     "description",
+     "design_check_category",
+     "designer",
+     "checker",
+     "coordinator_name",
+     "coordinator_user_id",
+     "status",
+     "held_from",
+     "required_load_on",
+     "required_strike_on",
+     "design_due_on",
+     "location",
+     "asset_node_id",
+     "sort_order",
+     "notes",
+     "scaffold_id",
+     "related_refs",
+     "created_by_id",
+     "breach_notified_on",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "TwDeletedItemRead",
+    "description": "A deleted item as the restore permission sees it in the bin or the Deleted folder."
+   },
+   "TwDeletedPermitRead": {
+    "properties": {
+     "deleted_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deleted At"
+     },
+     "deleted_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deleted By Id"
+     },
+     "deleted_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deleted Kind"
+     },
+     "purge_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Purge On"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "item_id": {
+      "type": "integer",
+      "title": "Item Id"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "issued_by_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued By Name"
+     },
+     "issued_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued On"
+     },
+     "valid_from": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid From"
+     },
+     "valid_to": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid To"
+     },
+     "closed_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed On"
+     },
+     "closed_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed By Id"
+     },
+     "inspection_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inspection Id"
+     },
+     "design_check_accepted": {
+      "type": "boolean",
+      "title": "Design Check Accepted"
+     },
+     "inspection_passed": {
+      "type": "boolean",
+      "title": "Inspection Passed"
+     },
+     "conditions": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conditions"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "expiry_notified_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expiry Notified On"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "deleted_at",
+     "deleted_by_id",
+     "deleted_kind",
+     "id",
+     "project_id",
+     "item_id",
+     "number",
+     "kind",
+     "status",
+     "issued_by_name",
+     "issued_on",
+     "valid_from",
+     "valid_to",
+     "closed_on",
+     "closed_by_id",
+     "inspection_id",
+     "design_check_accepted",
+     "inspection_passed",
+     "conditions",
+     "created_by_id",
+     "expiry_notified_on",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "TwDeletedPermitRead",
+    "description": "A deleted permit as the restore permission sees it in the bin or the Deleted folder."
+   },
+   "TwFindingRead": {
+    "properties": {
+     "rule": {
+      "type": "string",
+      "title": "Rule"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rule",
+     "message"
+    ],
+    "title": "TwFindingRead"
+   },
+   "TwGateRead": {
+    "properties": {
+     "item_id": {
+      "type": "integer",
+      "title": "Item Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "load_gate_open": {
+      "type": "boolean",
+      "title": "Load Gate Open"
+     },
+     "strike_gate_open": {
+      "type": "boolean",
+      "title": "Strike Gate Open"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "reference",
+     "status",
+     "load_gate_open",
+     "strike_gate_open"
+    ],
+    "title": "TwGateRead",
+    "description": "Whether the item is cleared to load, and to strike, on the as-of day."
+   },
+   "TwHistoryRead": {
+    "properties": {
+     "from_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "From Status"
+     },
+     "to_status": {
+      "type": "string",
+      "title": "To Status"
+     },
+     "changed_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Changed By Id"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     },
+     "changed_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Changed At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "from_status",
+     "to_status",
+     "changed_by_id",
+     "note",
+     "changed_at"
+    ],
+    "title": "TwHistoryRead"
+   },
+   "TwItemCreate": {
+    "properties": {
+     "project_id": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Project Id"
+     },
+     "reference": {
+      "type": "string",
+      "maxLength": 60,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Reference"
+     },
+     "title": {
+      "type": "string",
+      "maxLength": 300,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Title"
+     },
+     "family": {
+      "$ref": "#/components/schemas/Family"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "design_check_category": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 3.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Check Category",
+      "description": "Design check category, zero to three; empty until assigned"
+     },
+     "designer": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Designer"
+     },
+     "checker": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checker"
+     },
+     "coordinator_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator Name"
+     },
+     "coordinator_user_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator User Id"
+     },
+     "required_load_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Load On"
+     },
+     "required_strike_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Strike On"
+     },
+     "design_due_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Due On"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 300
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "asset_node_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asset Node Id",
+      "description": "An asset node of the same project"
+     },
+     "sort_order": {
+      "type": "integer",
+      "maximum": 1000000.0,
+      "minimum": 0.0,
+      "title": "Sort Order",
+      "default": 0
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "scaffold_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scaffold Id",
+      "description": "A scaffold of the same project, when the scaffolds module is on"
+     },
+     "related_refs": {
+      "additionalProperties": {
+       "type": "string",
+       "maxLength": 200
+      },
+      "type": "object",
+      "title": "Related Refs",
+      "default": {}
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "project_id",
+     "reference",
+     "title",
+     "family"
+    ],
+    "title": "TwItemCreate",
+    "description": "A new item. It always starts in identified (the draft state); its status is never part of the body."
+   },
+   "TwItemRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "family": {
+      "type": "string",
+      "title": "Family"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "design_check_category": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Check Category"
+     },
+     "designer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Designer"
+     },
+     "checker": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checker"
+     },
+     "coordinator_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator Name"
+     },
+     "coordinator_user_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator User Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "held_from": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Held From"
+     },
+     "required_load_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Load On"
+     },
+     "required_strike_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Strike On"
+     },
+     "design_due_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Due On"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "asset_node_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asset Node Id"
+     },
+     "sort_order": {
+      "type": "integer",
+      "title": "Sort Order"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "scaffold_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scaffold Id"
+     },
+     "related_refs": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Related Refs"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "breach_notified_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Breach Notified On"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "reference",
+     "title",
+     "family",
+     "description",
+     "design_check_category",
+     "designer",
+     "checker",
+     "coordinator_name",
+     "coordinator_user_id",
+     "status",
+     "held_from",
+     "required_load_on",
+     "required_strike_on",
+     "design_due_on",
+     "location",
+     "asset_node_id",
+     "sort_order",
+     "notes",
+     "scaffold_id",
+     "related_refs",
+     "created_by_id",
+     "breach_notified_on",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "TwItemRead"
+   },
+   "TwItemRef": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "family": {
+      "type": "string",
+      "title": "Family"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "required_load_on": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Load On"
+     },
+     "required_strike_on": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Strike On"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "reference",
+     "title",
+     "family",
+     "status",
+     "required_load_on",
+     "required_strike_on"
+    ],
+    "title": "TwItemRef",
+    "description": "An item named in an overdue list; its required dates are calendar-day text."
+   },
+   "TwItemTransition": {
+    "properties": {
+     "status": {
+      "$ref": "#/components/schemas/ItemStatus"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 1000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "title": "TwItemTransition",
+    "description": "Move one step along the guarded flow. A step back needs a note."
+   },
+   "TwItemUpdate": {
+    "properties": {
+     "reference": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 60,
+        "minLength": 1,
+        "pattern": "\\S"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reference"
+     },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 300,
+        "minLength": 1,
+        "pattern": "\\S"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "family": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Family"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "design_check_category": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 3.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Check Category",
+      "description": "Design check category, zero to three; empty until assigned"
+     },
+     "designer": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Designer"
+     },
+     "checker": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checker"
+     },
+     "coordinator_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator Name"
+     },
+     "coordinator_user_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator User Id"
+     },
+     "required_load_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Load On"
+     },
+     "required_strike_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Strike On"
+     },
+     "design_due_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Due On"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 300
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "asset_node_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asset Node Id"
+     },
+     "sort_order": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 1000000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sort Order"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "scaffold_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scaffold Id"
+     },
+     "related_refs": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string",
+         "maxLength": 200
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Related Refs"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "TwItemUpdate",
+    "description": "Any subset: an omitted field is left alone and an explicit null clears an optional one. The status is not part of\nan edit: it moves only through the transition action (and back to draft through return-to-draft)."
+   },
+   "TwItemWriteRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "family": {
+      "type": "string",
+      "title": "Family"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "design_check_category": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Check Category"
+     },
+     "designer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Designer"
+     },
+     "checker": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checker"
+     },
+     "coordinator_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator Name"
+     },
+     "coordinator_user_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coordinator User Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "held_from": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Held From"
+     },
+     "required_load_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Load On"
+     },
+     "required_strike_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required Strike On"
+     },
+     "design_due_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Due On"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "asset_node_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asset Node Id"
+     },
+     "sort_order": {
+      "type": "integer",
+      "title": "Sort Order"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "scaffold_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scaffold Id"
+     },
+     "related_refs": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Related Refs"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "breach_notified_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Breach Notified On"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/TwFindingRead"
+      },
+      "type": "array",
+      "title": "Warnings",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "reference",
+     "title",
+     "family",
+     "description",
+     "design_check_category",
+     "designer",
+     "checker",
+     "coordinator_name",
+     "coordinator_user_id",
+     "status",
+     "held_from",
+     "required_load_on",
+     "required_strike_on",
+     "design_due_on",
+     "location",
+     "asset_node_id",
+     "sort_order",
+     "notes",
+     "scaffold_id",
+     "related_refs",
+     "created_by_id",
+     "breach_notified_on",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "TwItemWriteRead",
+    "description": "An item as returned by a write: the non-blocking warnings of the rules that ran ride along."
+   },
+   "TwLoadStatusRead": {
+    "properties": {
+     "as_of": {
+      "type": "string",
+      "format": "date",
+      "title": "As Of"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "compliant": {
+      "type": "boolean",
+      "title": "Compliant"
+     },
+     "gates": {
+      "items": {
+       "$ref": "#/components/schemas/TwGateRead"
+      },
+      "type": "array",
+      "title": "Gates"
+     },
+     "breaches": {
+      "items": {
+       "$ref": "#/components/schemas/TwBreachRead"
+      },
+      "type": "array",
+      "title": "Breaches"
+     }
+    },
+    "type": "object",
+    "required": [
+     "as_of",
+     "total",
+     "compliant",
+     "gates",
+     "breaches"
+    ],
+    "title": "TwLoadStatusRead"
+   },
+   "TwPermitCreate": {
+    "properties": {
+     "number": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Number"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/PermitKind"
+     },
+     "issued_by_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued By Name"
+     },
+     "valid_from": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid From"
+     },
+     "valid_to": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid To"
+     },
+     "inspection_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inspection Id",
+      "description": "A soft reference to an inspection record"
+     },
+     "design_check_accepted": {
+      "type": "boolean",
+      "title": "Design Check Accepted",
+      "default": false
+     },
+     "inspection_passed": {
+      "type": "boolean",
+      "title": "Inspection Passed",
+      "default": false
+     },
+     "conditions": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conditions"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "number",
+     "kind"
+    ],
+    "title": "TwPermitCreate",
+    "description": "A new permit to load, strike or dismantle. It is always created as a draft. The prerequisite flags on a permit to\nstrike or dismantle are accepted and have no effect on any gate."
+   },
+   "TwPermitRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "item_id": {
+      "type": "integer",
+      "title": "Item Id"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "issued_by_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued By Name"
+     },
+     "issued_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued On"
+     },
+     "valid_from": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid From"
+     },
+     "valid_to": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid To"
+     },
+     "closed_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed On"
+     },
+     "closed_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed By Id"
+     },
+     "inspection_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inspection Id"
+     },
+     "design_check_accepted": {
+      "type": "boolean",
+      "title": "Design Check Accepted"
+     },
+     "inspection_passed": {
+      "type": "boolean",
+      "title": "Inspection Passed"
+     },
+     "conditions": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conditions"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "expiry_notified_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expiry Notified On"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "item_id",
+     "number",
+     "kind",
+     "status",
+     "issued_by_name",
+     "issued_on",
+     "valid_from",
+     "valid_to",
+     "closed_on",
+     "closed_by_id",
+     "inspection_id",
+     "design_check_accepted",
+     "inspection_passed",
+     "conditions",
+     "created_by_id",
+     "expiry_notified_on",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "TwPermitRead"
+   },
+   "TwPermitUpdate": {
+    "properties": {
+     "number": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "minLength": 1,
+        "pattern": "\\S"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Number"
+     },
+     "kind": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PermitKind"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "issued_by_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued By Name"
+     },
+     "valid_from": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid From"
+     },
+     "valid_to": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid To"
+     },
+     "inspection_id": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inspection Id"
+     },
+     "design_check_accepted": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Check Accepted"
+     },
+     "inspection_passed": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inspection Passed"
+     },
+     "conditions": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conditions"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "TwPermitUpdate",
+    "description": "Any subset, while the permit is a draft. The status, issued day and closed day are not part of an edit."
+   },
+   "TwPermitWriteRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "item_id": {
+      "type": "integer",
+      "title": "Item Id"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "issued_by_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued By Name"
+     },
+     "issued_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issued On"
+     },
+     "valid_from": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid From"
+     },
+     "valid_to": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valid To"
+     },
+     "closed_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed On"
+     },
+     "closed_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed By Id"
+     },
+     "inspection_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inspection Id"
+     },
+     "design_check_accepted": {
+      "type": "boolean",
+      "title": "Design Check Accepted"
+     },
+     "inspection_passed": {
+      "type": "boolean",
+      "title": "Inspection Passed"
+     },
+     "conditions": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conditions"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "expiry_notified_on": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expiry Notified On"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/TwFindingRead"
+      },
+      "type": "array",
+      "title": "Warnings",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "item_id",
+     "number",
+     "kind",
+     "status",
+     "issued_by_name",
+     "issued_on",
+     "valid_from",
+     "valid_to",
+     "closed_on",
+     "closed_by_id",
+     "inspection_id",
+     "design_check_accepted",
+     "inspection_passed",
+     "conditions",
+     "created_by_id",
+     "expiry_notified_on",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "TwPermitWriteRead",
+    "description": "A permit as returned by a write, with the non-blocking warnings of the rules that ran."
+   },
+   "TwReasonBody": {
+    "properties": {
+     "reason": {
+      "type": "string",
+      "maxLength": 1000,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Reason"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "reason"
+    ],
+    "title": "TwReasonBody",
+    "description": "The mandatory reason for sending an item or a permit back to draft."
+   },
+   "TwRegisterRollup": {
+    "properties": {
+     "as_of": {
+      "type": "string",
+      "format": "date",
+      "title": "As Of"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "compliant": {
+      "type": "boolean",
+      "title": "Compliant"
+     },
+     "gates": {
+      "items": {
+       "$ref": "#/components/schemas/TwGateRead"
+      },
+      "type": "array",
+      "title": "Gates"
+     },
+     "breaches": {
+      "items": {
+       "$ref": "#/components/schemas/TwBreachRead"
+      },
+      "type": "array",
+      "title": "Breaches"
+     },
+     "status_counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Status Counts"
+     },
+     "category_counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Category Counts"
+     },
+     "design_clearance": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Design Clearance"
+     },
+     "overdue_to_load": {
+      "items": {
+       "$ref": "#/components/schemas/TwItemRef"
+      },
+      "type": "array",
+      "title": "Overdue To Load"
+     },
+     "overdue_to_strike": {
+      "items": {
+       "$ref": "#/components/schemas/TwItemRef"
+      },
+      "type": "array",
+      "title": "Overdue To Strike"
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/TwRegisterWarning"
+      },
+      "type": "array",
+      "title": "Warnings"
+     }
+    },
+    "type": "object",
+    "required": [
+     "as_of",
+     "total",
+     "compliant",
+     "gates",
+     "breaches",
+     "status_counts",
+     "category_counts",
+     "design_clearance",
+     "overdue_to_load",
+     "overdue_to_strike",
+     "warnings"
+    ],
+    "title": "TwRegisterRollup"
+   },
+   "TwRegisterWarning": {
+    "properties": {
+     "item_id": {
+      "type": "integer",
+      "title": "Item Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "rule": {
+      "type": "string",
+      "title": "Rule"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "reference",
+     "rule",
+     "message"
+    ],
+    "title": "TwRegisterWarning",
+    "description": "Advice that never affects the compliant flag. Kept apart from the breaches so a later decision can promote some."
+   },
+   "TwRetentionRead": {
+    "properties": {
+     "project_id": {
+      "type": "integer",
+      "title": "Project Id"
+     },
+     "bin_retention_days": {
+      "type": "integer",
+      "title": "Bin Retention Days"
+     },
+     "default_days": {
+      "type": "integer",
+      "title": "Default Days",
+      "default": 30
+     },
+     "min_days": {
+      "type": "integer",
+      "title": "Min Days",
+      "default": 1
+     },
+     "max_days": {
+      "type": "integer",
+      "title": "Max Days",
+      "default": 60
+     }
+    },
+    "type": "object",
+    "required": [
+     "project_id",
+     "bin_retention_days"
+    ],
+    "title": "TwRetentionRead"
+   },
+   "TwRetentionUpdate": {
+    "properties": {
+     "project_id": {
+      "type": "integer",
+      "maximum": 2147483647.0,
+      "minimum": 1.0,
+      "title": "Project Id"
+     },
+     "bin_retention_days": {
+      "type": "integer",
+      "maximum": 60.0,
+      "minimum": 1.0,
+      "title": "Bin Retention Days"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "project_id",
+     "bin_retention_days"
+    ],
+    "title": "TwRetentionUpdate",
+    "description": "The recycle bin's retention for one project: whole days, one to sixty."
+   },
+   "TwTrashView": {
+    "type": "string",
+    "enum": [
+     "bin",
+     "deleted"
+    ],
+    "title": "TwTrashView",
+    "description": "The two separate views of deleted records."
    },
    "UnmatchedActivity": {
     "properties": {

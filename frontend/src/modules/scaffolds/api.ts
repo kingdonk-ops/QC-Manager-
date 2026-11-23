@@ -2,8 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 import { handleServerError } from '@/lib/handle-server-error'
+import { can, useSession } from '@/lib/session'
+import { useActiveModules } from '@/modules/_runtime'
 
 type S = components['schemas']
+export type LinkedItem = S['TwItemRead']
+export type LinkedPermit = S['TwPermitRead']
+export type LinkedRollup = S['TwRegisterRollup']
 export type Scaffold = S['ScaffoldRead']
 export type ScaffoldCreate = S['ScaffoldCreate']
 export type ScaffoldUpdate = S['ScaffoldUpdate']
@@ -184,6 +189,59 @@ export function useHistory(id: number) {
           params: { path: { scaffold_id: id } },
         })
       ),
+  })
+}
+
+/** True when the temporary works module is running and the caller may read it. The tab and its query depend on this. */
+export function useTemporaryWorksOn() {
+  const session = useSession()
+  const modules = useActiveModules()
+  return (
+    can(session, 'temporary_works.read') &&
+    modules.some((m) => m.id === 'temporary_works')
+  )
+}
+
+export type LinkedWorks = {
+  items: LinkedItem[]
+  permits: LinkedPermit[]
+  rollup: LinkedRollup
+}
+
+/** The temporary works items linked to a scaffold, with the project's permits and register figures read from the server. */
+export function useLinkedWorks(
+  projectId: number,
+  scaffoldId: number,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: ['temporary_works', projectId, 'scaffold-link', scaffoldId],
+    enabled,
+    queryFn: async (): Promise<LinkedWorks> => {
+      const project = { project_id: projectId, items_per_page: 100 }
+      const [items, permits, rollup] = await Promise.all([
+        unwrap(
+          api.GET('/api/v1/temporary-works/', {
+            params: { query: { ...project, scaffold_id: scaffoldId } },
+          })
+        ),
+        unwrap(
+          api.GET('/api/v1/temporary-works/permits/', {
+            params: { query: project },
+          })
+        ),
+        unwrap(
+          api.GET('/api/v1/temporary-works/register', {
+            params: { query: { project_id: projectId } },
+          })
+        ),
+      ])
+      return {
+        items: (items as { data: LinkedItem[] }).data,
+        permits: (permits as { data: LinkedPermit[] }).data,
+        rollup,
+      }
+    },
   })
 }
 

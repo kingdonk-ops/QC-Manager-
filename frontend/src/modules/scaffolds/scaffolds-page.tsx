@@ -3,224 +3,28 @@ import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import { CloudLightning, Download, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentProject } from '@/stores/use-current-project'
-import { money } from '@/lib/format'
 import { can, useSession } from '@/lib/session'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
 import { DataGrid } from '@/components/data-grid'
 import { Page } from '@/components/layout/page'
-import { NativeSelect, UserSelect } from '@/components/native-select'
-import { NodeSelect } from '@/components/node-select'
-import { Field } from '@/components/records/fields'
+import { NativeSelect } from '@/components/native-select'
 import { StatusBadge } from '@/components/records/status-badge'
 import {
-  DUTIES,
   STATUSES,
   type Scaffold,
   TAGS,
-  TYPES,
-  useCreateScaffold,
-  useHire,
   useScaffolds,
   useTagBoard,
-  useWeatherEvent,
 } from './api'
+import { HireView } from './hire-panel'
 import { ScaffoldSheet, TagPill } from './scaffold-sheet'
+import { RequestScaffold, Weather } from './scaffolds-dialogs'
 
 function initialId() {
   const id = Number(new URLSearchParams(window.location.search).get('id'))
   return Number.isFinite(id) && id > 0 ? id : null
-}
-
-function RequestScaffold({
-  projectId,
-  onClose,
-  onCreated,
-}: {
-  projectId: number
-  onClose: () => void
-  onCreated: (id: number) => void
-}) {
-  const { t } = useTranslation()
-  const create = useCreateScaffold()
-  const [nodeId, setNodeId] = useState<number | null>(null)
-  const [custodian, setCustodian] = useState<number | null>(null)
-  const [draft, setDraft] = useState({
-    purpose: '',
-    location_text: '',
-    scaffold_type: 'independent',
-    duty_class: 'medium',
-    required_by: '',
-    length_m: '',
-    width_m: '',
-    height_m: '',
-    lifts: '',
-  })
-  const text = (key: keyof typeof draft) => ({
-    value: draft[key],
-    onChange: (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >
-    ) => setDraft({ ...draft, [key]: e.target.value }),
-  })
-  const num = (v: string) => (v ? Number(v) : null)
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className='sm:max-w-lg'>
-        <DialogHeader>
-          <DialogTitle>{t('scaffolds.request')}</DialogTitle>
-        </DialogHeader>
-        <form
-          id='new-scaffold'
-          className='grid gap-3'
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (!nodeId) return
-            create.mutate(
-              {
-                project_id: projectId,
-                node_id: nodeId,
-                purpose: draft.purpose || null,
-                location_text: draft.location_text || null,
-                scaffold_type: draft.scaffold_type as never,
-                duty_class: draft.duty_class as never,
-                required_by: draft.required_by || null,
-                custodian_id: custodian,
-                dimensions: {
-                  length_m: num(draft.length_m),
-                  width_m: num(draft.width_m),
-                  height_m: num(draft.height_m),
-                  lifts: num(draft.lifts),
-                },
-              },
-              {
-                onSuccess: (made) => {
-                  onClose()
-                  onCreated(made.id)
-                },
-              }
-            )
-          }}
-        >
-          <Field label={t('scaffolds.location')}>
-            <NodeSelect
-              projectId={projectId}
-              value={nodeId}
-              onChange={setNodeId}
-            />
-          </Field>
-          <Field label={t('scaffolds.location_detail')}>
-            <Input {...text('location_text')} />
-          </Field>
-          <Field label={t('scaffolds.purpose')}>
-            <Textarea {...text('purpose')} />
-          </Field>
-          <div className='grid grid-cols-2 gap-3'>
-            <Field label={t('scaffolds.type')}>
-              <NativeSelect values={TYPES} {...text('scaffold_type')} />
-            </Field>
-            <Field label={t('scaffolds.duty')}>
-              <NativeSelect values={DUTIES} {...text('duty_class')} />
-            </Field>
-            <Field label={t('scaffolds.required_by')}>
-              <Input type='date' {...text('required_by')} />
-            </Field>
-            <Field label={t('scaffolds.custodian')}>
-              <UserSelect value={custodian} onChange={setCustodian} />
-            </Field>
-          </div>
-          <div className='grid grid-cols-4 gap-2'>
-            <Field label='L (m)'>
-              <Input type='number' step='0.1' {...text('length_m')} />
-            </Field>
-            <Field label='W (m)'>
-              <Input type='number' step='0.1' {...text('width_m')} />
-            </Field>
-            <Field label='H (m)'>
-              <Input type='number' step='0.1' {...text('height_m')} />
-            </Field>
-            <Field label={t('scaffolds.lifts')}>
-              <Input type='number' {...text('lifts')} />
-            </Field>
-          </div>
-        </form>
-        <DialogFooter>
-          <Button
-            type='submit'
-            form='new-scaffold'
-            disabled={!nodeId || create.isPending}
-          >
-            {t('scaffolds.request')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function Weather({
-  projectId,
-  onClose,
-}: {
-  projectId: number
-  onClose: () => void
-}) {
-  const { t } = useTranslation()
-  const weather = useWeatherEvent()
-  const [nodeId, setNodeId] = useState<number | null>(null)
-  const [description, setDescription] = useState('')
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader>
-          <DialogTitle>{t('scaffolds.weather_event')}</DialogTitle>
-        </DialogHeader>
-        <p className='text-sm text-muted-foreground'>
-          {t('scaffolds.weather_help')}
-        </p>
-        <Field label={t('scaffolds.area_optional')}>
-          <NodeSelect
-            projectId={projectId}
-            value={nodeId}
-            onChange={setNodeId}
-          />
-        </Field>
-        <Field label={t('scaffolds.what_happened')}>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </Field>
-        <DialogFooter>
-          <Button
-            disabled={!description || weather.isPending}
-            onClick={() =>
-              weather.mutate(
-                {
-                  project_id: projectId,
-                  node_id: nodeId ?? undefined,
-                  description,
-                },
-                { onSuccess: onClose }
-              )
-            }
-          >
-            {t('scaffolds.record')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
 }
 
 function Register({
@@ -377,75 +181,6 @@ function Board({
           ))}
         </section>
       ))}
-    </div>
-  )
-}
-
-function HireView({
-  projectId,
-  currency,
-}: {
-  projectId: number
-  currency: string
-}) {
-  const { t } = useTranslation()
-  const [start, setStart] = useState('')
-  const { data } = useHire(projectId, start)
-  const fmt = money(currency)
-  return (
-    <div className='grid gap-3'>
-      <div className='flex items-end gap-2'>
-        <Field label={t('scaffolds.period_from')}>
-          <Input
-            type='date'
-            className='h-8 w-44'
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-          />
-        </Field>
-        <p className='pb-1 text-sm text-muted-foreground'>
-          {t('scaffolds.hire_help')}
-        </p>
-      </div>
-      <table className='w-full text-sm'>
-        <thead className='text-left text-muted-foreground'>
-          <tr>
-            <th>{t('scaffolds.code')}</th>
-            <th>{t('scaffolds.location')}</th>
-            <th>{t('scaffolds.erected')}</th>
-            <th className='text-right'>{t('scaffolds.days')}</th>
-            <th className='text-right'>{t('scaffolds.hire_rate')}</th>
-            <th className='text-right'>{t('scaffolds.hire_cost')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(data?.lines ?? []).map((l) => (
-            <tr key={l.scaffold_id} className='border-t'>
-              <td>{l.code}</td>
-              <td>{l.node_path}</td>
-              <td>
-                {l.erected_on}
-                {l.dismantled_on ? ` → ${l.dismantled_on}` : ''}
-              </td>
-              <td className='text-right'>{l.days}</td>
-              <td className='text-right'>
-                {l.rate != null ? fmt({ value: l.rate }) : '—'}
-              </td>
-              <td className='text-right'>
-                {l.cost != null ? fmt({ value: l.cost }) : '—'}
-              </td>
-            </tr>
-          ))}
-          <tr className='border-t font-semibold'>
-            <td colSpan={3}>{t('scaffolds.total')}</td>
-            <td className='text-right'>{data?.total_days ?? 0}</td>
-            <td />
-            <td className='text-right'>
-              {fmt({ value: data?.total_cost ?? 0 })}
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   )
 }

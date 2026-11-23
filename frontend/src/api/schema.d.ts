@@ -11833,6 +11833,399 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/temporary-works/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Register Rollup
+         * @description Counts by status and design check category, the design clearance percentage, the overdue-to-load and overdue-to-strike lists, the breaches (an item loaded or in use with no valid permit to load) with the compliant flag, per-item gates and separate advisory warnings. Worked out for the as-of day on every request; nothing is stored.
+         */
+        get: operations["rollup_api_v1_temporary_works_register_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/load-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Load Status
+         * @description Whether each item is cleared to load and to strike on the as-of day, and the breaches.
+         */
+        get: operations["load_status_api_v1_temporary_works_load_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Permits
+         * @description A project's permits in creation order, filtered by item and status.
+         */
+        get: operations["list_permits_api_v1_temporary_works_permits__get"];
+        put?: never;
+        /**
+         * Create a Permit
+         * @description Always a draft, for the item named in the query. An item of another project, or a missing one, answers not-found. Issue it with the issue action.
+         */
+        post: operations["create_permit_api_v1_temporary_works_permits__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/{permit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a Permit */
+        get: operations["get_permit_api_v1_temporary_works_permits__permit_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a Draft Permit
+         * @description Only a permit in draft. A soft delete, audit-logged: a permit with no history beyond its creation goes to the recycle bin (removed by the scheduled purge after the project's retention), any other to the hidden Deleted folder (kept). The response names which. Both are restorable with the restore permission.
+         */
+        delete: operations["delete_permit_api_v1_temporary_works_permits__permit_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Edit a Draft Permit
+         * @description Only while the permit is a draft (conflict otherwise). The status is not part of an edit.
+         */
+        patch: operations["update_permit_api_v1_temporary_works_permits__permit_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/{permit_id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a Permit
+         * @description Draft to issued. A permit to load must record both the design check and the inspection: one error per missing flag, and it stays a draft.
+         */
+        post: operations["issue_permit_api_v1_temporary_works_permits__permit_id__issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/{permit_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a Permit */
+        post: operations["activate_permit_api_v1_temporary_works_permits__permit_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/{permit_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a Permit
+         * @description Issued or active to closed, recording the closing user and day.
+         */
+        post: operations["close_permit_api_v1_temporary_works_permits__permit_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/{permit_id}/return-to-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return a Permit to Draft
+         * @description Needs its own permission, separate from edit, and a reason that is audit-logged. Clears the issued and closed days.
+         */
+        post: operations["return_permit_to_draft_api_v1_temporary_works_permits__permit_id__return_to_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/permits/{permit_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Permit Status History */
+        get: operations["permit_history_api_v1_temporary_works_permits__permit_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/trash/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recycle Bin Retention
+         * @description Days a deleted draft with no history beyond its creation stays in the recycle bin before the scheduled purge removes it. Default 30, one to 60.
+         */
+        get: operations["get_retention_api_v1_temporary_works_trash_settings_get"];
+        /**
+         * Set Recycle Bin Retention
+         * @description Whole days, one to 60. Audit-logged. Applies to records already in the bin, which are judged against the setting as it stands when the purge runs.
+         */
+        put: operations["put_retention_api_v1_temporary_works_trash_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/trash/{view}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Deleted Items
+         * @description The recycle bin (view bin) or the hidden Deleted folder (view deleted): a project's deleted items, most recently deleted first. The bin shows when the purge may remove each one.
+         */
+        get: operations["list_deleted_items_api_v1_temporary_works_trash__view__items_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/trash/{view}/permits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Deleted Permits
+         * @description As for items: the recycle bin (view bin) or the hidden Deleted folder (view deleted).
+         */
+        get: operations["list_deleted_permits_api_v1_temporary_works_trash__view__permits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/trash/items/{item_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a Deleted Item
+         * @description From the recycle bin or the Deleted folder, back to draft. Its permits are left as they were: a permit deleted earlier stays deleted until it is restored itself.
+         */
+        post: operations["restore_item_api_v1_temporary_works_trash_items__item_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/trash/permits/{permit_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a Deleted Permit
+         * @description From the recycle bin or the Deleted folder, back to draft. Its item must not be deleted (conflict otherwise): restore the item first.
+         */
+        post: operations["restore_permit_api_v1_temporary_works_trash_permits__permit_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Temporary Works Items
+         * @description A project's items, ascending sort order then creation time, filtered by family, status, design check category and linked scaffold. Deleted items are not listed.
+         */
+        get: operations["list_items_api_v1_temporary_works__get"];
+        put?: never;
+        /**
+         * Create a Temporary Works Item
+         * @description Starts in identified. A duplicate reference in the project is a conflict, checked before the rules. Non-blocking warnings come back in the response.
+         */
+        post: operations["create_item_api_v1_temporary_works__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a Temporary Works Item */
+        get: operations["get_item_api_v1_temporary_works__item_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a Draft Temporary Works Item
+         * @description Only an item in draft whose permits have each been deleted first (conflict otherwise). A soft delete, audit-logged: an item with no history beyond its creation goes to the recycle bin (removed by the scheduled purge after the project's retention), any other to the hidden Deleted folder (kept). The response names which. Both are restorable with the restore permission.
+         */
+        delete: operations["delete_item_api_v1_temporary_works__item_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Edit a Temporary Works Item
+         * @description Any subset of fields; an explicit null clears an optional one. The rules run only when a rule-relevant field is supplied. The status is not editable: use the transition action.
+         */
+        patch: operations["update_item_api_v1_temporary_works__item_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/temporary-works/{item_id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move an Item Along Its Guarded Flow
+         * @description One step forward, one step back with a note, on hold from any live status, and from on hold only back to the status held from. Entering approved to load needs a category and a coordinator; loaded needs the load gate open (and, for a linked scaffold, a green or yellow tag with the inspection not overdue); in use only from loaded with no breach; struck needs the strike gate open.
+         */
+        post: operations["transition_item_api_v1_temporary_works__item_id__transition_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/{item_id}/return-to-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return an Item to Draft
+         * @description Needs its own permission, separate from edit, and a reason that is audit-logged.
+         */
+        post: operations["return_item_to_draft_api_v1_temporary_works__item_id__return_to_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/temporary-works/{item_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Item Status History */
+        get: operations["item_history_api_v1_temporary_works__item_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transmittals/": {
         parameters: {
             query?: never;
@@ -19583,6 +19976,11 @@ export interface components {
             teams?: string[];
         };
         /**
+         * Family
+         * @enum {string}
+         */
+        Family: "falsework" | "formwork" | "propping" | "excavation_support" | "scaffold" | "facade_retention" | "crane_base" | "edge_protection" | "dewatering" | "hoarding" | "other";
+        /**
          * FieldDef
          * @description One template field. ``step`` says when it is filled; it is read-only once that step is completed.
          */
@@ -21565,6 +21963,11 @@ export interface components {
             /** Identifiers */
             identifiers?: components["schemas"]["IdentifierRead"][];
         };
+        /**
+         * ItemStatus
+         * @enum {string}
+         */
+        ItemStatus: "identified" | "design_brief" | "design_submitted" | "design_checked" | "approved_to_load" | "loaded" | "in_use" | "approved_to_strike" | "struck" | "removed" | "on_hold";
         /** ItemTrace */
         ItemTrace: {
             /** Item Id */
@@ -25911,6 +26314,58 @@ export interface components {
             /** Items Per Page */
             items_per_page?: number | null;
         };
+        /** PaginatedListResponse[TwDeletedItemRead] */
+        PaginatedListResponse_TwDeletedItemRead_: {
+            /** Data */
+            data: components["schemas"]["TwDeletedItemRead"][];
+            /** Total Count */
+            total_count: number;
+            /** Has More */
+            has_more: boolean;
+            /** Page */
+            page?: number | null;
+            /** Items Per Page */
+            items_per_page?: number | null;
+        };
+        /** PaginatedListResponse[TwDeletedPermitRead] */
+        PaginatedListResponse_TwDeletedPermitRead_: {
+            /** Data */
+            data: components["schemas"]["TwDeletedPermitRead"][];
+            /** Total Count */
+            total_count: number;
+            /** Has More */
+            has_more: boolean;
+            /** Page */
+            page?: number | null;
+            /** Items Per Page */
+            items_per_page?: number | null;
+        };
+        /** PaginatedListResponse[TwItemRead] */
+        PaginatedListResponse_TwItemRead_: {
+            /** Data */
+            data: components["schemas"]["TwItemRead"][];
+            /** Total Count */
+            total_count: number;
+            /** Has More */
+            has_more: boolean;
+            /** Page */
+            page?: number | null;
+            /** Items Per Page */
+            items_per_page?: number | null;
+        };
+        /** PaginatedListResponse[TwPermitRead] */
+        PaginatedListResponse_TwPermitRead_: {
+            /** Data */
+            data: components["schemas"]["TwPermitRead"][];
+            /** Total Count */
+            total_count: number;
+            /** Has More */
+            has_more: boolean;
+            /** Page */
+            page?: number | null;
+            /** Items Per Page */
+            items_per_page?: number | null;
+        };
         /** PaginatedListResponse[UnmatchedActivity] */
         PaginatedListResponse_UnmatchedActivity_: {
             /** Data */
@@ -26025,6 +26480,16 @@ export interface components {
             /** Recorded By Id */
             recorded_by_id: number | null;
         };
+        /**
+         * PermitKind
+         * @enum {string}
+         */
+        PermitKind: "load" | "strike" | "dismantle";
+        /**
+         * PermitStatus
+         * @enum {string}
+         */
+        PermitStatus: "draft" | "issued" | "active" | "expired" | "closed";
         /** Person */
         Person: {
             /** Id */
@@ -31769,6 +32234,694 @@ export interface components {
          * @enum {string}
          */
         TreeMode: "columns" | "path" | "parent_row";
+        /**
+         * TwBreachRead
+         * @description An item bearing load without a valid permit to load; the reason names the status and the day.
+         */
+        TwBreachRead: {
+            /** Item Id */
+            item_id: number | null;
+            /** Reference */
+            reference: string | null;
+            /** Title */
+            title: string | null;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * TwDeletedItemRead
+         * @description A deleted item as the restore permission sees it in the bin or the Deleted folder.
+         */
+        TwDeletedItemRead: {
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Deleted By Id */
+            deleted_by_id: number | null;
+            /** Deleted Kind */
+            deleted_kind: string | null;
+            /** Purge On */
+            purge_on?: string | null;
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Reference */
+            reference: string;
+            /** Title */
+            title: string;
+            /** Family */
+            family: string;
+            /** Description */
+            description: string | null;
+            /** Design Check Category */
+            design_check_category: number | null;
+            /** Designer */
+            designer: string | null;
+            /** Checker */
+            checker: string | null;
+            /** Coordinator Name */
+            coordinator_name: string | null;
+            /** Coordinator User Id */
+            coordinator_user_id: number | null;
+            /** Status */
+            status: string;
+            /** Held From */
+            held_from: string | null;
+            /** Required Load On */
+            required_load_on: string | null;
+            /** Required Strike On */
+            required_strike_on: string | null;
+            /** Design Due On */
+            design_due_on: string | null;
+            /** Location */
+            location: string | null;
+            /** Asset Node Id */
+            asset_node_id: number | null;
+            /** Sort Order */
+            sort_order: number;
+            /** Notes */
+            notes: string | null;
+            /** Scaffold Id */
+            scaffold_id: number | null;
+            /** Related Refs */
+            related_refs: {
+                [key: string]: unknown;
+            };
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Breach Notified On */
+            breach_notified_on: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /**
+         * TwDeletedPermitRead
+         * @description A deleted permit as the restore permission sees it in the bin or the Deleted folder.
+         */
+        TwDeletedPermitRead: {
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Deleted By Id */
+            deleted_by_id: number | null;
+            /** Deleted Kind */
+            deleted_kind: string | null;
+            /** Purge On */
+            purge_on?: string | null;
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Item Id */
+            item_id: number;
+            /** Number */
+            number: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Issued By Name */
+            issued_by_name: string | null;
+            /** Issued On */
+            issued_on: string | null;
+            /** Valid From */
+            valid_from: string | null;
+            /** Valid To */
+            valid_to: string | null;
+            /** Closed On */
+            closed_on: string | null;
+            /** Closed By Id */
+            closed_by_id: number | null;
+            /** Inspection Id */
+            inspection_id: number | null;
+            /** Design Check Accepted */
+            design_check_accepted: boolean;
+            /** Inspection Passed */
+            inspection_passed: boolean;
+            /** Conditions */
+            conditions: string | null;
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Expiry Notified On */
+            expiry_notified_on: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** TwFindingRead */
+        TwFindingRead: {
+            /** Rule */
+            rule: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * TwGateRead
+         * @description Whether the item is cleared to load, and to strike, on the as-of day.
+         */
+        TwGateRead: {
+            /** Item Id */
+            item_id: number;
+            /** Reference */
+            reference: string;
+            /** Status */
+            status: string;
+            /** Load Gate Open */
+            load_gate_open: boolean;
+            /** Strike Gate Open */
+            strike_gate_open: boolean;
+        };
+        /** TwHistoryRead */
+        TwHistoryRead: {
+            /** From Status */
+            from_status: string | null;
+            /** To Status */
+            to_status: string;
+            /** Changed By Id */
+            changed_by_id: number | null;
+            /** Note */
+            note: string | null;
+            /** Changed At */
+            changed_at: string | null;
+        };
+        /**
+         * TwItemCreate
+         * @description A new item. It always starts in identified (the draft state); its status is never part of the body.
+         */
+        TwItemCreate: {
+            /** Project Id */
+            project_id: number;
+            /** Reference */
+            reference: string;
+            /** Title */
+            title: string;
+            family: components["schemas"]["Family"];
+            /** Description */
+            description?: string | null;
+            /**
+             * Design Check Category
+             * @description Design check category, zero to three; empty until assigned
+             */
+            design_check_category?: number | null;
+            /** Designer */
+            designer?: string | null;
+            /** Checker */
+            checker?: string | null;
+            /** Coordinator Name */
+            coordinator_name?: string | null;
+            /** Coordinator User Id */
+            coordinator_user_id?: number | null;
+            /** Required Load On */
+            required_load_on?: string | null;
+            /** Required Strike On */
+            required_strike_on?: string | null;
+            /** Design Due On */
+            design_due_on?: string | null;
+            /** Location */
+            location?: string | null;
+            /**
+             * Asset Node Id
+             * @description An asset node of the same project
+             */
+            asset_node_id?: number | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Scaffold Id
+             * @description A scaffold of the same project, when the scaffolds module is on
+             */
+            scaffold_id?: number | null;
+            /**
+             * Related Refs
+             * @default {}
+             */
+            related_refs: {
+                [key: string]: string;
+            };
+        };
+        /** TwItemRead */
+        TwItemRead: {
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Reference */
+            reference: string;
+            /** Title */
+            title: string;
+            /** Family */
+            family: string;
+            /** Description */
+            description: string | null;
+            /** Design Check Category */
+            design_check_category: number | null;
+            /** Designer */
+            designer: string | null;
+            /** Checker */
+            checker: string | null;
+            /** Coordinator Name */
+            coordinator_name: string | null;
+            /** Coordinator User Id */
+            coordinator_user_id: number | null;
+            /** Status */
+            status: string;
+            /** Held From */
+            held_from: string | null;
+            /** Required Load On */
+            required_load_on: string | null;
+            /** Required Strike On */
+            required_strike_on: string | null;
+            /** Design Due On */
+            design_due_on: string | null;
+            /** Location */
+            location: string | null;
+            /** Asset Node Id */
+            asset_node_id: number | null;
+            /** Sort Order */
+            sort_order: number;
+            /** Notes */
+            notes: string | null;
+            /** Scaffold Id */
+            scaffold_id: number | null;
+            /** Related Refs */
+            related_refs: {
+                [key: string]: unknown;
+            };
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Breach Notified On */
+            breach_notified_on: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /**
+         * TwItemRef
+         * @description An item named in an overdue list; its required dates are calendar-day text.
+         */
+        TwItemRef: {
+            /** Id */
+            id: number;
+            /** Reference */
+            reference: string;
+            /** Title */
+            title: string;
+            /** Family */
+            family: string;
+            /** Status */
+            status: string;
+            /** Required Load On */
+            required_load_on: string | null;
+            /** Required Strike On */
+            required_strike_on: string | null;
+        };
+        /**
+         * TwItemTransition
+         * @description Move one step along the guarded flow. A step back needs a note.
+         */
+        TwItemTransition: {
+            status: components["schemas"]["ItemStatus"];
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * TwItemUpdate
+         * @description Any subset: an omitted field is left alone and an explicit null clears an optional one. The status is not part of
+         *     an edit: it moves only through the transition action (and back to draft through return-to-draft).
+         */
+        TwItemUpdate: {
+            /** Reference */
+            reference?: string | null;
+            /** Title */
+            title?: string | null;
+            family?: components["schemas"]["Family"] | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Design Check Category
+             * @description Design check category, zero to three; empty until assigned
+             */
+            design_check_category?: number | null;
+            /** Designer */
+            designer?: string | null;
+            /** Checker */
+            checker?: string | null;
+            /** Coordinator Name */
+            coordinator_name?: string | null;
+            /** Coordinator User Id */
+            coordinator_user_id?: number | null;
+            /** Required Load On */
+            required_load_on?: string | null;
+            /** Required Strike On */
+            required_strike_on?: string | null;
+            /** Design Due On */
+            design_due_on?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Asset Node Id */
+            asset_node_id?: number | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Scaffold Id */
+            scaffold_id?: number | null;
+            /** Related Refs */
+            related_refs?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * TwItemWriteRead
+         * @description An item as returned by a write: the non-blocking warnings of the rules that ran ride along.
+         */
+        TwItemWriteRead: {
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Reference */
+            reference: string;
+            /** Title */
+            title: string;
+            /** Family */
+            family: string;
+            /** Description */
+            description: string | null;
+            /** Design Check Category */
+            design_check_category: number | null;
+            /** Designer */
+            designer: string | null;
+            /** Checker */
+            checker: string | null;
+            /** Coordinator Name */
+            coordinator_name: string | null;
+            /** Coordinator User Id */
+            coordinator_user_id: number | null;
+            /** Status */
+            status: string;
+            /** Held From */
+            held_from: string | null;
+            /** Required Load On */
+            required_load_on: string | null;
+            /** Required Strike On */
+            required_strike_on: string | null;
+            /** Design Due On */
+            design_due_on: string | null;
+            /** Location */
+            location: string | null;
+            /** Asset Node Id */
+            asset_node_id: number | null;
+            /** Sort Order */
+            sort_order: number;
+            /** Notes */
+            notes: string | null;
+            /** Scaffold Id */
+            scaffold_id: number | null;
+            /** Related Refs */
+            related_refs: {
+                [key: string]: unknown;
+            };
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Breach Notified On */
+            breach_notified_on: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: components["schemas"]["TwFindingRead"][];
+        };
+        /** TwLoadStatusRead */
+        TwLoadStatusRead: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Total */
+            total: number;
+            /** Compliant */
+            compliant: boolean;
+            /** Gates */
+            gates: components["schemas"]["TwGateRead"][];
+            /** Breaches */
+            breaches: components["schemas"]["TwBreachRead"][];
+        };
+        /**
+         * TwPermitCreate
+         * @description A new permit to load, strike or dismantle. It is always created as a draft. The prerequisite flags on a permit to
+         *     strike or dismantle are accepted and have no effect on any gate.
+         */
+        TwPermitCreate: {
+            /** Number */
+            number: string;
+            kind: components["schemas"]["PermitKind"];
+            /** Issued By Name */
+            issued_by_name?: string | null;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
+            /**
+             * Inspection Id
+             * @description A soft reference to an inspection record
+             */
+            inspection_id?: number | null;
+            /**
+             * Design Check Accepted
+             * @default false
+             */
+            design_check_accepted: boolean;
+            /**
+             * Inspection Passed
+             * @default false
+             */
+            inspection_passed: boolean;
+            /** Conditions */
+            conditions?: string | null;
+        };
+        /** TwPermitRead */
+        TwPermitRead: {
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Item Id */
+            item_id: number;
+            /** Number */
+            number: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Issued By Name */
+            issued_by_name: string | null;
+            /** Issued On */
+            issued_on: string | null;
+            /** Valid From */
+            valid_from: string | null;
+            /** Valid To */
+            valid_to: string | null;
+            /** Closed On */
+            closed_on: string | null;
+            /** Closed By Id */
+            closed_by_id: number | null;
+            /** Inspection Id */
+            inspection_id: number | null;
+            /** Design Check Accepted */
+            design_check_accepted: boolean;
+            /** Inspection Passed */
+            inspection_passed: boolean;
+            /** Conditions */
+            conditions: string | null;
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Expiry Notified On */
+            expiry_notified_on: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /**
+         * TwPermitUpdate
+         * @description Any subset, while the permit is a draft. The status, issued day and closed day are not part of an edit.
+         */
+        TwPermitUpdate: {
+            /** Number */
+            number?: string | null;
+            kind?: components["schemas"]["PermitKind"] | null;
+            /** Issued By Name */
+            issued_by_name?: string | null;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
+            /** Inspection Id */
+            inspection_id?: number | null;
+            /** Design Check Accepted */
+            design_check_accepted?: boolean | null;
+            /** Inspection Passed */
+            inspection_passed?: boolean | null;
+            /** Conditions */
+            conditions?: string | null;
+        };
+        /**
+         * TwPermitWriteRead
+         * @description A permit as returned by a write, with the non-blocking warnings of the rules that ran.
+         */
+        TwPermitWriteRead: {
+            /** Id */
+            id: number;
+            /** Project Id */
+            project_id: number;
+            /** Item Id */
+            item_id: number;
+            /** Number */
+            number: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Issued By Name */
+            issued_by_name: string | null;
+            /** Issued On */
+            issued_on: string | null;
+            /** Valid From */
+            valid_from: string | null;
+            /** Valid To */
+            valid_to: string | null;
+            /** Closed On */
+            closed_on: string | null;
+            /** Closed By Id */
+            closed_by_id: number | null;
+            /** Inspection Id */
+            inspection_id: number | null;
+            /** Design Check Accepted */
+            design_check_accepted: boolean;
+            /** Inspection Passed */
+            inspection_passed: boolean;
+            /** Conditions */
+            conditions: string | null;
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Expiry Notified On */
+            expiry_notified_on: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: components["schemas"]["TwFindingRead"][];
+        };
+        /**
+         * TwReasonBody
+         * @description The mandatory reason for sending an item or a permit back to draft.
+         */
+        TwReasonBody: {
+            /** Reason */
+            reason: string;
+        };
+        /** TwRegisterRollup */
+        TwRegisterRollup: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Total */
+            total: number;
+            /** Compliant */
+            compliant: boolean;
+            /** Gates */
+            gates: components["schemas"]["TwGateRead"][];
+            /** Breaches */
+            breaches: components["schemas"]["TwBreachRead"][];
+            /** Status Counts */
+            status_counts: {
+                [key: string]: number;
+            };
+            /** Category Counts */
+            category_counts: {
+                [key: string]: number;
+            };
+            /** Design Clearance */
+            design_clearance: string | null;
+            /** Overdue To Load */
+            overdue_to_load: components["schemas"]["TwItemRef"][];
+            /** Overdue To Strike */
+            overdue_to_strike: components["schemas"]["TwItemRef"][];
+            /** Warnings */
+            warnings: components["schemas"]["TwRegisterWarning"][];
+        };
+        /**
+         * TwRegisterWarning
+         * @description Advice that never affects the compliant flag. Kept apart from the breaches so a later decision can promote some.
+         */
+        TwRegisterWarning: {
+            /** Item Id */
+            item_id: number;
+            /** Reference */
+            reference: string;
+            /** Rule */
+            rule: string;
+            /** Message */
+            message: string;
+        };
+        /** TwRetentionRead */
+        TwRetentionRead: {
+            /** Project Id */
+            project_id: number;
+            /** Bin Retention Days */
+            bin_retention_days: number;
+            /**
+             * Default Days
+             * @default 30
+             */
+            default_days: number;
+            /**
+             * Min Days
+             * @default 1
+             */
+            min_days: number;
+            /**
+             * Max Days
+             * @default 60
+             */
+            max_days: number;
+        };
+        /**
+         * TwRetentionUpdate
+         * @description The recycle bin's retention for one project: whole days, one to sixty.
+         */
+        TwRetentionUpdate: {
+            /** Project Id */
+            project_id: number;
+            /** Bin Retention Days */
+            bin_retention_days: number;
+        };
+        /**
+         * TwTrashView
+         * @description The two separate views of deleted records.
+         * @enum {string}
+         */
+        TwTrashView: "bin" | "deleted";
         /** UnmatchedActivity */
         UnmatchedActivity: {
             /** Id */
@@ -61262,6 +62415,876 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmittalHistoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollup_api_v1_temporary_works_register_get: {
+        parameters: {
+            query: {
+                project_id: number;
+                /** @description The day to judge on, as YYYY-MM-DD; default: today at the site */
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwRegisterRollup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    load_status_api_v1_temporary_works_load_status_get: {
+        parameters: {
+            query: {
+                project_id: number;
+                /** @description The day to judge on, as YYYY-MM-DD; default: today at the site */
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwLoadStatusRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_permits_api_v1_temporary_works_permits__get: {
+        parameters: {
+            query: {
+                project_id: number;
+                item_id?: number | null;
+                status?: components["schemas"]["PermitStatus"] | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page (max 100) */
+                items_per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedListResponse_TwPermitRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_permit_api_v1_temporary_works_permits__post: {
+        parameters: {
+            query: {
+                /** @description The item the permit is for */
+                item_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwPermitCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_permit_api_v1_temporary_works_permits__permit_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_permit_api_v1_temporary_works_permits__permit_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_permit_api_v1_temporary_works_permits__permit_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwPermitUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_permit_api_v1_temporary_works_permits__permit_id__issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_permit_api_v1_temporary_works_permits__permit_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_permit_api_v1_temporary_works_permits__permit_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    return_permit_to_draft_api_v1_temporary_works_permits__permit_id__return_to_draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwReasonBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    permit_history_api_v1_temporary_works_permits__permit_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwHistoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_retention_api_v1_temporary_works_trash_settings_get: {
+        parameters: {
+            query: {
+                project_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwRetentionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_retention_api_v1_temporary_works_trash_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwRetentionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwRetentionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_deleted_items_api_v1_temporary_works_trash__view__items_get: {
+        parameters: {
+            query: {
+                project_id: number;
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page (max 100) */
+                items_per_page?: number;
+            };
+            header?: never;
+            path: {
+                view: components["schemas"]["TwTrashView"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedListResponse_TwDeletedItemRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_deleted_permits_api_v1_temporary_works_trash__view__permits_get: {
+        parameters: {
+            query: {
+                project_id: number;
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page (max 100) */
+                items_per_page?: number;
+            };
+            header?: never;
+            path: {
+                view: components["schemas"]["TwTrashView"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedListResponse_TwDeletedPermitRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_item_api_v1_temporary_works_trash_items__item_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwItemWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_permit_api_v1_temporary_works_trash_permits__permit_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwPermitWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_items_api_v1_temporary_works__get: {
+        parameters: {
+            query: {
+                project_id: number;
+                family?: components["schemas"]["Family"] | null;
+                status?: components["schemas"]["ItemStatus"] | null;
+                /** @description Design check category */
+                category?: number | null;
+                scaffold_id?: number | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page (max 100) */
+                items_per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedListResponse_TwItemRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_item_api_v1_temporary_works__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwItemWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_item_api_v1_temporary_works__item_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_item_api_v1_temporary_works__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_item_api_v1_temporary_works__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwItemWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_item_api_v1_temporary_works__item_id__transition_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwItemTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwItemWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    return_item_to_draft_api_v1_temporary_works__item_id__return_to_draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwReasonBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwItemWriteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    item_history_api_v1_temporary_works__item_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwHistoryRead"][];
                 };
             };
             /** @description Validation Error */

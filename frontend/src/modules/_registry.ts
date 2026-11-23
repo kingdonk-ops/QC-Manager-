@@ -47,6 +47,7 @@ import { manifest as schedule } from './schedule/manifest'
 import { manifest as submittals } from './submittals/manifest'
 import { manifest as tasks } from './tasks/manifest'
 import { manifest as teams } from './team/manifest'
+import { manifest as temporaryWorks } from './temporary_works/manifest'
 import { manifest as transmittals } from './transmittals/manifest'
 import { manifest as welding } from './welding/manifest'
 import { manifest as workfaceLog } from './workface_log/manifest'
@@ -99,4 +100,5 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   materials,
   calibration,
   asBuilt,
+  temporaryWorks,
 ]
