@@ -18,6 +18,8 @@ export type Constraint = S['ConstraintRead']
 export type ConstraintIn = S['ConstraintIn']
 export type PlanVsActual = S['PlanVsActual']
 export type Finding = S['ReadinessFindingRead']
+export type ProgrammeActivity = S['ProgrammeActivity']
+export type FromProgrammeIn = S['FromProgrammeIn']
 
 export const PLAN_KINDS = [
   'look_ahead',
@@ -76,6 +78,8 @@ export const plannerKeys = {
   constraints: (projectId: number, status: string) =>
     ['planner', 'constraints', projectId, status] as const,
   actual: (planId: number) => ['planner', 'actual', planId] as const,
+  programme: (planId: number, search: string, whole: boolean) =>
+    ['planner', 'programme', planId, search, whole] as const,
 }
 
 function useRefresh() {
@@ -128,6 +132,28 @@ export function usePacks(projectId: number, planId: number | null) {
         )
       ).data,
     enabled: !!planId,
+  })
+}
+
+/** P6 activities to plan, with the RSWs they are linked to (the plan's window unless ``whole``). */
+export function useProgramme(
+  planId: number | null,
+  search: string,
+  whole: boolean,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: plannerKeys.programme(planId ?? 0, search, whole),
+    queryFn: () =>
+      unwrap(
+        api.GET('/api/v1/planner/plans/{plan_id}/programme', {
+          params: {
+            path: { plan_id: planId! },
+            query: { search: search || undefined, whole_programme: whole },
+          },
+        })
+      ),
+    enabled: !!planId && enabled,
   })
 }
 
@@ -216,6 +242,19 @@ export const plannerApi = {
     ),
   createCrew: (body: CrewIn) =>
     unwrap(api.POST('/api/v1/planner/crews/', { body })),
+  fromProgramme: ({
+    planId,
+    body,
+  }: {
+    planId: number
+    body: FromProgrammeIn
+  }) =>
+    unwrap(
+      api.POST('/api/v1/planner/plans/{plan_id}/from-programme', {
+        params: { path: { plan_id: planId } },
+        body,
+      })
+    ),
   createPack: (body: PackIn) =>
     unwrap(api.POST('/api/v1/planner/packs/', { body })),
   updatePack: ({ id, body }: { id: number; body: PackUpdate }) =>

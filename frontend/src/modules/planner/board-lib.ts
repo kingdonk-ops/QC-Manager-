@@ -67,3 +67,12 @@ export function parseMembers(text: string) {
       return { name: name.trim(), trade: trade || null }
     })
 }
+
+/** The RSWs a programme activity is linked to, with the note its name gave (OHP, Access...). */
+export function anchorsLabel(a: {
+  anchors: { code: string; qualifier?: string | null }[]
+}): string {
+  return a.anchors
+    .map((x) => (x.qualifier ? `${x.code} (${x.qualifier})` : x.code))
+    .join(', ')
+}

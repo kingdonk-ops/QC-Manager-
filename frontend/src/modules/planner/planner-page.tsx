@@ -41,6 +41,7 @@ import {
 import { PlanBoard } from './board'
 import { parseMembers, readinessTone } from './board-lib'
 import { PackSheet } from './pack-sheet'
+import { ProgrammeDialog } from './programme-dialog'
 
 function param(name: string) {
   const v = Number(new URLSearchParams(window.location.search).get(name))
@@ -308,6 +309,7 @@ function Packs({
   const { data: packs = [] } = usePacks(projectId, plan.id)
   const { data: crews = [] } = useCrews(projectId)
   const [draft, setDraft] = useState({ title: '', crew_id: '' })
+  const [fromProgramme, setFromProgramme] = useState(false)
   const create = usePlannerMutation(plannerApi.createPack)
   const columns = useMemo<ColDef<Pack>[]>(
     () => [
@@ -394,8 +396,21 @@ function Packs({
           <Button size='sm' type='submit' disabled={create.isPending}>
             <Plus /> {t('planner.new_pack')}
           </Button>
+          <Button
+            size='sm'
+            variant='outline'
+            type='button'
+            onClick={() => setFromProgramme(true)}
+          >
+            <Plus /> {t('planner.from_programme')}
+          </Button>
         </form>
       ) : null}
+      <ProgrammeDialog
+        plan={plan}
+        open={fromProgramme}
+        onOpenChange={setFromProgramme}
+      />
       <div className='h-[480px]'>
         <DataGrid<Pack>
           rowData={packs}

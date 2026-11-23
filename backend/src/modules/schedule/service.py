@@ -598,9 +598,15 @@ async def summary(db: AsyncSession, project: Project, acts: Sequence[Activity], 
         finish_variance=_variance(cal, finish, baseline.finish_date if baseline else None, True),
         data_date=settings.data_date,
         activity_count=len(acts),
-        critical_count=sum(1 for a in acts if a.is_critical and a.type != ScheduleActivityType.SUMMARY),
+        critical_count=sum(1 for a in acts if a.type != ScheduleActivityType.SUMMARY and _critical(a, settings)),
         percent_complete=round(sum(w * p for w, p in weights) / total, 2) if total else 0.0,
     )
+
+
+def _critical(a: Activity, settings: ScheduleSettings) -> bool:
+    """P6's own critical flag for a mirrored activity (project definition); otherwise the CPM's."""
+    p6 = a.p6_critical_by(settings.p6_critical_definition, settings.p6_critical_float_hours)
+    return a.is_critical if p6 is None else p6
 
 
 async def gantt(db: AsyncSession, project: Project) -> ScheduleGantt:

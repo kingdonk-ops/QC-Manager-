@@ -7024,6 +7024,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/planner/plans/{plan_id}/programme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * P6 Activities to Plan
+         * @description Mirrored P6 activities in the plan's window (or the whole programme), with the RSWs they are linked to, searchable by Activity ID, name and activity code. 422 while the Schedule module is off.
+         */
+        get: operations["plan_programme_api_v1_planner_plans__plan_id__programme_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planner/plans/{plan_id}/from-programme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Work Packs from the Programme
+         * @description One pack per RSW with its activities (`grouping=rsw`, the default) or one pack per P6 activity (`grouping=activity`). Lines carry the P6 Activity ID, name and hours; pairs already in the plan are skipped.
+         */
+        post: operations["from_programme_api_v1_planner_plans__plan_id__from_programme_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/planner/packs/": {
         parameters: {
             query?: never;
@@ -19033,6 +19073,37 @@ export interface components {
          * @enum {string}
          */
         FollowUp: "task" | "ncr" | "none";
+        /** FromProgrammeIn */
+        FromProgrammeIn: {
+            /** Activity Ids */
+            activity_ids: number[];
+            /**
+             * Grouping
+             * @description `rsw`: one pack per RSW with its activities; `activity`: one pack per P6 activity
+             * @default rsw
+             * @enum {string}
+             */
+            grouping: "rsw" | "activity";
+        };
+        /** FromProgrammeResult */
+        FromProgrammeResult: {
+            /** Packs Created */
+            packs_created: number;
+            /** Lines Added */
+            lines_added: number;
+            /**
+             * Already In Plan
+             * @description (RSW, activity) pairs skipped because the plan already has them
+             */
+            already_in_plan: number;
+            /**
+             * Unlinked
+             * @description P6 Activity IDs skipped because they aren't linked to an RSW
+             */
+            unlinked: string[];
+            /** Pack Ids */
+            pack_ids: number[];
+        };
         /** GateRead */
         GateRead: {
             /** Purpose */
@@ -26110,6 +26181,58 @@ export interface components {
          * @enum {string}
          */
         ProductForm: "pipe" | "fitting" | "flange" | "plate" | "bolting" | "gasket" | "valve" | "structural" | "consumable" | "coating" | "insulation" | "other";
+        /** ProgrammeActivity */
+        ProgrammeActivity: {
+            /** Activity Id */
+            activity_id: number;
+            /** P6 Activity Id */
+            p6_activity_id: string;
+            /** Name */
+            name: string;
+            /** Planned Start */
+            planned_start: string | null;
+            /** Planned Finish */
+            planned_finish: string | null;
+            /** Budget Hours */
+            budget_hours: string;
+            /** Status */
+            status: string;
+            /** Activity Type */
+            activity_type: string | null;
+            /** Codes */
+            codes: {
+                [key: string]: string;
+            };
+            /**
+             * Anchors
+             * @description Work anchors (RSWs) the activity is linked to
+             */
+            anchors: components["schemas"]["ProgrammeAnchor"][];
+            /**
+             * In Plan
+             * @description Every (RSW, activity) pair is already in one of the plan's packs
+             * @default false
+             */
+            in_plan: boolean;
+        };
+        /** ProgrammeAnchor */
+        ProgrammeAnchor: {
+            /** Node Id */
+            node_id: number;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string | null;
+            /** Display Path */
+            display_path: string;
+            /**
+             * Qualifier
+             * @description The note the activity name gave, e.g. OHP, Access or Props
+             */
+            qualifier?: string | null;
+            /** Work Window */
+            work_window?: string | null;
+        };
         /** ProgressRow */
         ProgressRow: {
             /** Activity Id */
@@ -48613,6 +48736,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanVsActual"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_programme_api_v1_planner_plans__plan_id__programme_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                whole_programme?: boolean;
+            };
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgrammeActivity"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    from_programme_api_v1_planner_plans__plan_id__from_programme_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FromProgrammeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FromProgrammeResult"];
                 };
             };
             /** @description Validation Error */

@@ -501,6 +501,8 @@ async def test_wbs_levels_lists_qualifiers_and_rsw_rollup(client: AsyncClient, c
     # P6's own float, in days on each activity's calendar, and P6's critical flag beside the CPM's.
     assert (acts["C100"]["p6_float_days"], acts["C100"]["p6_critical"]) == (0.0, True)
     assert (acts["C110"]["p6_float_days"], acts["C110"]["p6_critical"]) == (2.0, False)
+    gantt = (await client.get(f"/api/v1/schedule/gantt/{ctx['project'].id}")).json()
+    assert gantt["summary"]["critical_count"] == 1  # P6's view: only C100 has no float
 
     # Someone renames RSW 905 and sets its hours; a revised programme moves the dates.
     r = await client.patch(

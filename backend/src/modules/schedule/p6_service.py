@@ -1124,6 +1124,93 @@ async def refresh_p6_nodes(db: AsyncSession, project_id: int, import_id: int) ->
     return rollup
 
 
+# --- for planning --------------------------------------------------------------------------------
+
+
+async def programme_for_planning(
+    db: AsyncSession,
+    project_id: int,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    search: str | None = None,
+    activity_ids: list[int] | None = None,
+    limit: int = 1000,
+) -> list[dict[str, Any]]:
+    """Mirrored P6 activities with the work anchors they are linked to, for the planner to pick from.
+
+    Active, non-summary activities whose planned dates overlap ``start``..``end`` (or exactly ``activity_ids``),
+    optionally filtered by ``search`` over the Activity ID, the name and the activity codes. Each carries its
+    confirmed links (``anchors``) with the note the name gave (``OHP``, ``Access``...), its activity type and
+    its P6 dates and hours. Activities without a link are returned too, with ``anchors = []``.
+    """
+    q = select(Activity).where(
+        Activity.project_id == project_id,
+        Activity.p6_activity_id.is_not(None),
+        Activity.type != "summary",
+        Activity.schedule_state == "active",
+    )
+    if activity_ids is not None:
+        q = q.where(Activity.id.in_(activity_ids or [-1]))
+    else:
+        if start is not None:
+            q = q.where((Activity.planned_finish.is_(None)) | (Activity.planned_finish >= start))
+        if end is not None:
+            q = q.where((Activity.planned_start.is_(None)) | (Activity.planned_start <= end))
+    acts = list((await db.execute(q.order_by(Activity.planned_start, Activity.code))).scalars())
+    if search:
+        needle = search.strip().lower()
+        acts = [
+            a
+            for a in acts
+            if needle in (a.p6_activity_id or "").lower()
+            or needle in a.name.lower()
+            or any(needle in str(v).lower() for v in ((a.p6_facts or {}).get("src") or {}).get("codes", {}).values())
+        ]
+    acts = acts[:limit]
+    links = list(
+        (
+            await db.execute(
+                select(P6Link, AssetNode)
+                .join(AssetNode, AssetNode.id == P6Link.node_id)
+                .where(P6Link.activity_id.in_([a.id for a in acts] or [-1]), P6Link.status == "confirmed")
+                .order_by(AssetNode.path)
+            )
+        ).all()
+    )
+    anchors: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for link, node in links:
+        anchors[link.activity_id].append(
+            {
+                "node_id": node.id,
+                "code": node.code,
+                "name": node.name,
+                "display_path": node.display_path,
+                "qualifier": (link.parsed or {}).get("qualifier"),
+                "work_window": link.work_window,
+            }
+        )
+    out = []
+    for a in acts:
+        facts = a.p6_facts or {}
+        src = facts.get("src") or {}
+        out.append(
+            {
+                "activity_id": a.id,
+                "p6_activity_id": a.p6_activity_id,
+                "name": a.name,
+                "planned_start": a.planned_start,
+                "planned_finish": a.planned_finish,
+                "budget_hours": a.budget_hours,
+                "status": a.status,
+                "activity_type": (facts.get("groups") or {}).get("activity_type"),
+                "codes": src.get("codes") or {},
+                "anchors": anchors.get(a.id, []),
+            }
+        )
+    return out
+
+
 # --- links ---------------------------------------------------------------------------------------
 
 

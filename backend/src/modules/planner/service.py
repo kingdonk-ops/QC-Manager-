@@ -343,6 +343,129 @@ async def create_pack(db: AsyncSession, plan: WorkPlan, values: dict[str, Any], 
     return pack
 
 
+# --- from the programme ---------------------------------------------------------------------------------
+
+
+async def _p6(db: AsyncSession, project_id: int) -> Any:
+    """The schedule module's P6 service, or ``PlanRuleError`` while ``schedule`` is off for the project."""
+    if not await is_enabled(db, "schedule", project_id):
+        raise PlanRuleError("The programme isn't available: the Schedule module is switched off for this project.")
+    try:
+        from ..schedule import p6_service  # noqa: PLC0415 - optional module
+    except ImportError as exc:  # pragma: no cover - schedule removed from the deployment
+        raise PlanRuleError("The programme isn't available in this deployment.") from exc
+    return p6_service
+
+
+async def _planned_keys(db: AsyncSession, plan: WorkPlan) -> set[tuple[int, str]]:
+    """``(work anchor, P6 Activity ID)`` already planned in the plan's packs."""
+    rows = await db.execute(
+        select(WorkPackLine.anchor_id, WorkPackLine.activity_code)
+        .join(WorkPack, WorkPack.id == WorkPackLine.pack_id)
+        .where(WorkPack.plan_id == plan.id, WorkPackLine.activity_code.is_not(None))
+    )
+    return {(a, c) for a, c in rows.all() if c}
+
+
+async def programme_candidates(
+    db: AsyncSession, plan: WorkPlan, *, search: str | None, whole_programme: bool
+) -> list[dict[str, Any]]:
+    """P6 activities to pick for the plan (its window, unless ``whole_programme``), marked when already in it."""
+    p6 = await _p6(db, plan.project_id)
+    rows: list[dict[str, Any]] = await p6.programme_for_planning(
+        db,
+        plan.project_id,
+        start=None if whole_programme else plan.window_start,
+        end=None if whole_programme else plan.window_end,
+        search=search,
+    )
+    planned = await _planned_keys(db, plan)
+    for r in rows:
+        keys = {(x["node_id"], r["p6_activity_id"]) for x in r["anchors"]}
+        r["in_plan"] = bool(keys) and keys <= planned
+    return rows
+
+
+def _note(description: str, qualifier: str | None) -> str:
+    return (f"{description} ({qualifier})" if qualifier else description)[:300]
+
+
+async def add_from_programme(
+    db: AsyncSession, plan: WorkPlan, activity_ids: list[int], grouping: str, user_id: int
+) -> dict[str, Any]:
+    """Create work packs from picked P6 activities.
+
+    ``grouping = "rsw"``: one pack per work anchor (RSW), a line per activity linked to it. ``"activity"``: one
+    pack per activity, a line per RSW it is linked to. Lines carry the P6 Activity ID, the activity's name (with
+    the name's note such as ``OHP``) and its hours (shared evenly when it covers several RSWs). Activities with
+    no link are skipped and reported; an (RSW, activity) pair already in the plan is never added twice.
+    """
+    if plan.status in ("closed", "cancelled"):
+        raise PlanRuleError("Packs can't be added to a closed or cancelled plan.")
+    p6 = await _p6(db, plan.project_id)
+    rows: list[dict[str, Any]] = await p6.programme_for_planning(db, plan.project_id, activity_ids=activity_ids)
+    found = {r["activity_id"] for r in rows}
+    missing = sorted(set(activity_ids) - found)
+    if missing:
+        raise PlanRuleError(f"Programme activities not found in this project: {', '.join(map(str, missing))}.")
+    planned = await _planned_keys(db, plan)
+    unlinked = [r["p6_activity_id"] for r in rows if not r["anchors"]]
+
+    # group key -> (title, schedule activity, [line dicts])
+    groups: dict[Any, dict[str, Any]] = {}
+    skipped = 0
+    for r in rows:
+        share = Decimal(r["budget_hours"] or 0) / max(len(r["anchors"]), 1)
+        for anchor in r["anchors"]:
+            if (anchor["node_id"], r["p6_activity_id"]) in planned:
+                skipped += 1
+                continue
+            key = anchor["node_id"] if grouping == "rsw" else r["activity_id"]
+            title = (
+                " ".join(x for x in (anchor["code"], anchor.get("name") or "") if x)
+                if grouping == "rsw"
+                else f"{r['p6_activity_id']} {r['name']}"
+            )
+            g = groups.setdefault(key, {"title": title, "acts": [], "lines": []})
+            g["acts"].append(r)
+            g["lines"].append(
+                {
+                    "node_id": anchor["node_id"],
+                    "activity_code": r["p6_activity_id"][:40],
+                    "description": _note(r["name"], anchor.get("qualifier")),
+                    "planned_hours": share.quantize(Decimal("0.01")) if share else None,
+                }
+            )
+    created: list[WorkPack] = []
+    for g in groups.values():
+        acts = sorted(g["acts"], key=lambda r: (r["planned_start"] or date.max, r["p6_activity_id"]))
+        starts = [r["planned_start"] for r in acts if r["planned_start"]]
+        finishes = [r["planned_finish"] for r in acts if r["planned_finish"]]
+        pack = await create_pack(
+            db,
+            plan,
+            {
+                "title": g["title"][:200],
+                "planned_start": min(starts) if starts else None,
+                "planned_end": max(finishes) if finishes else None,
+                "schedule_activity_id": acts[0]["activity_id"],
+                "lines": g["lines"],
+            },
+            user_id,
+        )
+        created.append(pack)
+    linked_ids = [r["activity_id"] for r in rows if r["anchors"]]
+    plan.schedule_activity_ids = list(dict.fromkeys([*(plan.schedule_activity_ids or []), *linked_ids]))
+    await db.flush()
+    return {
+        "packs_created": len(created),
+        "lines_added": sum(len(g["lines"]) for g in groups.values()),
+        "already_in_plan": skipped,
+        "unlinked": unlinked,
+        "pack_ids": [p.id for p in created],
+    }
+
+
 async def update_pack(db: AsyncSession, pack: WorkPack, values: dict[str, Any]) -> None:
     plan = await get_plan(db, pack.plan_id)
     await _check_pack_refs(db, plan, {"planned_start": pack.planned_start, "planned_end": pack.planned_end, **values})
