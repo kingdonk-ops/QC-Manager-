@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import { Construction } from 'lucide-react'
 import type { ModuleManifest } from '../_types'
+import { permitMessages } from './messages-permits'
 
 export const manifest: ModuleManifest = {
   id: 'scaffolds',
@@ -28,6 +29,7 @@ export const manifest: ModuleManifest = {
   ],
   messages: {
     en: {
+      ...permitMessages,
       'nav.scaffolds': 'Scaffolds',
       'scaffolds.title': 'Scaffolds',
       'scaffolds.description':

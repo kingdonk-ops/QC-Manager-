@@ -24,9 +24,11 @@ import {
   useRequestInspection,
   useRequestModification,
   useScaffold,
+  useTemporaryWorksOn,
   useTransition,
   useUpdateScaffold,
 } from './api'
+import { ScaffoldPermitsTab } from './scaffold-permits-tab'
 
 export function TagPill({ tag, no }: { tag: string; no?: string | null }) {
   return (
@@ -268,6 +270,7 @@ export function ScaffoldSheet({
   const update = useUpdateScaffold(id ?? 0)
   const requestInspection = useRequestInspection(id ?? 0)
   const [inspecting, setInspecting] = useState(false)
+  const permitsOn = useTemporaryWorksOn()
   if (!id || !s) return null
   const steps = (NEXT[s.status] ?? []).filter(
     (target) =>
@@ -303,6 +306,19 @@ export function ScaffoldSheet({
       tabs={{
         Inspections: <Inspections id={s.id} />,
         Modifications: <Modifications id={s.id} />,
+        ...(permitsOn
+          ? {
+              [t('scaffolds.tw.tab')]: (
+                <ScaffoldPermitsTab
+                  scaffold={s}
+                  projectId={s.project_id}
+                  scaffoldId={s.id}
+                  on={permitsOn}
+                  canCreate={can(session, 'temporary_works.create')}
+                />
+              ),
+            }
+          : {}),
         History: <History id={s.id} />,
       }}
     >
