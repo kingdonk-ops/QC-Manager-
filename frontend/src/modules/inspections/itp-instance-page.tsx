@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Page } from '@/components/layout/page'
 import { StatusBadge } from '@/components/records/status-badge'
 import { useModuleParams } from '../_runtime'
+import { LineLight } from './line-light'
 import { type ItpLine, formatWhen, useInstance } from './quality-api'
 import { PointBadges } from './signoff'
 
@@ -39,6 +40,7 @@ function Line({ line }: { line: ItpLine }) {
       </span>
       <PointBadges points={line.points} />
       <span className='flex flex-wrap items-center gap-1'>
+        <LineLight line={line} />
         <StatusBadge status={line.status} />
         {line.result ? (
           <Badge

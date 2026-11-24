@@ -9,6 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from ...infrastructure.database.models import TimestampMixin
 from ...infrastructure.database.session import Base
+from .criteria_models import AcceptanceCriterion as AcceptanceCriterion  # registers the table; re-exported
+from .gate_models import QualityGate as QualityGate  # registers the table; re-exported
 
 
 class ChecklistTemplate(Base, TimestampMixin):
@@ -76,6 +78,8 @@ class InspectionSettings(Base):
     """Off: short notice is a warning; on: issuing or rescheduling with short notice is refused."""
     no_show_grace_minutes: Mapped[int] = mapped_column(Integer, default=30)
     allow_self_approval: Mapped[bool] = mapped_column(Boolean, default=False)
+    auto_report_on_failure: Mapped[bool] = mapped_column(Boolean, default=False)
+    """On: a failed record without a criterion raises a report too (off keeps the task-by-default follow-up)."""
 
 
 class ItpInstance(Base, TimestampMixin):
@@ -178,6 +182,18 @@ class Inspection(Base, TimestampMixin):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     return_reason: Mapped[str | None] = mapped_column(Text, default=None)
     self_approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    # --- acceptance criteria ---
+    criterion_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("inspections_criteria.id", ondelete="RESTRICT"), index=True, default=None
+    )
+    """A record-level acceptance criterion (an ITP line copies its activity's)."""
+    measured_value: Mapped[str | None] = mapped_column(String(40), default=None)
+    conditional: Mapped[bool] = mapped_column(Boolean, default=False)
+    """Accepted with a condition: the result stays ``pass`` and a report is raised."""
+    report_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    """The latest report raised from the record as a whole (earlier ones stay on the issue register)."""
+    proposed_severity: Mapped[str | None] = mapped_column(String(10), default=None)
+    """The report severity the inspector proposed on submit, used when the reviewer names none."""
 
 
 class InspectionItem(Base):
@@ -205,6 +221,10 @@ class InspectionItem(Base):
     follow_up: Mapped[str | None] = mapped_column(String(10), default=None)
     task_id: Mapped[int | None] = mapped_column(Integer, default=None)
     ncr_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    criterion_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("inspections_criteria.id", ondelete="RESTRICT"), index=True, default=None
+    )
+    """The criterion whose limits and unit were copied onto this item when the record was created."""
 
 
 class InspectionLink(Base):

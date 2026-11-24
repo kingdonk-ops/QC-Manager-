@@ -1,0 +1,25 @@
+/** English text of the temporary works tab on a scaffold's record, spread into the scaffolds manifest. */
+export const permitMessages: Record<string, string> = {
+  'scaffolds.tw.tab': 'Temporary works',
+  'scaffolds.tw.empty': 'No temporary works items are linked to this scaffold.',
+  'scaffolds.tw.loading': 'Loading temporary works',
+  'scaffolds.tw.breach_title': 'Bearing load without a valid permit to load',
+  'scaffolds.tw.red_tag_note':
+    'This scaffold is tagged red because a linked item is bearing load without a valid permit to load.',
+  'scaffolds.tw.inspection': 'Scaffold inspection',
+  'scaffolds.tw.next_due': 'Next inspection due',
+  'scaffolds.tw.overdue': 'Overdue',
+  'scaffolds.tw.on_time': 'On time',
+  'scaffolds.tw.not_scheduled': 'Not scheduled yet',
+  'scaffolds.tw.load_gate': 'Load gate',
+  'scaffolds.tw.gate_open': 'open',
+  'scaffolds.tw.gate_shut': 'shut',
+  'scaffolds.tw.permit': 'Permit to load',
+  'scaffolds.tw.no_permit': 'No permit to load',
+  'scaffolds.tw.valid': 'valid',
+  'scaffolds.tw.open_ended': 'open',
+  'scaffolds.tw.breach_tag': 'Breach',
+  'scaffolds.tw.warnings': 'Warnings',
+  'scaffolds.tw.register_link': 'Open the temporary works register',
+  'scaffolds.tw.new_item': 'New temporary works item',
+}

@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .constants import (
+    AttachmentKind,
     Attendance,
     InspectionStatus,
     RequestStatus,
@@ -21,6 +22,7 @@ from .constants import (
     external_hw,
     has_hold,
 )
+from .gates import blocking_gates
 from .models import Inspection, InspectionRequest, InspectionSettings, RequestLink, RequestParty
 from .signing import competency_findings, live_signature
 
@@ -197,7 +199,63 @@ async def check(
             out.append(Finding("LINE_NOT_ACCEPTED", "Release a hold only once its inspection is accepted."))
         out += await witness_findings(db, inspection)
         out += await hold_findings(db, inspection)
+    out += await gate_findings(db, inspection)
     return out
+
+
+async def gate_findings(db: AsyncSession, inspection: Inspection) -> list[Finding]:
+    """Advisory only: standalone gates still pending on this record never block an action by themselves."""
+    gates = await blocking_gates(db, inspection.project_id, AttachmentKind.INSPECTION.value, inspection.id)
+    if not gates:
+        return []
+    numbers = ", ".join(g.number for g in gates[:3])
+    return [Finding("GATE_PENDING", f"Quality gate(s) still pending on this record: {numbers}.", blocking=False)]
+
+
+async def can_proceed(db: AsyncSession, project_id: int, kind: str, target_id: int) -> dict[str, Any]:
+    """May work go ahead on one entity? Blocking gates attached to it, oldest first, and, for an inspection record,
+    the earlier ITP hold points that are still unreleased (listed apart). False when either list is not empty."""
+    gates = await blocking_gates(db, project_id, kind, target_id)
+    holds: list[Inspection] = []
+    if kind == AttachmentKind.INSPECTION:
+        record = await db.get(Inspection, target_id)
+        if record is not None and record.project_id == project_id:
+            holds = await unreleased_holds_before(db, record)
+    return {
+        "project_id": project_id,
+        "attachment_kind": kind,
+        "attachment_id": target_id,
+        "can_proceed": not gates and not holds,
+        "gate_numbers": [g.number for g in gates],
+        "gate_ids": [g.id for g in gates],
+        "hold_points": [{"id": h.id, "code": h.code, "title": h.title} for h in holds],
+    }
+
+
+def line_gate_state(line: Inspection, blocked: list[Finding]) -> dict[str, Any]:
+    """The traffic light of one ITP line: ``review`` (no hold or witness point, always satisfied), ``passed``,
+    ``released`` (a passed hold whose release was signed), ``blocked`` (an earlier hold is unreleased) or
+    ``pending``. A line is one record, so its latest result decides. A passed witness line is satisfied; a passed
+    hold line only once released; a failed line is never satisfied."""
+    if not any(v in ("H", "W") for v in (line.points or {}).values()):
+        return {"gate_state": "review", "gate_satisfied": True, "gate_reason": None}
+    if line.status in (InspectionStatus.COMPLETED, InspectionStatus.CLOSED):
+        if line.result == "fail":
+            return {"gate_state": "pending", "gate_satisfied": False, "gate_reason": "The inspection failed."}
+        if not has_hold(line.points):
+            return {"gate_state": "passed", "gate_satisfied": True, "gate_reason": None}
+        if line.hold_released_at is not None:
+            return {"gate_state": "released", "gate_satisfied": True, "gate_reason": None}
+        reason = "The inspection passed but the hold point has not been released."
+        return {"gate_state": "passed", "gate_satisfied": False, "gate_reason": reason}
+    if blocked:
+        return {"gate_state": "blocked", "gate_satisfied": False, "gate_reason": blocked[0].message}
+    return {"gate_state": "pending", "gate_satisfied": False, "gate_reason": "The inspection has not been completed yet."}
+
+
+async def line_state(db: AsyncSession, line: Inspection) -> dict[str, Any]:
+    """``line_gate_state`` for downstream callers that hold only the record."""
+    return line_gate_state(line, await hold_findings(db, line))
 
 
 async def unsigned_hold_points(db: AsyncSession, project_id: int, node_ids: list[int] | None = None) -> list[dict[str, Any]]:

@@ -16,7 +16,7 @@ from ..asset_tree.models import AssetNode
 from ..common.pagination import MAX_INTEGER_ID, ItemsPerPageDep, PageDep
 from ..procurement.models import PurchaseOrder
 from ..projects.service import readable_project
-from . import service
+from . import quality, service
 from .constants import CERT_ENTITY, HEAT_ENTITY, HeatStatus, HoldStatus, SuppliedBy, VerificationStatus
 from .models import Heat, MaterialHold, MaterialIssue, MaterialReceipt, MillCertificate
 from .permissions import MaterialsPermissionName as P
@@ -167,8 +167,9 @@ async def receipt_status(
     receipt_id: Id, values: MaterialReceiptStatusIn, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep
 ) -> Any:
     r = await _owned(db, MaterialReceipt, receipt_id, user, held)
-    await service.change_receipt_status(db, r, values.status.value, values.note, user["id"])
+    report = await quality.review_receipt(db, r, values, user["id"])
     await db.commit()
+    await quality.announce(report)
     return (await _read_receipts(db, [r]))[0]
 
 
@@ -354,8 +355,10 @@ async def add_certificate(
 )
 async def record_pmi(heat_id: Id, values: PmiIn, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep) -> Any:
     heat = await _owned(db, Heat, heat_id, user, held)
-    test = await service.record_pmi(db, heat, values.model_dump(), user["id"])
+    test = await service.record_pmi(db, heat, await quality.pmi_values(db, heat, values), user["id"])
+    report = await quality.record_pmi_outcome(db, heat, test, values, user["id"])
     await db.commit()
+    await quality.announce(report)
     return test
 
 

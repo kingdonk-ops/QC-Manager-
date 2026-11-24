@@ -204,3 +204,65 @@ class WitnessStatus(StrEnum):
     PENDING = "pending"
     SATISFIED = "satisfied"
     NOT_SATISFIED = "not_satisfied"
+
+
+# --- acceptance criteria -----------------------------------------------------------------------------
+
+
+class RuleType(StrEnum):
+    """How a criterion judges a measured value. Only minimum, maximum and range compare numbers."""
+
+    RANGE = "range"
+    MINIMUM = "minimum"
+    MAXIMUM = "maximum"
+    BOOLEAN = "boolean"
+    FREE_TEXT = "free_text"
+
+
+class ToleranceResult(StrEnum):
+    """The verdict of a numeric criterion; anything that cannot be decided is never read as conforming."""
+
+    WITHIN = "within"
+    OUT_OF_TOLERANCE = "out_of_tolerance"
+    NOT_ASSESSED = "not_assessed"
+
+
+# --- quality gates -----------------------------------------------------------------------------------
+
+
+class GateKind(StrEnum):
+    """What a standalone gate stands for. Only a hold blocks progress by default and a hold is never waived."""
+
+    HOLD = "hold"
+    WITNESS = "witness"
+    SURVEILLANCE = "surveillance"
+    REVIEW = "review"
+
+
+class GateStatus(StrEnum):
+    """Pending until decided; released, waived and void are permanent."""
+
+    PENDING = "pending"
+    RELEASED = "released"
+    WAIVED = "waived"
+    VOID = "void"
+
+
+class Authority(StrEnum):
+    """The party level a gate needs and a release asserts, listed from lowest to highest in ``gate_rules``."""
+
+    QUALITY_CONTROL = "contractor_qc"
+    QUALITY_ASSURANCE = "contractor_qa"
+    CLIENT = "client"
+    THIRD_PARTY_INSPECTOR = "third_party_inspector"
+    JURISDICTION = "authority_having_jurisdiction"
+
+
+class AttachmentKind(StrEnum):
+    """What a gate is attached to, so the can-proceed query can find it."""
+
+    NODE = "node"
+    ITEM = "item"
+    INSPECTION = "inspection"
+    TASK = "task"
+    DOSSIER = "dossier"

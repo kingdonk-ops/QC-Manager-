@@ -3,6 +3,7 @@
  * Order is the default menu order within a group.
  */
 import type { ModuleManifest } from './_types'
+import { manifest as asBuilt } from './as_built/manifest'
 import { manifest as assetTree } from './asset_tree/manifest'
 import { manifest as assets } from './assets/manifest'
 import { manifest as audit } from './audit/manifest'
@@ -46,6 +47,7 @@ import { manifest as schedule } from './schedule/manifest'
 import { manifest as submittals } from './submittals/manifest'
 import { manifest as tasks } from './tasks/manifest'
 import { manifest as teams } from './team/manifest'
+import { manifest as temporaryWorks } from './temporary_works/manifest'
 import { manifest as transmittals } from './transmittals/manifest'
 import { manifest as welding } from './welding/manifest'
 import { manifest as workfaceLog } from './workface_log/manifest'
@@ -97,4 +99,6 @@ export const MODULE_REGISTRY: ModuleManifest[] = [
   welding,
   materials,
   calibration,
+  asBuilt,
+  temporaryWorks,
 ]
