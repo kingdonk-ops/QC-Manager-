@@ -60,6 +60,27 @@ export const manifest: ModuleManifest = {
       'planner.readiness': 'Readiness',
       'planner.hours': 'Hours',
       'planner.new_pack': 'New work pack',
+      'planner.from_programme': 'Add from programme',
+      'planner.from_programme_hint':
+        'Pick P6 activities linked to RSWs. Each RSW becomes a work pack with its activities, or each activity becomes one pack covering all its RSWs. Activities already in this plan are never added twice.',
+      'planner.programme_search': 'Search Activity ID, name or code',
+      'planner.whole_programme':
+        'Whole programme (not just this plan’s window)',
+      'planner.grouping': 'Work packs',
+      'planner.grouping.rsw': 'One per RSW',
+      'planner.grouping.activity': 'One per P6 activity',
+      'planner.p6_id': 'Activity ID',
+      'planner.activity': 'Activity',
+      'planner.rsws': 'RSWs',
+      'planner.not_linked': 'Not linked',
+      'planner.in_plan': 'In plan',
+      'planner.picked_one': '{{count}} activity picked',
+      'planner.picked_other': '{{count}} activities picked',
+      'planner.add_packs': 'Add work packs',
+      'planner.from_programme_done':
+        '{{packs}} work packs and {{lines}} lines added; {{skipped}} already in the plan.',
+      'planner.from_programme_unlinked':
+        'Not linked to an RSW, so skipped: {{ids}}',
       'planner.category': 'Category',
       'planner.constraint': 'What is in the way?',
       'planner.where': 'Where (optional)',

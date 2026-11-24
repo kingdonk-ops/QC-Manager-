@@ -65,6 +65,7 @@ export const manifest: ModuleManifest = {
       'schedule.open': 'Open details',
       'schedule.critical': 'Critical',
       'schedule.float': 'Float',
+      'schedule.float_p6': 'P6 float',
       'schedule.free_float': 'Free float',
       'schedule.vs_baseline': 'vs baseline',
       'schedule.finish_variance': 'Finish variance',

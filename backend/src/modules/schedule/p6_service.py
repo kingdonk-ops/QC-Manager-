@@ -45,7 +45,21 @@ from . import service as schedule
 from .interchange import Imported
 from .models import Activity, Dependency, ScheduleSettings
 from .p6_models import P6Change, P6Export, P6Import, P6Link, P6LinkMemory, P6Rule, ProgressVerification
-from .p6_rules import DEFAULT_RULES, FIELDS, OPS, SOURCES, GrammarError, Parsed, RuleSet, build, compile_pattern, norm
+from .p6_rules import (
+    DEFAULT_RULES,
+    FIELDS,
+    LEVEL_VALUES,
+    OPS,
+    SOURCES,
+    GrammarError,
+    Parsed,
+    RuleSet,
+    build,
+    compile_pattern,
+    groups_for,
+    link_info,
+    norm,
+)
 from .p6_rules import eligible as is_eligible
 from .p6_rules import parse as parse_name
 from .schemas import ScheduleActivityStatus
@@ -146,6 +160,11 @@ def check_rule(kind: str, pattern: str, source: str, params: dict[str, Any]) -> 
                 "same",
             ):
                 raise P6Error("suffix and window must be 'separate' or 'same'.")
+            max_range = params.get("max_range", 50)
+            if not isinstance(max_range, int) or isinstance(max_range, bool) or not 1 <= max_range <= 500:
+                raise P6Error("max_range must be a whole number from 1 to 500.")
+            if "list_separator" in params and (not isinstance(params["list_separator"], str) or not params["list_separator"]):
+                raise P6Error("list_separator must be non-empty text.")
         elif kind == "eligibility":
             if params.get("field") not in FIELDS:
                 raise P6Error(f"field must be one of {', '.join(FIELDS)}.")
@@ -160,6 +179,14 @@ def check_rule(kind: str, pattern: str, source: str, params: dict[str, Any]) -> 
         elif kind == "alias":
             if not pattern.strip() or not str(params.get("to") or "").strip():
                 raise P6Error("An alias needs the spelling found in P6 (pattern) and params.to.")
+        elif kind == "wbs_level":
+            depth = params.get("depth")
+            if not isinstance(depth, int) or isinstance(depth, bool) or not 1 <= depth <= 20:
+                raise P6Error("params.depth must be a whole number from 1 (the first WBS level under the project) to 20.")
+            if not isinstance(params.get("level"), str) or not params["level"].strip():
+                raise P6Error("params.level must be the key of a breakdown level (e.g. site or area).")
+            if params.get("value", "name") not in LEVEL_VALUES:
+                raise P6Error("params.value must be 'name' or 'code'.")
     except GrammarError as exc:
         raise P6Error(str(exc)) from exc
     except re.error as exc:
@@ -219,6 +246,17 @@ def stage(parsed: Imported) -> dict[str, Any]:
             key = a.parent_key
         return ".".join(reversed(codes)) if codes else None
 
+    def wbs_chain(key: str | None) -> list[dict[str, str]]:
+        """The WBS above an activity, top first: ``[{code, name}, ...]`` (used by ``wbs_level`` rules)."""
+        out: list[dict[str, str]] = []
+        seen: set[str] = set()
+        while key and key in by_key and key not in seen:
+            seen.add(key)
+            a = by_key[key]
+            out.append({"code": a.code or "", "name": a.name or ""})
+            key = a.parent_key
+        return list(reversed(out))
+
     wbs, rows, warnings = [], [], []
     ids: dict[str, str] = {}
     for n, a in enumerate(parsed.activities):
@@ -269,6 +307,9 @@ def stage(parsed: Imported) -> dict[str, Any]:
             "order": n,
         }
         row["hash"] = row_hash(row)
+        # Not P6-owned fields (outside the hash): context for linking and for showing P6's float in days.
+        row["wbs_chain"] = wbs_chain(a.parent_key)
+        row["day_hours"] = extra.get("day_hours")
         rows.append(row)
     links = [
         {"pred": ids[lk.predecessor], "succ": ids[lk.successor], "type": lk.type, "lag": lk.lag}
@@ -643,7 +684,9 @@ async def create_import(
             match_counts["unmatched"] += 1
             match[row["p6_id"]] = {"status": "unmatched", "reason": "No grammar matched the name."}
             continue
-        res = await resolver.resolve(parsed_name.groups, creator)
+        results = [await resolver.resolve(g, creator) for g in groups_for(parsed_name)]
+        res = next((r for r in results if r.node is None), None)
+        res = res or next((r for r in results if r.status == "create"), results[0])
         match_counts[res.status] += 1
         match[row["p6_id"]] = {
             "status": res.status,
@@ -651,8 +694,12 @@ async def create_import(
             "node": res.node.display if res.node else None,
             "groups": parsed_name.groups,
         }
+        if len(results) > 1:
+            match[row["p6_id"]]["nodes"] = [r.node.display for r in results if r.node]
+        if parsed_name.qualifier:
+            match[row["p6_id"]]["qualifier"] = parsed_name.qualifier
         ex = existing.get(row["p6_id"])
-        if ex and res.node and current_links.get(ex.id) and res.node.id not in current_links[ex.id]:
+        if ex and current_links.get(ex.id) and any(r.node and r.node.id not in current_links[ex.id] for r in results):
             match[row["p6_id"]]["relink_proposed"] = True
     for ch in changes:
         m = match.get(ch["p6_activity_id"])
@@ -859,6 +906,8 @@ async def commit(db: AsyncSession, project: Project, imp: P6Import, actor_id: in
         if act is None:
             continue
         act.wbs_code, act.sort_order = row["outline"][:60], row["order"]
+        if row.get("day_hours") and (act.p6_facts or {}).get("day_hours") != row["day_hours"]:
+            act.p6_facts = {**(act.p6_facts or {}), "day_hours": row["day_hours"]}
         if pid not in excluded_rows and act.p6_facts.get("src"):
             act.p6_facts = {**act.p6_facts, "src": {**{k: row.get(k) for k in OWNED}, "hash": row["hash"]}}
     await db.flush()
@@ -875,13 +924,14 @@ async def commit(db: AsyncSession, project: Project, imp: P6Import, actor_id: in
         settings.start_date = min(starts)
 
     linking = await link_by_grammar(db, project, imp, acts, rows, actor_id)
+    rollup = await refresh_p6_nodes(db, project.id, imp.id)
 
     warnings = list(imp.summary.get("warnings", []))
     try:
         await schedule.recalculate(db, project)
     except cpm.CycleError:
         warnings.append("The file's relationships loop, so dates weren't recalculated; P6's dates are shown.")
-    imp.summary = {**imp.summary, "applied": dict(applied), "linking": linking, "warnings": warnings}
+    imp.summary = {**imp.summary, "applied": dict(applied), "linking": linking, "warnings": warnings, "node_rollup": rollup}
     imp.status, imp.committed_by_id, imp.committed_at = "committed", actor_id, datetime.now(UTC)
     await record_transition(db, ENTITY_IMPORT, imp.id, "previewed", "committed", actor_id)
     await db.commit()
@@ -924,50 +974,47 @@ async def link_by_grammar(
             act.p6_facts = facts
             counts["ineligible"] += 1
             continue
-        res = (
-            await resolver.resolve(parsed.groups, creator)
-            if parsed.groups is not None
-            else Resolution("unmatched", reason="No grammar matched the name.")
-        )
+        results = [await resolver.resolve(g, creator) for g in groups_for(parsed)] or [
+            Resolution("unmatched", reason="No grammar matched the name.")
+        ]
+        failed = next((r for r in results if r.node is None), None)
+        res = failed or results[0]
         have = links.get(act.id, set())
-        if res.node is not None:
-            facts["match"] = {"status": "matched", "node": res.node.display, "rule": parsed.rule}
-            if res.status == "create":
-                counts["nodes_created"] += 1
-            if not have:
+        if failed is None:
+            nodes = [r for r in results if r.node is not None]
+            facts["match"] = {
+                "status": "matched",
+                "node": nodes[0].node.display if nodes[0].node else None,
+                "rule": parsed.rule,
+                **({"nodes": [r.node.display for r in nodes if r.node]} if len(nodes) > 1 else {}),
+            }
+            created = sum(1 for r in nodes if r.status == "create")
+            if created:
+                counts["nodes_created"] += created
+            info = link_info(parsed)
+            # A first link is confirmed; a re-import naming a different node only proposes it (never moves one).
+            first_time = not have
+            new_nodes = [r.node for r in nodes if r.node is not None and r.node.id not in have]
+            for node in new_nodes:
                 db.add(
                     P6Link(
                         project_id=project.id,
                         activity_id=act.id,
-                        node_id=res.node.id,
-                        progress_node_id=res.progress.id if res.progress else None,
+                        node_id=node.id,
+                        progress_node_id=next((r.progress.id for r in nodes if r.node is node and r.progress), None),
                         work_window=parsed.window,
                         method="name_grammar",
-                        status="confirmed",
-                        parsed=parsed.groups or {},
+                        status="confirmed" if first_time else "proposed",
+                        parsed=info,
                         created_by_id=actor_id,
                     )
                 )
-                links[act.id] = {res.node.id}
-                counts["linked"] += 1
-            elif res.node.id not in have:
-                db.add(
-                    P6Link(
-                        project_id=project.id,
-                        activity_id=act.id,
-                        node_id=res.node.id,
-                        progress_node_id=res.progress.id if res.progress else None,
-                        work_window=parsed.window,
-                        method="name_grammar",
-                        status="proposed",
-                        parsed=parsed.groups or {},
-                        created_by_id=actor_id,
-                    )
-                )
-                links[act.id] = have | {res.node.id}
-                counts["proposed"] += 1
+                have = have | {node.id}
+            if new_nodes:
+                counts["linked" if first_time else "proposed"] += 1
             else:
                 counts["already_linked"] += 1
+            links[act.id] = have
         else:
             facts["match"] = {"status": "unmatched", "reason": res.reason, "rule": parsed.rule}
             remembered = memory.get(norm(act.name))
@@ -992,6 +1039,176 @@ async def link_by_grammar(
         act.p6_facts = facts
     await db.flush()
     return dict(counts)
+
+
+async def refresh_p6_nodes(db: AsyncSession, project_id: int, import_id: int) -> dict[str, dict[str, Any]]:
+    """Name and date the breakdown nodes P6 created from the activities linked to them.
+
+    Only nodes with ``external_source = "p6"`` are touched. A work anchor (RSW) is named after the activity
+    types of its activities (``SCA Erect, B, P``; the RSW number stays its code); every linked node gets the
+    earliest planned start, latest planned finish and the activities' budget hours (an activity linked to
+    several RSWs shares its hours evenly). A value someone has changed since the last import is left alone:
+    a field is only written while it is empty or still holds what the previous import put there.
+    """
+    previous = await db.scalar(
+        select(P6Import)
+        .where(P6Import.project_id == project_id, P6Import.status == "committed", P6Import.id != import_id)
+        .order_by(P6Import.id.desc())
+        .limit(1)
+    )
+    before: dict[str, dict[str, Any]] = (previous.summary.get("node_rollup") or {}) if previous else {}
+    anchor_levels = {
+        lv.key
+        for lv in (await db.execute(select(AssetLevel).where(AssetLevel.project_id == project_id))).scalars()
+        if Role.WORK_ANCHOR.value in (lv.roles or [])
+    }
+    rows = (
+        await db.execute(
+            select(P6Link.node_id, Activity)
+            .join(Activity, Activity.id == P6Link.activity_id)
+            .join(AssetNode, AssetNode.id == P6Link.node_id)
+            .where(
+                P6Link.project_id == project_id,
+                P6Link.status == "confirmed",
+                AssetNode.external_source == "p6",
+                Activity.schedule_state == "active",
+            )
+        )
+    ).all()
+    by_node: dict[int, list[Activity]] = defaultdict(list)
+    shares: Counter[int] = Counter()
+    for node_id, act in rows:
+        by_node[node_id].append(act)
+        shares[act.id] += 1
+    rollup: dict[str, dict[str, Any]] = {}
+    for node_id, acts in by_node.items():
+        node = await db.get(AssetNode, node_id)
+        if node is None or node.status != "active":
+            continue
+        acts.sort(key=lambda a: (a.planned_start or date.max, a.code))
+        starts = [a.planned_start for a in acts if a.planned_start]
+        finishes = [a.planned_finish for a in acts if a.planned_finish]
+        hours = sum((Decimal(a.budget_hours or 0) / shares[a.id] for a in acts), Decimal(0)).quantize(Decimal("0.01"))
+        values: dict[str, Any] = {
+            "planned_start": min(starts).isoformat() if starts else None,
+            "planned_finish": max(finishes).isoformat() if finishes else None,
+            "budget_hours": str(hours) if hours else None,
+        }
+        if node.level_key in anchor_levels:
+            types: list[str] = []
+            for a in acts:
+                t = ((a.p6_facts or {}).get("groups") or {}).get("activity_type")
+                if t and t not in types:
+                    types.append(t)
+            values["name"] = ", ".join(types)[:300] or None
+        old = before.get(str(node_id), {})
+        current = {
+            "planned_start": node.planned_start.isoformat() if node.planned_start else None,
+            "planned_finish": node.planned_finish.isoformat() if node.planned_finish else None,
+            "budget_hours": (
+                str(Decimal(node.budget_hours).quantize(Decimal("0.01"))) if node.budget_hours is not None else None
+            ),
+            "name": node.name,
+        }
+        for key, value in values.items():
+            if current[key] is not None and current[key] != old.get(key):
+                continue  # changed by someone since the last import
+            if key in ("planned_start", "planned_finish"):
+                setattr(node, key, date.fromisoformat(value) if value else None)
+            elif key == "budget_hours":
+                node.budget_hours = Decimal(value) if value else None
+            else:
+                node.name = value
+        rollup[str(node_id)] = values
+    await db.flush()
+    return rollup
+
+
+# --- for planning --------------------------------------------------------------------------------
+
+
+async def programme_for_planning(
+    db: AsyncSession,
+    project_id: int,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    search: str | None = None,
+    activity_ids: list[int] | None = None,
+    limit: int = 1000,
+) -> list[dict[str, Any]]:
+    """Mirrored P6 activities with the work anchors they are linked to, for the planner to pick from.
+
+    Active, non-summary activities whose planned dates overlap ``start``..``end`` (or exactly ``activity_ids``),
+    optionally filtered by ``search`` over the Activity ID, the name and the activity codes. Each carries its
+    confirmed links (``anchors``) with the note the name gave (``OHP``, ``Access``...), its activity type and
+    its P6 dates and hours. Activities without a link are returned too, with ``anchors = []``.
+    """
+    q = select(Activity).where(
+        Activity.project_id == project_id,
+        Activity.p6_activity_id.is_not(None),
+        Activity.type != "summary",
+        Activity.schedule_state == "active",
+    )
+    if activity_ids is not None:
+        q = q.where(Activity.id.in_(activity_ids or [-1]))
+    else:
+        if start is not None:
+            q = q.where((Activity.planned_finish.is_(None)) | (Activity.planned_finish >= start))
+        if end is not None:
+            q = q.where((Activity.planned_start.is_(None)) | (Activity.planned_start <= end))
+    acts = list((await db.execute(q.order_by(Activity.planned_start, Activity.code))).scalars())
+    if search:
+        needle = search.strip().lower()
+        acts = [
+            a
+            for a in acts
+            if needle in (a.p6_activity_id or "").lower()
+            or needle in a.name.lower()
+            or any(needle in str(v).lower() for v in ((a.p6_facts or {}).get("src") or {}).get("codes", {}).values())
+        ]
+    acts = acts[:limit]
+    links = list(
+        (
+            await db.execute(
+                select(P6Link, AssetNode)
+                .join(AssetNode, AssetNode.id == P6Link.node_id)
+                .where(P6Link.activity_id.in_([a.id for a in acts] or [-1]), P6Link.status == "confirmed")
+                .order_by(AssetNode.path)
+            )
+        ).all()
+    )
+    anchors: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for link, node in links:
+        anchors[link.activity_id].append(
+            {
+                "node_id": node.id,
+                "code": node.code,
+                "name": node.name,
+                "display_path": node.display_path,
+                "qualifier": (link.parsed or {}).get("qualifier"),
+                "work_window": link.work_window,
+            }
+        )
+    out = []
+    for a in acts:
+        facts = a.p6_facts or {}
+        src = facts.get("src") or {}
+        out.append(
+            {
+                "activity_id": a.id,
+                "p6_activity_id": a.p6_activity_id,
+                "name": a.name,
+                "planned_start": a.planned_start,
+                "planned_finish": a.planned_finish,
+                "budget_hours": a.budget_hours,
+                "status": a.status,
+                "activity_type": (facts.get("groups") or {}).get("activity_type"),
+                "codes": src.get("codes") or {},
+                "anchors": anchors.get(a.id, []),
+            }
+        )
+    return out
 
 
 # --- links ---------------------------------------------------------------------------------------
@@ -1158,6 +1375,8 @@ async def test_rules(db: AsyncSession, project: Project, body: dict[str, Any]) -
             "matched_rule": parsed.rule,
             "groups": parsed.groups,
             "window": parsed.window,
+            "anchors": parsed.anchors,
+            "qualifier": parsed.qualifier,
             "eligible": ok,
             "ineligible_reason": why,
             "resolution": "ineligible" if not ok else "unmatched",

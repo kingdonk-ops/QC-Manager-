@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { byCell, dayHeading, doubleBooked, parseMembers } from './board-lib'
+import {
+  anchorsLabel,
+  byCell,
+  dayHeading,
+  doubleBooked,
+  parseMembers,
+} from './board-lib'
 
 const rows = [
   { id: 1, anchor_id: 10, work_date: '2026-11-24', crew_id: 1 },
@@ -37,5 +43,19 @@ describe('parseMembers', () => {
       { name: 'K. Thorne', trade: null },
       { name: 'A', trade: 'B, C' },
     ])
+  })
+})
+
+describe('anchorsLabel', () => {
+  it('lists the RSWs with the note the activity name gave', () => {
+    expect(
+      anchorsLabel({
+        anchors: [
+          { code: '728', qualifier: 'OHP' },
+          { code: '729', qualifier: null },
+        ],
+      })
+    ).toBe('728 (OHP), 729')
+    expect(anchorsLabel({ anchors: [] })).toBe('')
   })
 })

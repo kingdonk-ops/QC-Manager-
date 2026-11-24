@@ -105,6 +105,26 @@ class Activity(Base, TimestampMixin):
     """P6-owned facts of the last committed import: ``src`` (the source row), float, longest path, codes,
     UDFs, eligibility and the name-grammar match."""
 
+    @property
+    def p6_float_days(self) -> float | None:
+        """P6's own total float in working days (its hours over the activity's calendar day), if mirrored."""
+        facts = self.p6_facts or {}
+        hours = (facts.get("src") or {}).get("total_float_hours")
+        if hours is None or not self.p6_activity_id:
+            return None
+        per_day = float(facts.get("day_hours") or 8) or 8.0
+        return round(float(hours) / per_day, 1)
+
+    def p6_critical_by(self, definition: str, float_hours: float) -> bool | None:
+        """Critical as P6 reports it under the project's definition (``longest_path`` or total float ≤ hours)."""
+        src = (self.p6_facts or {}).get("src") or {}
+        if not self.p6_activity_id or not src:
+            return None
+        if definition == "longest_path":
+            return bool(src.get("longest_path"))
+        hours = src.get("total_float_hours")
+        return hours is not None and float(hours) <= float_hours
+
 
 class Dependency(Base, TimestampMixin):
     __tablename__ = "schedule_dependencies"

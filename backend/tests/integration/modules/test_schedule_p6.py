@@ -390,3 +390,130 @@ async def test_p6_routes_need_the_project(client: AsyncClient, ctx, db_session: 
     imp = await ctx["upload"](V1)
     r = await client.get(f"/api/v1/schedule/{other.id}/p6/imports/{imp['id']}")
     assert r.status_code == 404
+
+
+def xer_wbs(tasks: list[dict]) -> bytes:
+    """A synthetic XER with a deeper WBS (root / Construction / region / site), two calendars and float."""
+    lines = [
+        "ERMHDR\t24.12\t2026-03-01\tProject\tadmin\tdb\tProject Management\tAUD",
+        "%T\tPROJECT",
+        "%F\tproj_id\tproj_short_name\tclndr_id\tlast_recalc_date",
+        "%R\t1\tSYN-RG\t1\t2026-03-02 00:00",
+        "%T\tCALENDAR",
+        "%F\tclndr_id\tdefault_flag\tclndr_name\tday_hr_cnt\tclndr_data",
+        "%R\t1\tY\t7x12\t12\t",
+        "%R\t2\tN\t5x8\t8\t",
+        "%T\tPROJWBS",
+        "%F\twbs_id\tproj_id\tparent_wbs_id\twbs_short_name\twbs_name\tproj_node_flag",
+        "%R\t1\t1\t\tSYN-RG\tSynthetic programme\tY",
+        "%R\t2\t1\t1\t8\tConstruction\tN",
+        "%R\t3\t1\t2\t2\tNorth Region\tN",
+        "%R\t4\t1\t3\tEI\tEast Island\tN",
+        "%T\tTASK",
+        "%F\ttask_id\tproj_id\twbs_id\tclndr_id\ttask_code\tguid\ttask_name\ttask_type\tstatus_code\t"
+        "target_drtn_hr_cnt\ttarget_start_date\ttarget_end_date\ttotal_float_hr_cnt\ttarget_work_qty",
+    ]
+    for n, t in enumerate(tasks, start=10):
+        start = D0 + timedelta(days=t.get("shift", 0))
+        finish = start + timedelta(days=t.get("days", 4))
+        lines.append(
+            "\t".join(
+                [
+                    "%R",
+                    str(n),
+                    "1",
+                    "4",
+                    t.get("cal", "1"),
+                    t["code"],
+                    f"G-{t['code']}",
+                    t["name"],
+                    "TT_Task",
+                    "TK_NotStart",
+                    str(12 * t.get("days", 4)),
+                    f"{start} 06:00",
+                    f"{finish} 18:00",
+                    str(t.get("float", 24)),
+                    str(t.get("hours", 30)),
+                ]
+            )
+        )
+    lines.append("%E")
+    return ("\r\n".join(lines) + "\r\n").encode("cp1252")
+
+
+async def test_wbs_levels_lists_qualifiers_and_rsw_rollup(client: AsyncClient, ctx):
+    """Site and Area come from the WBS, a range links every RSW in it, and P6-created RSWs are named and dated."""
+    base, h = ctx["base"], ctx["h"]
+    for name, depth, level in (("Region is the site", 2, "site"), ("Site is the area", 3, "area")):
+        r = await client.post(
+            f"{base}/rules",
+            json={"kind": "wbs_level", "name": name, "params": {"depth": depth, "level": level}},
+            headers=h,
+        )
+        assert r.status_code == 201, r.text
+    bad = await client.post(f"{base}/rules", json={"kind": "wbs_level", "name": "x", "params": {"depth": 0}}, headers=h)
+    assert bad.status_code == 422
+
+    tasks = [
+        {"code": "C100", "name": "CV-09 / SCA Erect / 728 - 730 OHP", "hours": 30, "float": 0},
+        {"code": "C110", "name": "CV-09 / B / 729", "shift": 7, "hours": 12, "cal": "2", "float": 16},
+        {"code": "C120", "name": "CV-09 / P / 905", "shift": 3, "hours": 8},
+    ]
+
+    async def upload(data: bytes) -> dict:
+        r = await client.post(
+            f"{base}/imports",
+            files={"file": ("syn.xer", data, "application/octet-stream")},
+            data={"create_missing": "true"},
+            headers=h,
+        )
+        assert r.status_code == 201, r.text
+        return r.json()
+
+    imp = await upload(xer_wbs(tasks))
+    assert imp["summary"]["matching"] == {"create": 3}
+    await ctx["commit"](imp["id"])
+
+    async def all_nodes() -> list[dict]:
+        out = []
+        for level in ("site", "area", "asset", "rsw"):
+            r = await client.get(
+                "/api/v1/asset-tree/nodes/",
+                params={"project_id": ctx["project"].id, "level_key": level, "items_per_page": 100},
+            )
+            assert r.status_code == 200, r.text
+            out += r.json()["data"]
+        return out
+
+    nodes = {n["display_path"]: n for n in await all_nodes()}
+    assert "North Region / East Island / CV-09 / 729" in nodes
+    rsw = {code: nodes[f"North Region / East Island / CV-09 / {code}"] for code in ("728", "729", "730", "905")}
+    # Named after their activity types (earliest first); dated and given hours from the linked activities.
+    assert rsw["729"]["name"] == "SCA Erect, B" and rsw["905"]["name"] == "P"
+    assert rsw["729"]["planned_start"] == str(D0) and rsw["729"]["planned_finish"] == str(D0 + timedelta(days=11))
+    assert float(rsw["729"]["budget_hours"]) == 22.0  # 30 h shared by three RSWs + 12 h
+    assert float(rsw["728"]["budget_hours"]) == 10.0
+
+    acts = await ctx["activities"]()
+    linked = await ctx["links"](activity_id=acts["C100"]["id"])
+    assert sorted(x["node_path"].split(" / ")[-1] for x in linked) == ["728", "729", "730"]
+    assert all(x["status"] == "confirmed" and x["parsed"]["qualifier"] == "OHP" for x in linked)
+    # P6's own float, in days on each activity's calendar, and P6's critical flag beside the CPM's.
+    assert (acts["C100"]["p6_float_days"], acts["C100"]["p6_critical"]) == (0.0, True)
+    assert (acts["C110"]["p6_float_days"], acts["C110"]["p6_critical"]) == (2.0, False)
+    gantt = (await client.get(f"/api/v1/schedule/gantt/{ctx['project'].id}")).json()
+    assert gantt["summary"]["critical_count"] == 1  # P6's view: only C100 has no float
+
+    # Someone renames RSW 905 and sets its hours; a revised programme moves the dates.
+    r = await client.patch(
+        f"/api/v1/asset-tree/nodes/{rsw['905']['id']}", json={"name": "Paint, splash zone", "budget_hours": "99"}, headers=h
+    )
+    assert r.status_code == 200, r.text
+    moved = [{**t, "shift": t.get("shift", 0) + 14} for t in tasks]
+    again = await upload(xer_wbs(moved))
+    await ctx["commit"](again["id"])
+    after = {n["id"]: n for n in await all_nodes()}
+    assert after[rsw["905"]["id"]]["name"] == "Paint, splash zone"  # a person's edit is never overwritten
+    assert float(after[rsw["905"]["id"]]["budget_hours"]) == 99.0
+    assert after[rsw["905"]["id"]]["planned_start"] == str(D0 + timedelta(days=17))  # untouched field follows P6
+    assert after[rsw["728"]["id"]]["planned_start"] == str(D0 + timedelta(days=14))

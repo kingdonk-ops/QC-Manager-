@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLevels } from '@/modules/asset_tree/api'
 import { FlaskConical, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,7 @@ import {
 } from './api'
 import { parseSamples } from './helpers'
 
-const KINDS = ['grammar', 'eligibility', 'alias'] as const
+const KINDS = ['grammar', 'eligibility', 'alias', 'wbs_level'] as const
 const SOURCES = ['name', 'code', 'wbs'] as const
 const FIELDS = [
   'task_type',
@@ -32,12 +33,15 @@ function describe(rule: P6Rule): string {
   if (rule.kind === 'eligibility')
     return `${String(p.field)} ${String(p.op)} ${((p.values as string[]) ?? []).join(', ')}`
   if (rule.kind === 'alias') return `${rule.pattern} → ${String(p.to)}`
+  if (rule.kind === 'wbs_level')
+    return `WBS ${String(p.depth)} (${String(p.value ?? 'name')}) → ${String(p.level)}`
   return `${rule.source}: ${rule.pattern}`
 }
 
 function NewRule({ projectId }: { projectId: number }) {
   const { t } = useTranslation()
   const { create } = useRuleActions(projectId)
+  const { data: levels = [] } = useLevels(projectId)
   const [kind, setKind] = useState<(typeof KINDS)[number]>('grammar')
   const [draft, setDraft] = useState({
     name: '',
@@ -47,6 +51,9 @@ function NewRule({ projectId }: { projectId: number }) {
     op: 'in',
     values: '',
     to: '',
+    depth: '1',
+    level: '',
+    value: 'name',
   })
   const set = (k: keyof typeof draft, v: string) =>
     setDraft((d) => ({ ...d, [k]: v }))
@@ -67,12 +74,21 @@ function NewRule({ projectId }: { projectId: number }) {
               }
             : kind === 'alias'
               ? { to: draft.to }
-              : {}
+              : kind === 'wbs_level'
+                ? {
+                    depth: Number(draft.depth),
+                    level: draft.level,
+                    value: draft.value,
+                  }
+                : {}
         create.mutate(
           {
             kind,
             name: draft.name,
-            pattern: kind === 'eligibility' ? '' : draft.pattern,
+            pattern:
+              kind === 'eligibility' || kind === 'wbs_level'
+                ? ''
+                : draft.pattern,
             source: draft.source as 'name',
             params,
             sort_order: 100,
@@ -100,7 +116,38 @@ function NewRule({ projectId }: { projectId: number }) {
           required
         />
       </Field>
-      {kind === 'eligibility' ? (
+      {kind === 'wbs_level' ? (
+        <>
+          <Field label={t('p6.wbs_depth')}>
+            <Input
+              className='h-8'
+              type='number'
+              min={1}
+              max={20}
+              value={draft.depth}
+              onChange={(e) => set('depth', e.target.value)}
+              required
+            />
+          </Field>
+          <Field label={t('p6.wbs_value')}>
+            <SelectField
+              value={draft.value}
+              onChange={(v) => set('value', v ?? 'name')}
+              options={[
+                { value: 'name', label: t('p6.wbs_value.name') },
+                { value: 'code', label: t('p6.wbs_value.code') },
+              ]}
+            />
+          </Field>
+          <Field label={t('p6.wbs_level')}>
+            <SelectField
+              value={draft.level}
+              onChange={(v) => set('level', v ?? '')}
+              options={levels.map((lv) => ({ value: lv.key, label: lv.label }))}
+            />
+          </Field>
+        </>
+      ) : kind === 'eligibility' ? (
         <>
           <Field label={t('p6.field')}>
             <SelectField
@@ -159,7 +206,11 @@ function NewRule({ projectId }: { projectId: number }) {
           )}
         </>
       )}
-      <Button type='submit' size='sm' disabled={create.isPending}>
+      <Button
+        type='submit'
+        size='sm'
+        disabled={create.isPending || (kind === 'wbs_level' && !draft.level)}
+      >
         <Plus className='size-4' />
         {t('p6.add_rule')}
       </Button>
@@ -171,7 +222,7 @@ function Tester({ projectId }: { projectId: number }) {
   const { t } = useTranslation()
   const { test } = useRuleActions(projectId)
   const [samples, setSamples] = useState(
-    '101 / B / 305\n101 / SCA-Dism / 512-21 Shut'
+    '101 / B / 305\n101 / SCA-Dism / 512-21 Shut\n101 / WFE / 728 - 732 OHP'
   )
   const [pattern, setPattern] = useState('')
   const [results, setResults] = useState<RuleTestResult[]>([])
@@ -227,6 +278,10 @@ function Tester({ projectId }: { projectId: number }) {
                           .join(' ')
                       : '—'}
                     {r.window ? ` window=${r.window}` : ''}
+                    {r.anchors && r.anchors.length > 1
+                      ? ` ${t('p6.anchors')}=${r.anchors.join(', ')}`
+                      : ''}
+                    {r.qualifier ? ` ${t('p6.qualifier')}=${r.qualifier}` : ''}
                   </td>
                   <td className='p-1'>
                     <strong>{r.resolution}</strong>{' '}
@@ -288,6 +343,11 @@ export function RulesTab({ projectId }: { projectId: number }) {
       {KINDS.map((kind) => (
         <section key={kind} className='grid gap-1'>
           <h3 className='text-sm font-semibold'>{t(`p6.kind.${kind}`)}</h3>
+          {kind === 'wbs_level' ? (
+            <p className='text-xs text-muted-foreground'>
+              {t('p6.wbs_level_hint')}
+            </p>
+          ) : null}
           {rules
             .filter((r) => r.kind === kind)
             .map((r) => (

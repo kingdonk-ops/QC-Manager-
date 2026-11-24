@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -404,3 +404,43 @@ class PlanVsActual(BaseModel):
     actual_hours: Decimal
     planned_qty: Decimal
     actual_qty: Decimal
+
+
+class ProgrammeAnchor(BaseModel):
+    node_id: int
+    code: str
+    name: str | None
+    display_path: str
+    qualifier: str | None = Field(None, description="The note the activity name gave, e.g. OHP, Access or Props")
+    work_window: str | None = None
+
+
+class ProgrammeActivity(BaseModel):
+    activity_id: int
+    p6_activity_id: str
+    name: str
+    planned_start: date | None
+    planned_finish: date | None
+    budget_hours: Decimal
+    status: str
+    activity_type: str | None
+    codes: dict[str, str]
+    anchors: list[ProgrammeAnchor] = Field(description="Work anchors (RSWs) the activity is linked to")
+    in_plan: bool = Field(False, description="Every (RSW, activity) pair is already in one of the plan's packs")
+
+
+class FromProgrammeIn(EncodableText):
+    model_config = ConfigDict(extra="forbid")
+
+    activity_ids: list[Annotated[int, Field(ge=1)]] = Field(min_length=1, max_length=500)
+    grouping: Literal["rsw", "activity"] = Field(
+        "rsw", description="`rsw`: one pack per RSW with its activities; `activity`: one pack per P6 activity"
+    )
+
+
+class FromProgrammeResult(BaseModel):
+    packs_created: int
+    lines_added: int
+    already_in_plan: int = Field(description="(RSW, activity) pairs skipped because the plan already has them")
+    unlinked: list[str] = Field(description="P6 Activity IDs skipped because they aren't linked to an RSW")
+    pack_ids: list[int]

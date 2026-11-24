@@ -132,3 +132,39 @@ def test_msp_xml_round_trip():
     assert back.activities[1].constraint_type == "snet" and back.activities[1].duration == 3
     assert [(lk.type, lk.lag) for lk in back.links] == [("FF", -1)]
     assert back.holidays == [date(2026, 1, 26)] and back.working_days == [0, 1, 2, 3, 4]
+
+
+def test_xer_uses_each_activitys_calendar_and_drops_old_holidays():
+    """Durations and lags convert with the activity's own P6 calendar; holidays years before the work are dropped."""
+    cal7 = (
+        "(0||CalendarData()(\x7f(0||DaysOfWeek()("
+        + "".join(f"(0||{d}()((0||0(s|06:00|f|18:00)())))" for d in range(1, 8))
+        + "))\x7f(0||Exceptions()((0||0(d|40179)())(0||1(d|46400)()))))"
+    )
+    lines = [
+        "ERMHDR\t24.12\t2026-01-01\tProject\tadmin\tdb\tProject Management\tAUD",
+        "%T\tPROJECT",
+        "%F\tproj_id\tproj_short_name\tclndr_id\tlast_recalc_date",
+        "%R\t1\tCAL-TEST\t10\t2026-01-05 00:00",
+        "%T\tCALENDAR",
+        "%F\tclndr_id\tdefault_flag\tclndr_name\tday_hr_cnt\tclndr_data",
+        f"%R\t10\tY\t7x12\t12\t{cal7}",
+        "%R\t20\tN\t5x8\t8\t",
+        "%T\tPROJWBS",
+        "%F\twbs_id\tproj_id\tparent_wbs_id\twbs_short_name\twbs_name\tproj_node_flag",
+        "%R\t1\t1\t\tCAL-TEST\tRoot\tY",
+        "%T\tTASK",
+        "%F\ttask_id\tproj_id\twbs_id\tclndr_id\ttask_code\ttask_name\ttask_type\ttarget_drtn_hr_cnt\ttarget_start_date\ttarget_end_date",
+        "%R\t100\t1\t1\t10\tA10\tOn the 12 h calendar\tTT_Task\t120\t2026-01-05 06:00\t2026-01-14 18:00",
+        "%R\t200\t1\t1\t20\tA20\tOn the 8 h calendar\tTT_Task\t120\t2026-01-15 07:00\t2026-02-04 15:00",
+        "%T\tTASKPRED",
+        "%F\ttask_pred_id\ttask_id\tpred_task_id\tpred_type\tlag_hr_cnt",
+        "%R\t1\t200\t100\tPR_FS\t24",
+        "%E",
+    ]
+    x = parse(("\r\n".join(lines) + "\r\n").encode("cp1252"))
+    acts = by_code(x)
+    assert acts["A10"].duration == 10 and acts["A10"].extra["day_hours"] == 12
+    assert acts["A20"].duration == 15 and acts["A20"].extra["day_hours"] == 8
+    assert [lk.lag for lk in x.links] == [2]  # 24 h on the predecessor's 12 h calendar
+    assert x.holidays == [date(2027, 1, 13)]  # 2010-01-01 is years before the programme

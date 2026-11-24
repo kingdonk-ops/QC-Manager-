@@ -28,6 +28,8 @@ from .schemas import (
     CrewIn,
     CrewRead,
     CrewUpdate,
+    FromProgrammeIn,
+    FromProgrammeResult,
     PackIn,
     PackLinesIn,
     PackRead,
@@ -41,6 +43,7 @@ from .schemas import (
     PrerequisiteIn,
     PrerequisiteRead,
     PrerequisiteUpdate,
+    ProgrammeActivity,
 )
 
 router = APIRouter(tags=["Planner"])
@@ -257,6 +260,44 @@ async def plan_board(plan_id: Id, db: AsyncSessionDep, user: CurrentUserDep, hel
 async def plan_vs_actual(plan_id: Id, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep) -> Any:
     plan = await _plan(db, plan_id, user, held)
     return await service.plan_vs_actual(db, plan)
+
+
+@router.get(
+    "/plans/{plan_id}/programme",
+    response_model=list[ProgrammeActivity],
+    summary="P6 Activities to Plan",
+    description="Mirrored P6 activities in the plan's window (or the whole programme), with the RSWs they are linked "
+    "to, searchable by Activity ID, name and activity code. 422 while the Schedule module is off.",
+    dependencies=perm(P.READ),
+)
+async def plan_programme(
+    plan_id: Id,
+    db: AsyncSessionDep,
+    user: CurrentUserDep,
+    held: CurrentPermissionsDep,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    whole_programme: bool = False,
+) -> Any:
+    plan = await _plan(db, plan_id, user, held)
+    return await service.programme_candidates(db, plan, search=search, whole_programme=whole_programme)
+
+
+@router.post(
+    "/plans/{plan_id}/from-programme",
+    response_model=FromProgrammeResult,
+    status_code=201,
+    summary="Add Work Packs from the Programme",
+    description="One pack per RSW with its activities (`grouping=rsw`, the default) or one pack per P6 activity "
+    "(`grouping=activity`). Lines carry the P6 Activity ID, name and hours; pairs already in the plan are skipped.",
+    dependencies=perm(P.CREATE),
+)
+async def from_programme(
+    plan_id: Id, values: FromProgrammeIn, db: AsyncSessionDep, user: CurrentUserDep, held: CurrentPermissionsDep
+) -> Any:
+    plan = await _plan(db, plan_id, user, held)
+    result = await service.add_from_programme(db, plan, values.activity_ids, values.grouping, user["id"])
+    await db.commit()
+    return result
 
 
 # --- packs ---------------------------------------------------------------------------------------------

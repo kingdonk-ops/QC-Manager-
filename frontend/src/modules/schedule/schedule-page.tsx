@@ -56,7 +56,7 @@ import {
 } from './dialogs'
 import { composeSvg, exportPdf, exportPng } from './export-image'
 import { GanttChart, TimescaleHeader } from './gantt-chart'
-import { barColor } from './gantt-colors'
+import { barColor, floatOf, isCritical } from './gantt-colors'
 import {
   HEADER_HEIGHT,
   ROW_HEIGHT,
@@ -522,7 +522,7 @@ function Schedule({
                       onCommit={(v) => patch(a, { name: v })}
                       className='flex-1'
                     />
-                    {a.is_critical && a.status !== 'completed' && leaf ? (
+                    {isCritical(a) && a.status !== 'completed' && leaf ? (
                       <span className='rounded bg-red-600 px-1 text-[9px] font-bold text-white'>
                         CP
                       </span>
@@ -593,11 +593,16 @@ function Schedule({
                   <div
                     className={cn(
                       'px-2 text-right tabular-nums',
-                      (a.total_float ?? 0) < 0 && 'text-red-600'
+                      (floatOf(a) ?? 0) < 0 && 'text-red-600'
                     )}
                     style={{ width: COLUMNS[6].width }}
+                    title={
+                      a.p6_float_days != null
+                        ? t('schedule.float_p6')
+                        : undefined
+                    }
                   >
-                    {a.total_float ?? '–'}
+                    {floatOf(a) ?? '–'}
                   </div>
                 </div>
               )

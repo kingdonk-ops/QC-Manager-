@@ -9,7 +9,7 @@
  */
 import { type PointerEvent, type Ref, useMemo, useState } from 'react'
 import type { Activity, Dependency } from './api'
-import { COLORS, barColor } from './gantt-colors'
+import { COLORS, barColor, floatOf, isCritical } from './gantt-colors'
 import {
   HEADER_HEIGHT,
   PX_PER_DAY,
@@ -340,8 +340,8 @@ export function GanttChart({
         const b = anchor(succ, into)
         if (!a || !b) return null
         const critical =
-          pred.is_critical &&
-          succ.is_critical &&
+          isCritical(pred) &&
+          isCritical(succ) &&
           succ.driving_predecessor_ids.includes(pred.id)
         return (
           <path
@@ -389,7 +389,7 @@ export function GanttChart({
             </rect>
           ) : null
         const label = (
-          <title>{`${a.code} ${a.name}\n${a.early_start} – ${a.early_finish} (${a.duration}d)\nFloat ${a.total_float ?? '–'}d · ${Math.round(a.percent_complete)}%`}</title>
+          <title>{`${a.code} ${a.name}\n${a.early_start} – ${a.early_finish} (${a.duration}d)\nFloat ${floatOf(a) ?? '–'}d · ${Math.round(a.percent_complete)}%`}</title>
         )
 
         if (a.type === 'summary') {
@@ -429,7 +429,7 @@ export function GanttChart({
               >
                 {label}
               </path>
-              {a.is_critical && a.status !== 'completed' ? (
+              {isCritical(a) && a.status !== 'completed' ? (
                 <CpBadge x={cx + 11} y={top + 6} />
               ) : null}
               {editable ? (
@@ -498,7 +498,7 @@ export function GanttChart({
                 />
               </>
             ) : null}
-            {a.is_critical && a.status !== 'completed' ? (
+            {isCritical(a) && a.status !== 'completed' ? (
               <CpBadge x={x1 + w + (editable ? 12 : 4)} y={top + 7} />
             ) : null}
           </g>

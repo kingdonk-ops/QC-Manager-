@@ -12,6 +12,7 @@ class RuleKind(StrEnum):
     GRAMMAR = "grammar"
     ELIGIBILITY = "eligibility"
     ALIAS = "alias"
+    WBS_LEVEL = "wbs_level"
 
 
 class RuleSource(StrEnum):
@@ -143,6 +144,10 @@ class RuleTestResult(BaseModel):
     node_id: int | None
     node_path: str | None
     reason: str | None
+    anchors: list[str] = []
+    """Every work anchor the name addresses (several for a list or range such as ``728 - 732``)."""
+    qualifier: str | None = None
+    """A trailing note such as ``OHP``, ``Access`` or ``Props``; it never changes which RSW is meant."""
 
 
 class P6Settings(EncodableText):

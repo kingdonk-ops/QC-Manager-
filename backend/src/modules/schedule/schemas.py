@@ -143,6 +143,10 @@ class ScheduleActivityRead(BaseModel):
     baseline_variance: int | None = Field(None, description="Working days the forecast finish is later than the baseline")
     p6_activity_id: str | None = Field(None, description="The P6 Activity ID this activity mirrors")
     schedule_state: str = Field("active", description="`removed_from_schedule` once missing from the latest P6 import")
+    p6_float_days: float | None = Field(
+        None, description="P6's own total float (working days on the activity's P6 calendar); null unless mirrored from P6"
+    )
+    p6_critical: bool | None = Field(None, description="Critical as P6 reports it; null unless mirrored from P6")
 
 
 class ScheduleDependencyCreate(EncodableText):

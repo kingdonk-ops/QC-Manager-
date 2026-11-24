@@ -27,6 +27,7 @@ import {
   useDeleteDependency,
   useUpdateActivity,
 } from './api'
+import { isCritical } from './gantt-colors'
 
 const FIELDS = [
   'name',
@@ -290,7 +291,7 @@ export function ActivitySheet({
       badges={
         <>
           <StatusBadge status={activity.status} />
-          {activity.is_critical ? (
+          {isCritical(activity) ? (
             <Badge className='bg-red-600 text-white'>
               {t('schedule.critical')}
             </Badge>
@@ -298,6 +299,11 @@ export function ActivitySheet({
           <Badge variant='outline'>
             {t('schedule.float')} {activity.total_float ?? '–'}d
           </Badge>
+          {activity.p6_float_days != null ? (
+            <Badge variant='outline'>
+              {t('schedule.float_p6')} {activity.p6_float_days}d
+            </Badge>
+          ) : null}
           {activity.baseline_variance ? (
             <Badge variant='outline'>
               {t('schedule.vs_baseline')}{' '}

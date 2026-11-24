@@ -1,7 +1,7 @@
 {
  "openapi": "3.1.0",
  "info": {
-  "title": "FastAPI Boilerplate",
+  "title": "QC Manager",
   "version": "0.1.0"
  },
  "paths": {
@@ -29517,6 +29517,137 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/PlanVsActual"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/planner/plans/{plan_id}/programme": {
+   "get": {
+    "tags": [
+     "Planner"
+    ],
+    "summary": "P6 Activities to Plan",
+    "description": "Mirrored P6 activities in the plan's window (or the whole programme), with the RSWs they are linked to, searchable by Activity ID, name and activity code. 422 while the Schedule module is off.",
+    "operationId": "plan_programme_api_v1_planner_plans__plan_id__programme_get",
+    "parameters": [
+     {
+      "name": "plan_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Plan Id"
+      }
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "maxLength": 100
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Search"
+      }
+     },
+     {
+      "name": "whole_programme",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Whole Programme"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ProgrammeActivity"
+         },
+         "title": "Response Plan Programme Api V1 Planner Plans  Plan Id  Programme Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/planner/plans/{plan_id}/from-programme": {
+   "post": {
+    "tags": [
+     "Planner"
+    ],
+    "summary": "Add Work Packs from the Programme",
+    "description": "One pack per RSW with its activities (`grouping=rsw`, the default) or one pack per P6 activity (`grouping=activity`). Lines carry the P6 Activity ID, name and hours; pairs already in the plan are skipped.",
+    "operationId": "from_programme_api_v1_planner_plans__plan_id__from_programme_post",
+    "parameters": [
+     {
+      "name": "plan_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Plan Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FromProgrammeIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FromProgrammeResult"
         }
        }
       }
@@ -78637,6 +78768,77 @@
     ],
     "title": "FollowUp"
    },
+   "FromProgrammeIn": {
+    "properties": {
+     "activity_ids": {
+      "items": {
+       "type": "integer",
+       "minimum": 1.0
+      },
+      "type": "array",
+      "maxItems": 500,
+      "minItems": 1,
+      "title": "Activity Ids"
+     },
+     "grouping": {
+      "type": "string",
+      "enum": [
+       "rsw",
+       "activity"
+      ],
+      "title": "Grouping",
+      "description": "`rsw`: one pack per RSW with its activities; `activity`: one pack per P6 activity",
+      "default": "rsw"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "activity_ids"
+    ],
+    "title": "FromProgrammeIn"
+   },
+   "FromProgrammeResult": {
+    "properties": {
+     "packs_created": {
+      "type": "integer",
+      "title": "Packs Created"
+     },
+     "lines_added": {
+      "type": "integer",
+      "title": "Lines Added"
+     },
+     "already_in_plan": {
+      "type": "integer",
+      "title": "Already In Plan",
+      "description": "(RSW, activity) pairs skipped because the plan already has them"
+     },
+     "unlinked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Unlinked",
+      "description": "P6 Activity IDs skipped because they aren't linked to an RSW"
+     },
+     "pack_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Pack Ids"
+     }
+    },
+    "type": "object",
+    "required": [
+     "packs_created",
+     "lines_added",
+     "already_in_plan",
+     "unlinked",
+     "pack_ids"
+    ],
+    "title": "FromProgrammeResult"
+   },
    "GateCounts": {
     "properties": {
      "plain_pending_holds": {
@@ -104858,6 +105060,159 @@
     ],
     "title": "ProductForm"
    },
+   "ProgrammeActivity": {
+    "properties": {
+     "activity_id": {
+      "type": "integer",
+      "title": "Activity Id"
+     },
+     "p6_activity_id": {
+      "type": "string",
+      "title": "P6 Activity Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "planned_start": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Planned Start"
+     },
+     "planned_finish": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Planned Finish"
+     },
+     "budget_hours": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Budget Hours"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "activity_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Activity Type"
+     },
+     "codes": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Codes"
+     },
+     "anchors": {
+      "items": {
+       "$ref": "#/components/schemas/ProgrammeAnchor"
+      },
+      "type": "array",
+      "title": "Anchors",
+      "description": "Work anchors (RSWs) the activity is linked to"
+     },
+     "in_plan": {
+      "type": "boolean",
+      "title": "In Plan",
+      "description": "Every (RSW, activity) pair is already in one of the plan's packs",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "activity_id",
+     "p6_activity_id",
+     "name",
+     "planned_start",
+     "planned_finish",
+     "budget_hours",
+     "status",
+     "activity_type",
+     "codes",
+     "anchors"
+    ],
+    "title": "ProgrammeActivity"
+   },
+   "ProgrammeAnchor": {
+    "properties": {
+     "node_id": {
+      "type": "integer",
+      "title": "Node Id"
+     },
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "display_path": {
+      "type": "string",
+      "title": "Display Path"
+     },
+     "qualifier": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Qualifier",
+      "description": "The note the activity name gave, e.g. OHP, Access or Props"
+     },
+     "work_window": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Work Window"
+     }
+    },
+    "type": "object",
+    "required": [
+     "node_id",
+     "code",
+     "name",
+     "display_path"
+    ],
+    "title": "ProgrammeAnchor"
+   },
    "ProgressRow": {
     "properties": {
      "activity_id": {
@@ -111534,7 +111889,8 @@
     "enum": [
      "grammar",
      "eligibility",
-     "alias"
+     "alias",
+     "wbs_level"
     ],
     "title": "RuleKind"
    },
@@ -111732,6 +112088,25 @@
        }
       ],
       "title": "Reason"
+     },
+     "anchors": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Anchors",
+      "default": []
+     },
+     "qualifier": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Qualifier"
      }
     },
     "type": "object",
@@ -114503,6 +114878,30 @@
       "title": "Schedule State",
       "description": "`removed_from_schedule` once missing from the latest P6 import",
       "default": "active"
+     },
+     "p6_float_days": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "P6 Float Days",
+      "description": "P6's own total float (working days on the activity's P6 calendar); null unless mirrored from P6"
+     },
+     "p6_critical": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "P6 Critical",
+      "description": "Critical as P6 reports it; null unless mirrored from P6"
      }
     },
     "type": "object",
