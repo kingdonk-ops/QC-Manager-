@@ -4,7 +4,7 @@ delegations."""
 
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ...infrastructure.database.models import TimestampMixin
@@ -194,6 +194,8 @@ class Inspection(Base, TimestampMixin):
     """The latest report raised from the record as a whole (earlier ones stay on the issue register)."""
     proposed_severity: Mapped[str | None] = mapped_column(String(10), default=None)
     """The report severity the inspector proposed on submit, used when the reviewer names none."""
+    required_signatories: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    """ITP line: how many distinct people must have signed before approval (one to ten); copied from the activity."""
 
 
 class InspectionItem(Base):
@@ -262,6 +264,16 @@ class InspectionSignature(Base):
     signature whose ``content_sha256`` no longer matches."""
 
     __tablename__ = "inspections_signatures"
+    __table_args__ = (
+        Index(
+            "uq_inspections_signatures_additional_live",
+            "inspection_id",
+            "signer_user_id",
+            "role",
+            unique=True,
+            postgresql_where=text("role = 'additional_signatory' AND status IN ('valid', 'provisional')"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
     inspection_id: Mapped[int] = mapped_column(Integer, ForeignKey("inspections.id", ondelete="CASCADE"), index=True)

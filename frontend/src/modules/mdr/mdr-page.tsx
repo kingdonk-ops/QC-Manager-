@@ -1,16 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
-import {
-  ArrowDown,
-  ArrowUp,
-  Download,
-  FileCheck2,
-  FileCog,
-  PenLine,
-  Plus,
-  Send,
-  ShieldCheck,
-} from 'lucide-react'
+import { ArrowDown, ArrowUp, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentProject } from '@/stores/use-current-project'
 import { can, useSession } from '@/lib/session'
@@ -30,37 +20,26 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DataGrid } from '@/components/data-grid'
 import { Page } from '@/components/layout/page'
-import { NativeSelect } from '@/components/native-select'
 import { RecordSheet } from '@/components/records/record-sheet'
 import { StatusBadge } from '@/components/records/status-badge'
 import {
   type Dossier,
-  type Revision,
-  downloadUrl,
   useCatalogue,
   useCreateDossier,
-  useDecide,
   useDossier,
   useDossiers,
-  useDraft,
-  useGate,
   useHistory,
-  useIssue,
-  useRevisions,
-  useSign,
   useUpdateDossier,
-  useVerifyHash,
 } from './api'
-import { type Section, moveSection, sha256Hex } from './lib'
+import { Readiness } from './dossier-gate-panel'
+import { Revisions } from './dossier-revisions'
+import { type Section, moveSection } from './lib'
 import { ScopePicker } from './scope-picker'
 
 function initialId() {
   const id = Number(new URLSearchParams(window.location.search).get('id'))
   return Number.isFinite(id) && id > 0 ? id : null
 }
-
-const INTENT =
-  'I confirm that this dossier revision is complete and correct to the best of my knowledge, and I sign it on behalf of the contractor.'
 
 function NewDossier({
   projectId,
@@ -248,289 +227,6 @@ function Outline({ dossier }: { dossier: Dossier }) {
             {t('mdr.save_outline')}
           </Button>
         </div>
-      ) : null}
-    </div>
-  )
-}
-
-function Readiness({ dossier }: { dossier: Dossier }) {
-  const { t } = useTranslation()
-  const session = useSession()
-  const [purpose, setPurpose] = useState(
-    dossier.status === 'accepted' || dossier.status === 'final'
-      ? 'final'
-      : 'review'
-  )
-  const { data: gate } = useGate(dossier.id, purpose)
-  const draft = useDraft(dossier.id)
-  const issue = useIssue(dossier.id)
-  const canSubmit = can(session, 'mdr.submit')
-  return (
-    <section className='grid gap-2'>
-      <div className='flex flex-wrap items-center gap-2'>
-        <h4 className='text-sm font-medium'>{t('mdr.readiness')}</h4>
-        <NativeSelect
-          className='h-8 w-40'
-          aria-label={t('mdr.purpose')}
-          options={[
-            { value: 'review', label: t('mdr.for_review') },
-            { value: 'final', label: t('mdr.for_final') },
-          ]}
-          value={purpose}
-          onChange={(e) => setPurpose(e.target.value)}
-        />
-        {gate ? <StatusBadge status={gate.ready ? 'pass' : 'fail'} /> : null}
-      </div>
-      <ul className='grid gap-1'>
-        {gate?.checks.map((c) => (
-          <li key={c.key} className='rounded-md border px-2 py-1 text-sm'>
-            <div className='flex items-center gap-2'>
-              <StatusBadge status={c.status} />
-              <span>{c.title}</span>
-              {!c.blocking ? (
-                <span className='text-xs text-muted-foreground'>
-                  {t('mdr.advisory')}
-                </span>
-              ) : null}
-              <span className='ms-auto text-xs text-muted-foreground'>
-                {c.module}
-              </span>
-            </div>
-            {c.detail ? (
-              <p className='text-xs text-muted-foreground'>{c.detail}</p>
-            ) : null}
-            {c.findings.length ? (
-              <ul className='ms-6 list-disc text-xs'>
-                {c.findings.slice(0, 20).map((f, i) => (
-                  <li key={i}>
-                    {f.link ? (
-                      <a className='underline' href={f.link}>
-                        {f.message}
-                      </a>
-                    ) : (
-                      f.message
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-      {canSubmit && dossier.status !== 'final' ? (
-        <div className='flex flex-wrap gap-2'>
-          <Button
-            size='sm'
-            variant='outline'
-            disabled={draft.isPending}
-            onClick={() =>
-              draft.mutate(undefined, {
-                onSuccess: (r) => window.open(downloadUrl(r.id), '_blank'),
-              })
-            }
-          >
-            <FileCog /> {t('mdr.compile_draft')}
-          </Button>
-          <Button
-            size='sm'
-            disabled={issue.isPending || !gate?.ready}
-            onClick={() => issue.mutate(purpose as 'review' | 'final')}
-          >
-            <Send />{' '}
-            {purpose === 'final' ? t('mdr.issue_final') : t('mdr.issue_review')}
-          </Button>
-        </div>
-      ) : null}
-      {canSubmit && dossier.status === 'final' ? (
-        <Button
-          size='sm'
-          className='w-fit'
-          disabled={issue.isPending || !gate?.ready}
-          onClick={() => issue.mutate('final')}
-        >
-          <Send /> {t('mdr.reissue_final')}
-        </Button>
-      ) : null}
-    </section>
-  )
-}
-
-function SignDialog({
-  revision,
-  onClose,
-}: {
-  revision: Revision
-  onClose: () => void
-}) {
-  const { t } = useTranslation()
-  const sign = useSign()
-  const [confirmed, setConfirmed] = useState(false)
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader>
-          <DialogTitle>
-            {t('mdr.sign_title', { rev: revision.revision })}
-          </DialogTitle>
-          <DialogDescription>{t('mdr.sign_hint')}</DialogDescription>
-        </DialogHeader>
-        <label className='flex items-start gap-2 text-sm'>
-          <Checkbox
-            checked={confirmed}
-            onCheckedChange={(on) => setConfirmed(Boolean(on))}
-          />
-          {INTENT}
-        </label>
-        <DialogFooter>
-          <Button
-            disabled={!confirmed || sign.isPending}
-            onClick={() => sign.mutate(revision.id, { onSuccess: onClose })}
-          >
-            <PenLine /> {t('mdr.sign')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function Revisions({ dossier }: { dossier: Dossier }) {
-  const { t } = useTranslation()
-  const session = useSession()
-  const { data: revisions = [] } = useRevisions(dossier.id)
-  const decide = useDecide()
-  const verify = useVerifyHash(dossier.id)
-  const [signing, setSigning] = useState<Revision | null>(null)
-  const [hash, setHash] = useState<string | null>(null)
-  return (
-    <div className='grid gap-3'>
-      <ul className='grid gap-2'>
-        {revisions.map((r) => (
-          <li key={r.id} className='grid gap-1 rounded-md border p-2 text-sm'>
-            <div className='flex flex-wrap items-center gap-2'>
-              <span className='font-medium'>
-                {r.revision ? `Rev ${r.revision}` : t('mdr.draft')}
-              </span>
-              <Badge variant='outline'>{r.kind}</Badge>
-              <StatusBadge status={r.status} />
-              <span className='text-xs text-muted-foreground'>
-                {t('mdr.pages', { count: r.page_count })}
-              </span>
-              <Button size='sm' variant='ghost' className='ms-auto' asChild>
-                <a href={downloadUrl(r.id)}>
-                  <Download /> {t('mdr.download')}
-                </a>
-              </Button>
-            </div>
-            {r.sha256 ? (
-              <div className='font-mono text-xs break-all text-muted-foreground'>
-                SHA-256 {r.sha256}
-              </div>
-            ) : null}
-            <div className='text-xs text-muted-foreground'>
-              {[
-                r.compiled_by_name &&
-                  t('mdr.compiled_by', { name: r.compiled_by_name }),
-                r.signed_by_name &&
-                  t('mdr.signed_by', {
-                    name: r.signed_by_name,
-                    at: r.signed_at
-                      ? new Date(r.signed_at).toLocaleString()
-                      : '',
-                  }),
-                r.decided_by_name &&
-                  t('mdr.decided_by', {
-                    name: r.decided_by_name,
-                    decision: r.status,
-                  }),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </div>
-            <div className='flex flex-wrap gap-2'>
-              {r.status === 'pending_signature' && can(session, 'mdr.sign') ? (
-                <Button size='sm' onClick={() => setSigning(r)}>
-                  <PenLine /> {t('mdr.sign')}
-                </Button>
-              ) : null}
-              {r.kind === 'review' &&
-              r.status === 'issued' &&
-              can(session, 'mdr.accept') ? (
-                <>
-                  <Button
-                    size='sm'
-                    onClick={() =>
-                      decide.mutate({ revisionId: r.id, decision: 'accepted' })
-                    }
-                  >
-                    <FileCheck2 /> {t('mdr.accept')}
-                  </Button>
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => {
-                      const note = window.prompt(t('mdr.reject_note'))
-                      if (note !== null)
-                        decide.mutate({
-                          revisionId: r.id,
-                          decision: 'rejected',
-                          note,
-                        })
-                    }}
-                  >
-                    {t('mdr.reject')}
-                  </Button>
-                </>
-              ) : null}
-            </div>
-          </li>
-        ))}
-        {!revisions.length ? (
-          <p className='text-sm text-muted-foreground'>
-            {t('mdr.no_revisions')}
-          </p>
-        ) : null}
-      </ul>
-      <section className='grid gap-1 rounded-md border p-2'>
-        <Label htmlFor='hash-check' className='flex items-center gap-1'>
-          <ShieldCheck className='size-4' /> {t('mdr.check_copy')}
-        </Label>
-        <p className='text-xs text-muted-foreground'>
-          {t('mdr.check_copy_hint')}
-        </p>
-        <Input
-          id='hash-check'
-          type='file'
-          accept='application/pdf'
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            if (!file) return
-            const sha = await sha256Hex(await file.arrayBuffer())
-            setHash(sha)
-            verify.mutate(sha)
-          }}
-        />
-        {hash && verify.data ? (
-          <p
-            className={
-              verify.data.match
-                ? 'text-sm text-green-700 dark:text-green-400'
-                : 'text-sm text-red-600'
-            }
-          >
-            {verify.data.match
-              ? t('mdr.copy_matches', {
-                  rev: verify.data.revision ?? t('mdr.draft'),
-                  signed: verify.data.signed
-                    ? t('mdr.signed')
-                    : t('mdr.unsigned'),
-                })
-              : t('mdr.copy_differs')}
-          </p>
-        ) : null}
-      </section>
-      {signing ? (
-        <SignDialog revision={signing} onClose={() => setSigning(null)} />
       ) : null}
     </div>
   )

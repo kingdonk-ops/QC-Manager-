@@ -4,9 +4,10 @@ waived, and the canonical release snapshot with its SHA-256 digest.
 The digest uses the destination's canonical JSON hashing helper (the one inspection signatures use), so it does not
 depend on key order. This file otherwise imports neither the web framework nor the database layer."""
 
+from collections.abc import Iterable
 from typing import Any
 
-from .constants import Authority, GateKind
+from .constants import AttachmentKind, Authority, GateKind
 from .signing import sha256_of
 
 AUTHORITY_ORDER: tuple[str, ...] = (
@@ -51,6 +52,27 @@ def authority_satisfies(asserted: str | None, required: str | None) -> bool:
 def is_waivable(kind: str | None) -> bool:
     """Hold is the only kind that is never waived."""
     return kind in WAIVABLE_KINDS
+
+
+def is_overridden(gate: Any) -> bool:
+    """A pending gate that a dossier issue override covers. It stays pending; only the annotation is set."""
+    return getattr(gate, "override_id", None) is not None
+
+
+def split_overridden(gates: Iterable[Any]) -> tuple[list[Any], list[Any]]:
+    """Pending gates split into ``(overridden, plain)``, each in the order given."""
+    overridden: list[Any] = []
+    plain: list[Any] = []
+    for gate in gates:
+        (overridden if is_overridden(gate) else plain).append(gate)
+    return overridden, plain
+
+
+def proceed_allowed(kind: str | None, plain: int, overridden: int, holds: int = 0) -> bool:
+    """The can-proceed verdict from the three counts. Overridden-pending gates stop counting only for a dossier
+    attachment; for every other kind they still make the answer false."""
+    overriding = overridden if kind != AttachmentKind.DOSSIER.value else 0
+    return plain + overriding + holds == 0
 
 
 def release_snapshot(

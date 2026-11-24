@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from ..common.schemas import EncodableText, PartialUpdate
 from .constants import Area, AuditScope, FollowUp, InspectionStatus, Kind, LinkKind, Point, ProposedResult, ResponseType, Result
@@ -12,6 +12,7 @@ from .dashboard_schemas import InspectionTrendGroup as InspectionTrendGroup
 from .dashboard_schemas import InspectionTrendMonth as InspectionTrendMonth
 from .dashboard_schemas import InspectionTrendPoint as InspectionTrendPoint
 from .dashboard_schemas import InspectionTrends as InspectionTrends
+from .signatory_rules import DEFAULT_REQUIRED, MAX_REQUIRED, MIN_REQUIRED, collected_from_rows
 
 Short = Annotated[str | None, Field(max_length=200)]
 Reading = Annotated[float, Field(ge=-1e9, le=1e9)]
@@ -72,6 +73,9 @@ class ItpActivity(BaseModel):
     criterion_id: int | None = Field(None, ge=1, description="Library criterion the line carries at record level")
     spec_ref: Annotated[str | None, Field(max_length=200)] = None
     required_qualification: Qualification = None
+    required_signatories: Annotated[
+        int, Field(strict=True, ge=MIN_REQUIRED, le=MAX_REQUIRED, description="Distinct people who must sign (1 to 10)")
+    ] = DEFAULT_REQUIRED
     points: ItpPoints = ItpPoints()
 
 
@@ -465,9 +469,18 @@ class InspectionRead(BaseModel):
     conditional: bool = False
     report_id: int | None = None
     content_sha256: str | None = None
+    required_signatories: int = DEFAULT_REQUIRED
     items: list[InspectionItemRead] = []
     signatures: list[SignatureRead] = []
     comments: list[AnswerCommentRead] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def signatories_collected(self) -> int | None:
+        """Distinct people whose valid signature covers the current content; known only on a full read."""
+        if self.content_sha256 is None:
+            return None
+        return collected_from_rows(self.signatures, self.content_sha256)
 
 
 class EligibilityFinding(BaseModel):

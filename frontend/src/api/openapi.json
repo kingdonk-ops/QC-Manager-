@@ -15704,6 +15704,108 @@
     }
    }
   },
+  "/api/v1/inspections/{inspection_id}/signatories": {
+   "get": {
+    "tags": [
+     "Quality Inspections",
+     "Quality Inspections"
+    ],
+    "summary": "Signatory Status of a Line",
+    "description": "Read-only. The required signatory count, how many distinct people have signed the current content, who they are with their roles, and whether the requirement is met. One person signing twice counts once; provisional, void and rejected signatures, signatures over changed content and the hold release do not count.",
+    "operationId": "signatory_status_api_v1_inspections__inspection_id__signatories_get",
+    "parameters": [
+     {
+      "name": "inspection_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Inspection Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SignatoryStatus"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/inspections/{inspection_id}/signatories/additional": {
+   "post": {
+    "tags": [
+     "Quality Inspections",
+     "Quality Inspections"
+    ],
+    "summary": "Sign as an Additional Signatory",
+    "description": "Adds the caller's signature over the current content in the additional-signatory role, one per person and role (a second submission by the same person is a conflict, also when two arrive together). ITP lines only; refused for a planned, passed or failed line and until the inspector has signed. Answers with the new status.",
+    "operationId": "add_additional_signatory_api_v1_inspections__inspection_id__signatories_additional_post",
+    "parameters": [
+     {
+      "name": "inspection_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Inspection Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AdditionalSignatory"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SignatoryStatus"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/inspections/": {
    "get": {
     "tags": [
@@ -39117,6 +39219,112 @@
     }
    }
   },
+  "/api/v1/mdr/dossiers/{dossier_id}/override": {
+   "post": {
+    "tags": [
+     "MDR / turnover dossiers",
+     "MDR / turnover dossiers"
+    ],
+    "summary": "Override the Issue Gate",
+    "description": "Lets the dossier issue past outstanding quality holds and open blocking issues. A reason is required. Raises a documentation non-conformance report listing the blockers and annotates the covered holds, which stay pending. Only the quality gate and open issues checks are covered (422 names any other failing check or an unavailable covered check); 409 when nothing blocks. Issue itself is unchanged.",
+    "operationId": "record_override_api_v1_mdr_dossiers__dossier_id__override_post",
+    "parameters": [
+     {
+      "name": "dossier_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Dossier Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OverrideIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OverrideRead"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/mdr/dossiers/{dossier_id}/overrides": {
+   "get": {
+    "tags": [
+     "MDR / turnover dossiers",
+     "MDR / turnover dossiers"
+    ],
+    "summary": "Override History",
+    "description": "Every override recorded for the dossier, newest first, with its reason, blockers and report.",
+    "operationId": "overrides_api_v1_mdr_dossiers__dossier_id__overrides_get",
+    "parameters": [
+     {
+      "name": "dossier_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "maximum": 2147483647,
+       "minimum": 1,
+       "title": "Dossier Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/OverrideRead"
+         },
+         "title": "Response Overrides Api V1 Mdr Dossiers  Dossier Id  Overrides Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/mdr/sections": {
    "get": {
     "tags": [
@@ -54507,6 +54715,20 @@
     "type": "object",
     "title": "ActionUpdate"
    },
+   "AdditionalSignatory": {
+    "properties": {
+     "accept_intent": {
+      "type": "boolean",
+      "title": "Accept Intent",
+      "description": "The signer accepts the additional-signatory statement",
+      "default": false
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "AdditionalSignatory",
+    "description": "One more distinct person signing an ITP line over its current content."
+   },
    "AgendaItemIn": {
     "properties": {
      "title": {
@@ -59764,6 +59986,29 @@
      "batch"
     ],
     "title": "Batch"
+   },
+   "BlockerRead": {
+    "properties": {
+     "check": {
+      "type": "string",
+      "title": "Check"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "check",
+     "reference",
+     "message"
+    ],
+    "title": "BlockerRead"
    },
    "Board": {
     "properties": {
@@ -67981,6 +68226,12 @@
        }
       ],
       "title": "Detail"
+     },
+     "overridable": {
+      "type": "boolean",
+      "title": "Overridable",
+      "description": "Whether a manager override may ever cover this check; a failing check that is not stops an override.",
+      "readOnly": true
      }
     },
     "type": "object",
@@ -67990,7 +68241,8 @@
      "module",
      "blocking",
      "status",
-     "findings"
+     "findings",
+     "overridable"
     ],
     "title": "CheckRead"
    },
@@ -78587,6 +78839,46 @@
     ],
     "title": "FromProgrammeResult"
    },
+   "GateCounts": {
+    "properties": {
+     "plain_pending_holds": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plain Pending Holds"
+     },
+     "overridden_pending_holds": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Overridden Pending Holds"
+     },
+     "open_reports": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Open Reports"
+     }
+    },
+    "type": "object",
+    "title": "GateCounts",
+    "description": "What is outstanding behind the checks; a value is ``None`` when its module is not available."
+   },
    "GateCreate": {
     "properties": {
      "project_id": {
@@ -78761,6 +79053,22 @@
       "type": "array",
       "title": "Gate Ids"
      },
+     "overridden_gate_numbers": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Overridden Gate Numbers",
+      "default": []
+     },
+     "overridden_gate_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Overridden Gate Ids",
+      "default": []
+     },
      "hold_points": {
       "items": {
        "$ref": "#/components/schemas/HoldPointRef"
@@ -78780,7 +79088,7 @@
      "gate_ids"
     ],
     "title": "GateProceed",
-    "description": "Whether work may go ahead on one entity: blocking gates oldest first (numbers and identifiers in step), and,\nfor an inspection, the earlier ITP hold points that are still unreleased."
+    "description": "Whether work may go ahead on one entity: blocking gates oldest first (numbers and identifiers in step), and,\nfor an inspection, the earlier ITP hold points that are still unreleased. Gates a dossier issue override covers are\nlisted apart; they stay pending and still make the answer false, except for a dossier attachment."
    },
    "GateRead": {
     "properties": {
@@ -78805,6 +79113,16 @@
       },
       "type": "array",
       "title": "Checks"
+     },
+     "counts": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/GateCounts"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -82952,6 +83270,11 @@
       ],
       "title": "Content Sha256"
      },
+     "required_signatories": {
+      "type": "integer",
+      "title": "Required Signatories",
+      "default": 1
+     },
      "items": {
       "items": {
        "$ref": "#/components/schemas/InspectionItemRead"
@@ -82975,6 +83298,19 @@
       "type": "array",
       "title": "Comments",
       "default": []
+     },
+     "signatories_collected": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Signatories Collected",
+      "description": "Distinct people whose valid signature covers the current content; known only on a full read.",
+      "readOnly": true
      }
     },
     "type": "object",
@@ -82999,7 +83335,8 @@
      "not_applicable",
      "unanswered",
      "pass_rate",
-     "completed_at"
+     "completed_at",
+     "signatories_collected"
     ],
     "title": "InspectionRead"
    },
@@ -85262,6 +85599,14 @@
       ],
       "title": "Required Qualification"
      },
+     "required_signatories": {
+      "type": "integer",
+      "maximum": 10.0,
+      "minimum": 1.0,
+      "title": "Required Signatories",
+      "description": "Distinct people who must sign (1 to 10)",
+      "default": 1
+     },
      "points": {
       "$ref": "#/components/schemas/ItpPoints",
       "default": {
@@ -85547,6 +85892,16 @@
        }
       ],
       "title": "Criterion Id"
+     },
+     "required_signatories": {
+      "type": "integer",
+      "title": "Required Signatories",
+      "default": 1
+     },
+     "signatories_collected": {
+      "type": "integer",
+      "title": "Signatories Collected",
+      "default": 0
      },
      "item_count": {
       "type": "integer",
@@ -94238,6 +94593,158 @@
     ],
     "title": "OverheadCode",
     "description": "Paid time that belongs to no work anchor."
+   },
+   "OverrideIn": {
+    "properties": {
+     "purpose": {
+      "$ref": "#/components/schemas/IssuePurpose",
+      "description": "The issue the override is for; a final issue also needs client acceptance"
+     },
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "description": "Why the dossier is issued past the blockers; required"
+     },
+     "severity": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "minor",
+         "major",
+         "critical"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Severity",
+      "description": "Severity of the documentation report; major when omitted"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "purpose",
+     "reason"
+    ],
+    "title": "OverrideIn"
+   },
+   "OverrideRead": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "dossier_id": {
+      "type": "integer",
+      "title": "Dossier Id"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "purpose": {
+      "type": "string",
+      "title": "Purpose"
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason"
+     },
+     "severity": {
+      "type": "string",
+      "title": "Severity"
+     },
+     "blockers": {
+      "items": {
+       "$ref": "#/components/schemas/BlockerRead"
+      },
+      "type": "array",
+      "title": "Blockers"
+     },
+     "gate_numbers": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Gate Numbers"
+     },
+     "report_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Report Id"
+     },
+     "report_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Report Code"
+     },
+     "created_by_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Id"
+     },
+     "created_by_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By Name"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "dossier_id",
+     "reference",
+     "purpose",
+     "reason",
+     "severity",
+     "blockers",
+     "gate_numbers",
+     "report_id",
+     "report_code",
+     "created_by_id"
+    ],
+    "title": "OverrideRead"
    },
    "P6ChangeRead": {
     "properties": {
@@ -106981,6 +107488,29 @@
       "type": "object",
       "title": "Supplementary"
      },
+     "override_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Override Id"
+     },
+     "override_ref": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Override Ref",
+      "description": "Set while a dossier issue override covers this pending gate"
+     },
      "created_at": {
       "anyOf": [
        {
@@ -116608,6 +117138,75 @@
      "confirm"
     ],
     "title": "SignIn"
+   },
+   "SignatoryPerson": {
+    "properties": {
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "roles": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Roles"
+     }
+    },
+    "type": "object",
+    "required": [
+     "user_id",
+     "roles"
+    ],
+    "title": "SignatoryPerson"
+   },
+   "SignatoryStatus": {
+    "properties": {
+     "inspection_id": {
+      "type": "integer",
+      "title": "Inspection Id"
+     },
+     "required": {
+      "type": "integer",
+      "title": "Required"
+     },
+     "collected": {
+      "type": "integer",
+      "title": "Collected"
+     },
+     "met": {
+      "type": "boolean",
+      "title": "Met"
+     },
+     "signers": {
+      "items": {
+       "$ref": "#/components/schemas/SignatoryPerson"
+      },
+      "type": "array",
+      "title": "Signers"
+     }
+    },
+    "type": "object",
+    "required": [
+     "inspection_id",
+     "required",
+     "collected",
+     "met",
+     "signers"
+    ],
+    "title": "SignatoryStatus",
+    "description": "The required count, how many distinct people have signed, who they are and whether the requirement is met."
    },
    "SignatureRead": {
     "properties": {

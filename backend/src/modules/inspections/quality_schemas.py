@@ -32,6 +32,8 @@ class ItpLineRead(BaseModel):
     spec_ref: str | None
     required_qualification: str | None
     criterion_id: int | None = None
+    required_signatories: int = 1
+    signatories_collected: int = 0
     item_count: int
     has_hold: bool
     hold_released_at: datetime | None

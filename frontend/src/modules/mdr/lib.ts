@@ -43,7 +43,7 @@ export type Check = {
   status: string
 }
 
-/** Whether nothing blocking failed. `not_available` never blocks. */
+/** Whether nothing blocking failed. `not_available` and `overridden` never block. */
 export function gateReady(checks: Check[]) {
   return !checks.some((c) => c.blocking && c.status === 'fail')
 }

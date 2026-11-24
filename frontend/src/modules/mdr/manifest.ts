@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import { BookCheck } from 'lucide-react'
 import type { ModuleManifest } from '../_types'
+import { overrideMessages } from './override-messages'
 
 export const manifest: ModuleManifest = {
   id: 'mdr',
@@ -26,6 +27,7 @@ export const manifest: ModuleManifest = {
   ],
   messages: {
     en: {
+      ...overrideMessages,
       'nav.mdr': 'MDR dossiers',
       'mdr.title': 'MDR / turnover dossiers',
       'mdr.description':

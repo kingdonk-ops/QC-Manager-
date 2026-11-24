@@ -29,9 +29,12 @@ async def raise_automatic(
     responsible_user_id: int | None = None,
     inspection_id: int | None = None,
     inspection_item_id: int | None = None,
+    mdr_effect: str | None = None,
+    completion_effect: str | None = None,
 ) -> Ncr:
     """An NCR on the default template of ``category`` (the general one when none is given), initial status open,
-    not committed."""
+    not committed. ``mdr_effect`` / ``completion_effect`` set the report's blocking flags when the caller needs them
+    other than the template's (for example ``register_only`` and ``none`` for a report that must never block)."""
     return await create_ncr(
         db,
         project_id=project_id,
@@ -48,5 +51,7 @@ async def raise_automatic(
         responsible_user_id=responsible_user_id,
         inspection_id=inspection_id,
         inspection_item_id=inspection_item_id,
+        mdr_effect=mdr_effect,
+        completion_effect=completion_effect,
         source_data=source_data,
     )

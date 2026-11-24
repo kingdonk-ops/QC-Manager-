@@ -26,6 +26,7 @@ import {
   useDecideCosign,
   useSign,
 } from './quality-api'
+import { SignersPanel } from './signers-panel'
 import {
   CosignDialog,
   HoldReleaseDialog,
@@ -250,6 +251,7 @@ export function SignOffPanel({ inspection }: { inspection: Inspection }) {
             {t('inspections.not_signed')}
           </p>
         )}
+        <SignersPanel inspection={inspection} />
         <div className='flex flex-wrap gap-2'>
           {editable &&
           !inspectorSigned &&

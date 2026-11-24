@@ -124,6 +124,8 @@ class SignatureRole(StrEnum):
     REVIEWER = "reviewer"
     HOLD_RELEASE = "hold_release"
     CLIENT = "client"
+    ADDITIONAL_SIGNATORY = "additional_signatory"
+    """An extra distinct signer on an ITP line that needs more than one signatory."""
 
 
 class CosignMode(StrEnum):
@@ -148,6 +150,8 @@ INTENT = {
     SignatureRole.HOLD_RELEASE: "I, {name}, release hold point {code} and confirm the work meets the stated acceptance "
     "criteria.",
     SignatureRole.CLIENT: "I, {name}, co-sign inspection {code} for the client.",
+    SignatureRole.ADDITIONAL_SIGNATORY: "I, {name}, sign inspection {code} as an additional signatory and confirm the "
+    "recorded results are true and complete.",
 }
 INTENT_VERSION = 1
 

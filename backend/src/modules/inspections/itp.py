@@ -17,6 +17,8 @@ from .callouts import latest_request_summary
 from .constants import Area, DelegationKind, InspectionStatus, Kind, SignatureRole, has_hold
 from .models import ChecklistTemplate, Inspection, ItpInstance
 from .service import ENTITY, checklist_items, ensure_revision, rescore
+from .signatories import collected_for_lines
+from .signatory_rules import DEFAULT_REQUIRED, required_count_error
 
 
 class InstanceNotFoundError(ResourceNotFoundError):
@@ -28,6 +30,13 @@ async def get_instance(db: AsyncSession, instance_id: int) -> ItpInstance:
     if i is None:
         raise InstanceNotFoundError("No such ITP instance")
     return i
+
+
+def required_of(activity: dict[str, Any]) -> int:
+    """The activity's required signatory count; an activity saved before the count existed, or holding an unusable
+    value, requires one."""
+    value = activity.get("required_signatories")
+    return DEFAULT_REQUIRED if value is None or required_count_error(value) else int(value)
 
 
 async def instantiate(
@@ -94,6 +103,7 @@ async def instantiate(
             points={k: str(v) for k, v in (act.get("points") or {}).items()},
             acceptance_criteria=act.get("acceptance_criteria"),
             criterion_id=act.get("criterion_id"),
+            required_signatories=required_of(act),
             verifying_document=act.get("verifying_document") or (form.name if form else None),
             spec_ref=act.get("spec_ref"),
         )
@@ -138,6 +148,7 @@ async def read_instance(db: AsyncSession, instance: ItpInstance, *, with_lines: 
         "lines": [],
     }
     if with_lines:
+        collected = await collected_for_lines(db, lines)
         for line in lines:
             witness, per_party = await eligibility.witness_status(db, line)
             blocked = await eligibility.hold_findings(db, line)
@@ -155,6 +166,8 @@ async def read_instance(db: AsyncSession, instance: ItpInstance, *, with_lines: 
                     "spec_ref": line.spec_ref,
                     "required_qualification": line.required_qualification,
                     "criterion_id": line.criterion_id,
+                    "required_signatories": line.required_signatories,
+                    "signatories_collected": collected.get(line.id, 0),
                     "item_count": line.passed + line.failed + line.not_applicable + line.unanswered,
                     "has_hold": has_hold(line.points),
                     "hold_released_at": line.hold_released_at,
