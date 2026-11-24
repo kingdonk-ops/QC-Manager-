@@ -201,6 +201,20 @@ async def reset_password_budget(user_id: int) -> None:
     await _reset_limiter_keys(key, f"{key}:{window}")
 
 
+async def reset_api_budget(user_id: int, path: str) -> None:
+    """Clear one user's API throttle budget on one route, the current window included.
+
+    The budget lives in the process the suite runs in and every fresh test database reuses the same user ids,
+    so fast suites that create many nodes would otherwise spend one user's per-minute budget across tests.
+    """
+    from src.infrastructure.config.settings import settings  # noqa: PLC0415 - read at call time
+
+    period = settings.DEFAULT_RATE_LIMIT_PERIOD
+    window = int(time.time()) // period * period
+    key = f"ratelimit:api:user:{user_id}:{path}"
+    await _reset_limiter_keys(key, f"{key}:{window}", f"{key}:{window - period}")
+
+
 RECOVERY_ACTIONS = ("email_verify_request", "password_reset_request", "email_change_request")
 
 

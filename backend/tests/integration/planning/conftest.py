@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.modules import state
 from src.modules.projects.models import Project
+from tests.fixtures.accounts import reset_api_budget
 from tests.integration.rbac.test_user_permissions import _grant, _login
 
 PERMS = (
@@ -49,6 +50,8 @@ async def site(client: AsyncClient, db_session: AsyncSession, test_user: dict, t
     await db_session.commit()
     await _grant(db_session, test_user["id"], "planner-a", *PERMS)
     await _grant(db_session, test_user_2["id"], "planner-b", *PERMS)
+    for user in (test_user, test_user_2):
+        await reset_api_budget(user["id"], "/api/v1/asset-tree/nodes/")
     headers = {"X-CSRF-Token": await _login(client, test_user)}
     applied = await client.post(
         "/api/v1/asset-tree/packs/remediation-rsw/apply", params={"project_id": project.id}, headers=headers

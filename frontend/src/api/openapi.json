@@ -1,7 +1,7 @@
 {
  "openapi": "3.1.0",
  "info": {
-  "title": "QC Manager",
+  "title": "FastAPI Boilerplate",
   "version": "0.1.0"
  },
  "paths": {
@@ -105132,6 +105132,31 @@
       "type": "array",
       "title": "Anchors",
       "description": "Work anchors (RSWs) the activity is linked to"
+     },
+     "window_share": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Window Share",
+      "description": "Part of the activity's working days inside the plan's window (0-1, project calendar)"
+     },
+     "hours_in_window": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hours In Window",
+      "description": "budget_hours \u00d7 window_share: what a pack takes"
      },
      "in_plan": {
       "type": "boolean",

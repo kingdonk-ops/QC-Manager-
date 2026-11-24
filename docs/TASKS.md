@@ -181,7 +181,7 @@ synthetic schedules of the same shape.
 | 11.4 | Durations and lags use each activity's own P6 calendar; holidays from years before the programme are dropped. | done |
 | 11.5 | The Schedule shows P6's own float and critical flag (per the project's critical definition) for mirrored activities; hand-made activities keep the CPM's. | done |
 | 11.6 | Planner "Add from programme": pick P6 activities (window, WBS, asset, activity code) into a plan; packs per RSW (default) or per P6 activity, lines on the linked RSWs with P6 dates and hours. | done |
-| 11.9 | Share a long activity's hours by the days that fall in the plan's window (today a pack takes the activity's full P6 hours). | todo |
+| 11.9 | Share a long activity's hours by the days that fall in the plan's window: a pack takes the activity's P6 hours × (working days inside the window ÷ working days of the activity) on the project calendar, its dates are clipped to the window, and the line notes the full P6 figure ("120 of 2,700 h in this plan"). Per-activity P6 calendars are a later refinement. | done |
 | 11.7 | Generate the RSW's inspections / ITPs from the RSW's activity types and templates once it is released. | later |
 | 11.8 | RSW document intake (bulk PDF/ZIP, splitting, OCR, matching to the expected RSWs from P6, missing-document register). | later |
 

@@ -42,6 +42,7 @@ from ..inspections.models import Inspection
 from ..projects.models import Project
 from . import cpm, progress
 from . import service as schedule
+from .calendar import Calendar
 from .interchange import Imported
 from .models import Activity, Dependency, ScheduleSettings
 from .p6_models import P6Change, P6Export, P6Import, P6Link, P6LinkMemory, P6Rule, ProgressVerification
@@ -1136,6 +1137,7 @@ async def programme_for_planning(
     search: str | None = None,
     activity_ids: list[int] | None = None,
     limit: int = 1000,
+    window: tuple[date, date] | None = None,
 ) -> list[dict[str, Any]]:
     """Mirrored P6 activities with the work anchors they are linked to, for the planner to pick from.
 
@@ -1143,6 +1145,11 @@ async def programme_for_planning(
     optionally filtered by ``search`` over the Activity ID, the name and the activity codes. Each carries its
     confirmed links (``anchors``) with the note the name gave (``OHP``, ``Access``...), its activity type and
     its P6 dates and hours. Activities without a link are returned too, with ``anchors = []``.
+
+    With ``window`` (a plan's start and end) each row also carries ``window_share``, the part of the activity's
+    working days on the project calendar that falls inside the window, and ``hours_in_window``, its hours times
+    that share. A long activity planned in a three-week look-ahead then brings three weeks of hours, not all of
+    them. The P6 mirror itself never changes.
     """
     q = select(Activity).where(
         Activity.project_id == project_id,
@@ -1190,10 +1197,15 @@ async def programme_for_planning(
                 "work_window": link.work_window,
             }
         )
+    cal = None
+    if window is not None:
+        settings = await db.get(ScheduleSettings, project_id)
+        cal = schedule.calendar_of(settings) if settings else Calendar(window[0])
     out = []
     for a in acts:
         facts = a.p6_facts or {}
         src = facts.get("src") or {}
+        share = window_share(cal, a.planned_start, a.planned_finish, window) if cal and window else None
         out.append(
             {
                 "activity_id": a.id,
@@ -1206,9 +1218,33 @@ async def programme_for_planning(
                 "activity_type": (facts.get("groups") or {}).get("activity_type"),
                 "codes": src.get("codes") or {},
                 "anchors": anchors.get(a.id, []),
+                "window_share": round(share, 4) if share is not None else None,
+                "hours_in_window": (
+                    (Decimal(a.budget_hours or 0) * Decimal(str(share))).quantize(Decimal("0.01"))
+                    if share is not None
+                    else None
+                ),
             }
         )
     return out
+
+
+def window_share(cal: Calendar, start: date | None, finish: date | None, window: tuple[date, date]) -> float:
+    """The part of an activity's working days that falls inside ``window`` (0..1, exact).
+
+    Undated activities count as wholly inside. An activity with no working days in its span (all on days off)
+    is shared by calendar days instead, so nothing is ever divided by zero.
+    """
+    if start is None or finish is None:
+        return 1.0
+    finish = max(finish, start)
+    lo, hi = max(start, window[0]), min(finish, window[1])
+    if hi < lo:
+        return 0.0
+    total = cal.working_days_between(start, finish)
+    if total == 0:
+        return ((hi - lo).days + 1) / ((finish - start).days + 1)
+    return min(cal.working_days_between(lo, hi) / total, 1.0)
 
 
 # --- links ---------------------------------------------------------------------------------------

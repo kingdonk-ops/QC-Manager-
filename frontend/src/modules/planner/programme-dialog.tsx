@@ -65,6 +65,13 @@ export function ProgrammeDialog({
         type: 'rightAligned',
       },
       {
+        field: 'hours_in_window',
+        headerName: t('planner.hours_in_plan'),
+        headerTooltip: t('planner.hours_in_plan_hint'),
+        width: 120,
+        type: 'rightAligned',
+      },
+      {
         colId: 'anchors',
         headerName: t('planner.rsws'),
         width: 180,
