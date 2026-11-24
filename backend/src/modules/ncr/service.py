@@ -433,12 +433,17 @@ async def create_issue(
     external: bool = False,
     enforce_anchor: bool = True,
     visibility: str | None = None,
+    mdr_effect: str | None = None,
+    completion_effect: str | None = None,
     answers: dict[str, Any] | None = None,
     links: list[dict[str, Any]] | None = None,
     commit: bool = True,
     **fields: Any,
 ) -> Ncr:
     """Raise a punch or an NCR on its template's latest published revision. For other modules too.
+
+    ``mdr_effect`` and ``completion_effect`` (automation only; the HTTP create schema has neither) replace the
+    template's flag defaults, so an automatic report can be raised non-blocking whatever its template says.
 
     ``external`` (the raiser is a portal account) forces ``origin = client`` (or ``external_audit`` when the
     template says so) and client visibility. ``enforce_anchor=False`` lets automation raise a project-level
@@ -470,8 +475,8 @@ async def create_issue(
         origin = Origin.EXTERNAL_AUDIT.value if revision.default_origin == Origin.EXTERNAL_AUDIT else Origin.CLIENT.value
     flags: dict[str, Any] = {
         "visibility": visibility or revision.default_visibility,
-        "mdr_effect": revision.default_mdr_effect,
-        "completion_effect": revision.completion_effect,
+        "mdr_effect": mdr_effect or revision.default_mdr_effect,
+        "completion_effect": completion_effect or revision.completion_effect,
     }
     if origin in LOCKED_ORIGINS:
         flags["visibility"] = Visibility.CLIENT.value

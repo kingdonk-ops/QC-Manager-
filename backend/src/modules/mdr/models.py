@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from ...infrastructure.database.models import TimestampMixin
 from ...infrastructure.database.session import Base
+from .override_models import MdrOverride as MdrOverride  # registers the table; re-exported
 
 
 class MdrDossier(Base, TimestampMixin):

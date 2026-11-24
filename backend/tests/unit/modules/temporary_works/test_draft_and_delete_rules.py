@@ -142,7 +142,15 @@ def test_the_soft_delete_revision_is_chained_after_the_register_revision_and_the
     assert [r for r, parents in revisions.items() if PARENT in parents] == [REVISION]
     assert [r for r, parents in revisions.items() if REVISION in parents] == [NEXT]
     heads = set(revisions) - set().union(*revisions.values())
-    assert heads == {NEXT}  # one head remains: the recycle bin revision
+    assert len(heads) == 1, heads  # the repository invariant: exactly one head
+    ancestors: set[str] = set()
+    pending = list(heads)
+    while pending:
+        for parent in revisions[pending.pop()]:
+            if parent not in ancestors:
+                ancestors.add(parent)
+                pending.append(parent)
+    assert NEXT in ancestors or heads == {NEXT}  # the recycle bin revision is at or below the head
 
 
 def test_the_downgrade_drops_exactly_the_columns_the_upgrade_adds():

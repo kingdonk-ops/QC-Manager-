@@ -76,6 +76,9 @@ export const gateMessages: Record<string, string> = {
   'inspections.gates.proceed_no': 'Progress is not allowed.',
   'inspections.gates.blocking_gates': 'Blocking gates',
   'inspections.gates.earlier_holds': 'Earlier hold points not yet released',
+  'inspections.gates.overridden_note':
+    'Covered by a dossier issue override, still pending:',
+  'inspections.gates.overridden_gates': 'Covered by an override, still pending',
   'inspections.gates.light.review': 'Review',
   'inspections.gates.light.passed': 'Passed',
   'inspections.gates.light.released': 'Released',

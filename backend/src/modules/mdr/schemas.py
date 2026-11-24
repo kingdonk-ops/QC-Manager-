@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from ..common.schemas import EncodableText
 from .constants import IssuePurpose, MdrDecision
+from .override_rules import is_overridable
 
 Ids = Annotated[list[Annotated[int, Field(ge=1)]], Field(max_length=500)]
 Code = Annotated[str, Field(max_length=40)]
@@ -87,15 +88,30 @@ class CheckRead(BaseModel):
     module: str
     blocking: bool
     status: str
-    """``pass``, ``fail`` or ``not_available``."""
+    """``pass``, ``fail``, ``not_available`` or ``overridden`` (every finding is covered by a manager override)."""
     findings: list[Finding]
     detail: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def overridable(self) -> bool:
+        """Whether a manager override may ever cover this check; a failing check that is not stops an override."""
+        return is_overridable(self.key)
+
+
+class GateCounts(BaseModel):
+    """What is outstanding behind the checks; a value is ``None`` when its module is not available."""
+
+    plain_pending_holds: int | None = None
+    overridden_pending_holds: int | None = None
+    open_reports: int | None = None
 
 
 class GateRead(BaseModel):
     purpose: str | None
     ready: bool
     checks: list[CheckRead]
+    counts: GateCounts | None = None
 
 
 class IssueIn(EncodableText):

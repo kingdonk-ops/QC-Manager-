@@ -119,6 +119,8 @@ class QualityGateRead(BaseModel):
     approval_ref: str | None
     created_by_id: int | None
     supplementary: dict[str, Any]
+    override_id: int | None = None
+    override_ref: str | None = Field(None, description="Set while a dossier issue override covers this pending gate")
     created_at: datetime | None
     updated_at: datetime | None
 
@@ -131,7 +133,8 @@ class HoldPointRef(BaseModel):
 
 class GateProceed(BaseModel):
     """Whether work may go ahead on one entity: blocking gates oldest first (numbers and identifiers in step), and,
-    for an inspection, the earlier ITP hold points that are still unreleased."""
+    for an inspection, the earlier ITP hold points that are still unreleased. Gates a dossier issue override covers are
+    listed apart; they stay pending and still make the answer false, except for a dossier attachment."""
 
     project_id: int
     attachment_kind: str
@@ -139,4 +142,6 @@ class GateProceed(BaseModel):
     can_proceed: bool
     gate_numbers: list[str]
     gate_ids: list[int]
+    overridden_gate_numbers: list[str] = []
+    overridden_gate_ids: list[int] = []
     hold_points: list[HoldPointRef] = []

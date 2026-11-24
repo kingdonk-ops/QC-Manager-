@@ -129,6 +129,20 @@ class CompletionEffect(StrEnum):
     NONE = "none"
 
 
+DOCUMENTATION_CATEGORY = "documentation"
+"""Reports about the record itself (for example a dossier issued past blockers), not about work in the field."""
+DOCUMENTATION_TEMPLATE_KEY = "documentation-ncr"
+DOCUMENTATION_FLAGS: dict[str, str] = {
+    "default_origin": "qa",
+    "default_visibility": "internal",
+    "default_mdr_effect": MdrEffect.REGISTER_ONLY.value,
+    "completion_effect": CompletionEffect.NONE.value,
+    "default_severity": "minor",
+}
+"""Non-blocking: the report stays open, visible and workable, but neither the MDR gate nor the work-completion gate
+counts it."""
+
+
 class Flag(StrEnum):
     VISIBILITY = "visibility"
     MDR_EFFECT = "mdr_effect"

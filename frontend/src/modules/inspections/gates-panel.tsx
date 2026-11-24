@@ -6,6 +6,7 @@ import { can, useSession } from '@/lib/session'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateGateDialog, ReleaseDialog, WaiveDialog } from './gate-dialogs'
+import { GateOverrideNote, OverriddenGates } from './gate-override-note'
 import {
   type Gate,
   type GateProceed,
@@ -46,6 +47,7 @@ export function ProceedBanner({ answer }: { answer: GateProceed }) {
           {holds.map((h) => `${h.code} ${h.title}`).join('; ')}
         </p>
       ) : null}
+      <OverriddenGates answer={answer} />
     </div>
   )
 }
@@ -113,7 +115,7 @@ export function GateDecision({ gate }: { gate: Gate }) {
         })}
       </p>
     )
-  return null
+  return <GateOverrideNote gate={gate} />
 }
 
 /** The actions of one gate for the current user, with the dialogs for release and waive. */

@@ -23,6 +23,11 @@ const TONES: [RegExp, string][] = [
     /^(high|warning|revise|on_hold|assessed|approved_as_noted)/,
     'bg-amber-500/15 text-amber-700 dark:text-amber-400',
   ],
+  // A check covered by a recorded override: neither a pass nor a fail.
+  [
+    /^overridden/,
+    'bg-violet-500/15 text-violet-700 dark:text-violet-400',
+  ],
 ]
 
 /** A coloured pill for any status or priority value, by its meaning. */
