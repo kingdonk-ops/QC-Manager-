@@ -34,6 +34,7 @@ from .schemas import (
     InspectionUpdate,
     SignatureRead,
 )
+from .signatories_router import router as signatories_router
 from .templates_router import router as templates_router
 
 router = APIRouter(tags=["Quality Inspections"])
@@ -53,6 +54,7 @@ router.include_router(quality_router)
 router.include_router(templates_router)
 router.include_router(criteria_router)
 router.include_router(gates_router)
+router.include_router(signatories_router)
 
 
 # --- inspections -------------------------------------------------------------------------------------

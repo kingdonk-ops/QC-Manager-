@@ -4096,6 +4096,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inspections/{inspection_id}/signatories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signatory Status of a Line
+         * @description Read-only. The required signatory count, how many distinct people have signed the current content, who they are with their roles, and whether the requirement is met. One person signing twice counts once; provisional, void and rejected signatures, signatures over changed content and the hold release do not count.
+         */
+        get: operations["signatory_status_api_v1_inspections__inspection_id__signatories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inspections/{inspection_id}/signatories/additional": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign as an Additional Signatory
+         * @description Adds the caller's signature over the current content in the additional-signatory role, one per person and role (a second submission by the same person is a conflict, also when two arrive together). ITP lines only; refused for a planned, passed or failed line and until the inspector has signed. Answers with the new status.
+         */
+        post: operations["add_additional_signatory_api_v1_inspections__inspection_id__signatories_additional_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inspections/": {
         parameters: {
             query?: never;
@@ -9698,6 +9738,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mdr/dossiers/{dossier_id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Override the Issue Gate
+         * @description Lets the dossier issue past outstanding quality holds and open blocking issues. A reason is required. Raises a documentation non-conformance report listing the blockers and annotates the covered holds, which stay pending. Only the quality gate and open issues checks are covered (422 names any other failing check or an unavailable covered check); 409 when nothing blocks. Issue itself is unchanged.
+         */
+        post: operations["record_override_api_v1_mdr_dossiers__dossier_id__override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mdr/dossiers/{dossier_id}/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Override History
+         * @description Every override recorded for the dossier, newest first, with its reason, blockers and report.
+         */
+        get: operations["overrides_api_v1_mdr_dossiers__dossier_id__overrides_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mdr/sections": {
         parameters: {
             query?: never;
@@ -13474,6 +13554,18 @@ export interface components {
             due_date?: string | null;
             status?: components["schemas"]["src__modules__meetings__constants__ActionStatus"] | null;
         };
+        /**
+         * AdditionalSignatory
+         * @description One more distinct person signing an ITP line over its current content.
+         */
+        AdditionalSignatory: {
+            /**
+             * Accept Intent
+             * @description The signer accepts the additional-signatory statement
+             * @default false
+             */
+            accept_intent: boolean;
+        };
         /** AgendaItemIn */
         AgendaItemIn: {
             /** Title */
@@ -14820,6 +14912,15 @@ export interface components {
             batch: string;
             /** Expiry */
             expiry?: string | null;
+        };
+        /** BlockerRead */
+        BlockerRead: {
+            /** Check */
+            check: string;
+            /** Reference */
+            reference: string;
+            /** Message */
+            message: string;
         };
         /** Board */
         Board: {
@@ -17151,6 +17252,11 @@ export interface components {
             findings: components["schemas"]["Finding"][];
             /** Detail */
             detail?: string | null;
+            /**
+             * Overridable
+             * @description Whether a manager override may ever cover this check; a failing check that is not stops an override.
+             */
+            readonly overridable: boolean;
         };
         /** ChecklistItem */
         ChecklistItem: {
@@ -20114,6 +20220,18 @@ export interface components {
          * @enum {string}
          */
         FollowUp: "task" | "ncr" | "none";
+        /**
+         * GateCounts
+         * @description What is outstanding behind the checks; a value is ``None`` when its module is not available.
+         */
+        GateCounts: {
+            /** Plain Pending Holds */
+            plain_pending_holds?: number | null;
+            /** Overridden Pending Holds */
+            overridden_pending_holds?: number | null;
+            /** Open Reports */
+            open_reports?: number | null;
+        };
         /** GateCreate */
         GateCreate: {
             /** Project Id */
@@ -20162,7 +20280,8 @@ export interface components {
         /**
          * GateProceed
          * @description Whether work may go ahead on one entity: blocking gates oldest first (numbers and identifiers in step), and,
-         *     for an inspection, the earlier ITP hold points that are still unreleased.
+         *     for an inspection, the earlier ITP hold points that are still unreleased. Gates a dossier issue override covers are
+         *     listed apart; they stay pending and still make the answer false, except for a dossier attachment.
          */
         GateProceed: {
             /** Project Id */
@@ -20178,6 +20297,16 @@ export interface components {
             /** Gate Ids */
             gate_ids: number[];
             /**
+             * Overridden Gate Numbers
+             * @default []
+             */
+            overridden_gate_numbers: string[];
+            /**
+             * Overridden Gate Ids
+             * @default []
+             */
+            overridden_gate_ids: number[];
+            /**
              * Hold Points
              * @default []
              */
@@ -20191,6 +20320,7 @@ export interface components {
             ready: boolean;
             /** Checks */
             checks: components["schemas"]["CheckRead"][];
+            counts?: components["schemas"]["GateCounts"] | null;
         };
         /** GateRelease */
         GateRelease: {
@@ -21365,6 +21495,11 @@ export interface components {
             /** Content Sha256 */
             content_sha256?: string | null;
             /**
+             * Required Signatories
+             * @default 1
+             */
+            required_signatories: number;
+            /**
              * Items
              * @default []
              */
@@ -21379,6 +21514,11 @@ export interface components {
              * @default []
              */
             comments: components["schemas"]["AnswerCommentRead"][];
+            /**
+             * Signatories Collected
+             * @description Distinct people whose valid signature covers the current content; known only on a full read.
+             */
+            readonly signatories_collected: number | null;
         };
         /** InspectionRequest */
         InspectionRequest: {
@@ -22063,6 +22203,12 @@ export interface components {
             /** Required Qualification */
             required_qualification?: string | null;
             /**
+             * Required Signatories
+             * @description Distinct people who must sign (1 to 10)
+             * @default 1
+             */
+            required_signatories: number;
+            /**
              * @default {
              *       "contractor": "none",
              *       "client": "none",
@@ -22152,6 +22298,16 @@ export interface components {
             required_qualification: string | null;
             /** Criterion Id */
             criterion_id?: number | null;
+            /**
+             * Required Signatories
+             * @default 1
+             */
+            required_signatories: number;
+            /**
+             * Signatories Collected
+             * @default 0
+             */
+            signatories_collected: number;
             /** Item Count */
             item_count: number;
             /** Has Hold */
@@ -24638,6 +24794,50 @@ export interface components {
          * @enum {string}
          */
         OverheadCode: "toolbox" | "travel" | "induction" | "training" | "housekeeping" | "mobilisation" | "standby" | "other";
+        /** OverrideIn */
+        OverrideIn: {
+            /** @description The issue the override is for; a final issue also needs client acceptance */
+            purpose: components["schemas"]["IssuePurpose"];
+            /**
+             * Reason
+             * @description Why the dossier is issued past the blockers; required
+             */
+            reason: string;
+            /**
+             * Severity
+             * @description Severity of the documentation report; major when omitted
+             */
+            severity?: ("minor" | "major" | "critical") | null;
+        };
+        /** OverrideRead */
+        OverrideRead: {
+            /** Id */
+            id: number;
+            /** Dossier Id */
+            dossier_id: number;
+            /** Reference */
+            reference: string;
+            /** Purpose */
+            purpose: string;
+            /** Reason */
+            reason: string;
+            /** Severity */
+            severity: string;
+            /** Blockers */
+            blockers: components["schemas"]["BlockerRead"][];
+            /** Gate Numbers */
+            gate_numbers: string[];
+            /** Report Id */
+            report_id: number | null;
+            /** Report Code */
+            report_code: string | null;
+            /** Created By Id */
+            created_by_id: number | null;
+            /** Created By Name */
+            created_by_name?: string | null;
+            /** Created At */
+            created_at?: string | null;
+        };
         /** P6ChangeRead */
         P6ChangeRead: {
             /** Id */
@@ -28165,6 +28365,13 @@ export interface components {
             supplementary: {
                 [key: string]: unknown;
             };
+            /** Override Id */
+            override_id?: number | null;
+            /**
+             * Override Ref
+             * @description Set while a dossier issue override covers this pending gate
+             */
+            override_ref?: string | null;
             /** Created At */
             created_at: string | null;
             /** Updated At */
@@ -30885,6 +31092,31 @@ export interface components {
              * @description The signer confirms the intent statement
              */
             confirm: boolean;
+        };
+        /** SignatoryPerson */
+        SignatoryPerson: {
+            /** User Id */
+            user_id: number;
+            /** Name */
+            name?: string | null;
+            /** Roles */
+            roles: string[];
+        };
+        /**
+         * SignatoryStatus
+         * @description The required count, how many distinct people have signed, who they are and whether the requirement is met.
+         */
+        SignatoryStatus: {
+            /** Inspection Id */
+            inspection_id: number;
+            /** Required */
+            required: number;
+            /** Collected */
+            collected: number;
+            /** Met */
+            met: boolean;
+            /** Signers */
+            signers: components["schemas"]["SignatoryPerson"][];
         };
         /** SignatureRead */
         SignatureRead: {
@@ -43766,6 +43998,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QualityGateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signatory_status_api_v1_inspections__inspection_id__signatories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inspection_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatoryStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_additional_signatory_api_v1_inspections__inspection_id__signatories_additional_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inspection_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdditionalSignatory"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatoryStatus"];
                 };
             };
             /** @description Validation Error */
@@ -57166,6 +57464,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AllocationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_override_api_v1_mdr_dossiers__dossier_id__override_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dossier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overrides_api_v1_mdr_dossiers__dossier_id__overrides_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dossier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideRead"][];
                 };
             };
             /** @description Validation Error */

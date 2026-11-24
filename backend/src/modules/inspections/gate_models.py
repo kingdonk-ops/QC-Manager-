@@ -50,3 +50,8 @@ class QualityGate(Base, TimestampMixin):
     approval_ref: Mapped[str | None] = mapped_column(String(100), default=None)
     created_by_id: Mapped[int | None] = mapped_column(Integer, default=None)
     supplementary: Mapped[dict] = mapped_column(JSON, default_factory=dict)
+    override_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    """A dossier issue override that covers this gate. The gate stays pending; no foreign key, the override table
+    belongs to another module."""
+    override_ref: Mapped[str | None] = mapped_column(String(100), default=None)
+    """The covering override's reference, shown beside the pending gate."""

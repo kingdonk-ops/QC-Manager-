@@ -75,6 +75,8 @@ const answer = (over: Partial<GateProceed>): GateProceed => ({
   can_proceed: true,
   gate_numbers: [],
   gate_ids: [],
+  overridden_gate_numbers: [],
+  overridden_gate_ids: [],
   hold_points: [],
   ...over,
 })

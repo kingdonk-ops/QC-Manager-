@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/records/status-badge'
 import { useModuleParams } from '../_runtime'
 import { LineLight } from './line-light'
 import { type ItpLine, formatWhen, useInstance } from './quality-api'
+import { LineSignerCount } from './signers-panel'
 import { PointBadges } from './signoff'
 
 function Line({ line }: { line: ItpLine }) {
@@ -76,6 +77,10 @@ function Line({ line }: { line: ItpLine }) {
             {String(line.request.status)}
           </span>
         ) : null}
+        <LineSignerCount
+          required={line.required_signatories}
+          collected={line.signatories_collected}
+        />
       </span>
     </Link>
   )

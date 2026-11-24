@@ -18,7 +18,7 @@ from ..common.pagination import MAX_INTEGER_ID, ItemsPerPageDep, PageDep
 from ..files.models import StoredFile
 from ..files.storage import storage
 from ..projects.service import readable_project
-from . import service
+from . import override, override_router, service
 from .constants import ENTITY, DossierStatus, RevisionStatus
 from .gate import ready
 from .models import MdrDossier, MdrRevision
@@ -38,6 +38,7 @@ from .schemas import (
 )
 
 router = APIRouter(tags=["MDR / turnover dossiers"])
+router.include_router(override_router.router)
 
 Id = Annotated[int, Path(ge=1, le=MAX_INTEGER_ID)]
 
@@ -226,7 +227,7 @@ async def dossier_gate(
 ) -> Any:
     dossier = await _dossier(db, dossier_id, user, held)
     checks = await service.gate(db, dossier, purpose)
-    return {"purpose": purpose, "ready": ready(checks), "checks": checks}
+    return {"purpose": purpose, "ready": ready(checks), "checks": checks, "counts": await override.gate_counts(db, dossier)}
 
 
 @router.post(

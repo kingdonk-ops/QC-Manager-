@@ -10,6 +10,7 @@ import { NativeSelect } from '@/components/native-select'
 import { type Template, useSaveTemplate, useTemplates } from './api'
 import { CriterionPicker } from './criterion-picker'
 import { type Activity, PARTIES, POINTS, pointTone } from './quality-api'
+import { RequiredField } from './signers-panel'
 
 // Kept importable from here for existing callers.
 export { TemplateSettingsFields } from './template-settings'
@@ -22,6 +23,7 @@ const blankActivity = (): Activity => ({
   criterion_id: null,
   spec_ref: null,
   required_qualification: null,
+  required_signatories: 1,
   points: { contractor: 'none', client: 'none', third_party: 'none' },
 })
 
@@ -207,6 +209,10 @@ export function ItpEditor({
                           required_qualification: e.target.value || null,
                         })
                       }
+                    />
+                    <RequiredField
+                      value={a.required_signatories ?? 1}
+                      onChange={(n) => set(i, { required_signatories: n })}
                     />
                   </div>
                   <Textarea

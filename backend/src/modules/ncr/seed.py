@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .constants import RevisionStatus
+from .constants import DOCUMENTATION_CATEGORY, DOCUMENTATION_FLAGS, DOCUMENTATION_TEMPLATE_KEY, RevisionStatus
 from .models import IssueCategory, IssueDefaultTemplate, IssueTemplate, IssueTemplateRevision
 
 F = dict[str, Any]
@@ -31,6 +31,7 @@ CATEGORIES: list[tuple[str, str, bool]] = [
     ("vehicle", "Vehicle", True),
     ("equipment", "Equipment", True),
     ("pre_start", "Pre-start", True),
+    (DOCUMENTATION_CATEGORY, "Documentation", True),
 ]
 
 
@@ -179,6 +180,16 @@ def library() -> list[F]:
                 **({"default_punch_category": "C"} if issue_type == "punch" else {"default_severity": "minor"}),
             }
         )
+    out.append(
+        {
+            "key": DOCUMENTATION_TEMPLATE_KEY,
+            "name": "Documentation NCR",
+            "issue_type": "ncr",
+            "category": DOCUMENTATION_CATEGORY,
+            "fields": list(NCR_COMMON),
+            **DOCUMENTATION_FLAGS,
+        }
+    )
     return out
 
 

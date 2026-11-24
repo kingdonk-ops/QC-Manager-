@@ -305,12 +305,14 @@ async def blocking_gates(db: AsyncSession, project_id: int, kind: str, target_id
     return list(rows.scalars())
 
 
-async def pending_blocking_gates(db: AsyncSession, project_id: int, node_ids: list[int] | None = None) -> list[dict[str, Any]]:
-    """The MDR gate hook: pending blocking gates in a dossier scope, as findings.
+async def dossier_scope_where(
+    db: AsyncSession, project_id: int, node_ids: list[int] | None = None, dossier_id: int | None = None
+) -> list[Any]:
+    """The conditions that pick the pending blocking gates of a dossier scope; the hook and the counts share them.
 
-    With scope nodes: gates attached to those nodes and their subtrees, to Items on them, or to inspections anchored
-    in the scope; gates with no attachment count project-wide whatever the scope. Without scope nodes: every pending
-    blocking gate of the project."""
+    With scope nodes: gates attached to those nodes and their subtrees, to Items on them, to inspections anchored in
+    the scope, or (when the dossier is named) to the dossier itself; gates with no attachment count project-wide
+    whatever the scope. Without scope nodes: every pending blocking gate of the project."""
     where: list[Any] = [
         QualityGate.project_id == project_id,
         QualityGate.blocks_progress.is_(True),
@@ -324,17 +326,25 @@ async def pending_blocking_gates(db: AsyncSession, project_id: int, node_ids: li
         inspections = select(Inspection.id).where(
             Inspection.project_id == project_id, or_(Inspection.node_id.in_(scope), Inspection.item_id.in_(items))
         )
-        where.append(
-            or_(
-                QualityGate.attachment_kind.is_(None),
-                and_(QualityGate.attachment_kind == AttachmentKind.NODE.value, QualityGate.attachment_id.in_(scope)),
-                and_(QualityGate.attachment_kind == AttachmentKind.ITEM.value, QualityGate.attachment_id.in_(items)),
-                and_(
-                    QualityGate.attachment_kind == AttachmentKind.INSPECTION.value,
-                    QualityGate.attachment_id.in_(inspections),
-                ),
-            )
-        )
+        reachable = [
+            QualityGate.attachment_kind.is_(None),
+            and_(QualityGate.attachment_kind == AttachmentKind.NODE.value, QualityGate.attachment_id.in_(scope)),
+            and_(QualityGate.attachment_kind == AttachmentKind.ITEM.value, QualityGate.attachment_id.in_(items)),
+            and_(QualityGate.attachment_kind == AttachmentKind.INSPECTION.value, QualityGate.attachment_id.in_(inspections)),
+        ]
+        if dossier_id is not None:
+            reachable.append(attached_to(AttachmentKind.DOSSIER.value, dossier_id))
+        where.append(or_(*reachable))
+    return where
+
+
+async def pending_blocking_gates(
+    db: AsyncSession, project_id: int, node_ids: list[int] | None = None, dossier_id: int | None = None
+) -> list[dict[str, Any]]:
+    """The MDR gate hook: pending blocking gates in a dossier scope, as findings. Without a dossier identifier the
+    answer is the same as it always was; with one, gates attached to that dossier are reported for a scoped dossier
+    too."""
+    where = await dossier_scope_where(db, project_id, node_ids, dossier_id)
     rows = (await db.execute(select(QualityGate).where(*where).order_by(QualityGate.id))).scalars()
     return [
         {
@@ -344,6 +354,48 @@ async def pending_blocking_gates(db: AsyncSession, project_id: int, node_ids: li
         }
         for gate in rows
     ]
+
+
+async def pending_hold_counts(
+    db: AsyncSession, project_id: int, node_ids: list[int] | None = None, dossier_id: int | None = None
+) -> dict[str, int]:
+    """Pending blocking gates of a dossier scope (holds, plus any other kind whose blocking flag was turned on):
+    ``plain`` (no override covers them) and ``overridden`` (annotated, still pending). A pending blocking gate with no
+    attachment counts whatever the scope."""
+    where = await dossier_scope_where(db, project_id, node_ids, dossier_id)
+    flag = QualityGate.override_id.is_not(None)
+    rows = (await db.execute(select(flag, func.count()).where(*where).group_by(flag))).all()
+    counts = {bool(covered): int(n) for covered, n in rows}
+    return {"plain": counts.get(False, 0), "overridden": counts.get(True, 0)}
+
+
+async def annotate_pending(
+    db: AsyncSession, project_id: int, numbers: list[str], override_id: int, override_ref: str
+) -> list[QualityGate]:
+    """Stamp the still-pending, not yet annotated gates with these numbers with the override that covers them.
+
+    Status, blocking flag and release digest are never touched, and a released, waived or void gate is skipped. The rows
+    are locked so a concurrent release or void runs before or after, never between. Writes inside the caller's unit
+    of work and never commits: the caller commits."""
+    if not numbers:
+        return []
+    rows = await db.execute(
+        select(QualityGate)
+        .where(
+            QualityGate.project_id == project_id,
+            QualityGate.number.in_(numbers),
+            QualityGate.status == GateStatus.PENDING.value,
+            QualityGate.override_id.is_(None),
+        )
+        .order_by(QualityGate.id)
+        .with_for_update()
+    )
+    annotated = list(rows.scalars())
+    for gate in annotated:
+        gate.override_id = override_id
+        gate.override_ref = override_ref
+    await db.flush()
+    return annotated
 
 
 # --- inspection delete guard -------------------------------------------------------------------------

@@ -20,7 +20,8 @@ from ...infrastructure.logging import get_logger
 from ...infrastructure.modules.loader import enabled_modules
 from ...infrastructure.modules.state import is_enabled
 from .constants import IssuePurpose, RevisionKind, RevisionStatus
-from .models import MdrRevision
+from .models import MdrOverride, MdrRevision
+from .override_rules import Pair, apply_overrides, covered_pairs
 
 logger = get_logger()
 MODULES_PACKAGE = __name__.rsplit(".", 2)[0]
@@ -34,6 +35,8 @@ class Hook:
     target: str
     """``"<module>.<submodule>:<function>"`` called as ``await fn(db, project_id, node_ids)``."""
     blocking: bool = True
+    with_dossier: bool = False
+    """Also pass the dossier identifier as a fourth argument (hooks that can see gates attached to the dossier)."""
 
 
 HOOKS: tuple[Hook, ...] = (
@@ -49,6 +52,7 @@ HOOKS: tuple[Hook, ...] = (
         "No pending blocking quality gate in scope",
         "inspections",
         "inspections.gates:pending_blocking_gates",
+        with_dossier=True,
     ),
     Hook(
         "equipment_calibrated",
@@ -103,7 +107,8 @@ async def _hook(db: AsyncSession, ctx: MdrContext, hook: Hook) -> dict[str, Any]
         return _row(
             hook.key, hook.title, hook.module, hook.blocking, "not_available", [], f"{hook.module} doesn't provide {name}."
         )
-    findings = [_finding(i) for i in await fn(db, ctx.project_id, ctx.node_ids)]
+    args = (db, ctx.project_id, ctx.node_ids, ctx.dossier_id) if hook.with_dossier else (db, ctx.project_id, ctx.node_ids)
+    findings = [_finding(i) for i in await fn(*args)]
     return _row(hook.key, hook.title, hook.module, hook.blocking, "fail" if findings else "pass", findings)
 
 
@@ -125,8 +130,20 @@ async def client_acceptance(db: AsyncSession, dossier_id: int) -> list[Finding]:
     return []
 
 
+async def covered_by_overrides(db: AsyncSession, dossier_id: int) -> set[Pair]:
+    """What the dossier's stored overrides cover: ``(check key, finding reference)`` pairs from their snapshots."""
+    snapshots = (await db.execute(select(MdrOverride.blockers).where(MdrOverride.dossier_id == dossier_id))).scalars()
+    return covered_pairs(snapshots)
+
+
 async def run_checks(db: AsyncSession, ctx: MdrContext, purpose: str | None) -> list[dict[str, Any]]:
-    """Every check, in a stable order. ``purpose`` ``final`` adds the final-only checks; ``None`` is a draft."""
+    """Every check in a stable order, with the dossier's stored overrides applied: a failing check whose findings are
+    all covered reports ``overridden`` and no longer refuses an issue. ``purpose`` ``final`` adds the final-only
+    checks; ``None`` is a draft."""
+    return apply_overrides(await _run(db, ctx, purpose), await covered_by_overrides(db, ctx.dossier_id))
+
+
+async def _run(db: AsyncSession, ctx: MdrContext, purpose: str | None) -> list[dict[str, Any]]:
     out = []
     for check in sorted(all_checks(), key=lambda c: c.key):
         if check.final_only and purpose != IssuePurpose.FINAL:

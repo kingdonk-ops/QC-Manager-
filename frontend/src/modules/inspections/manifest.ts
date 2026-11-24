@@ -4,6 +4,7 @@ import type { ModuleManifest } from '../_types'
 import { criteriaMessages } from './criteria-messages'
 import { gateMessages } from './gate-messages'
 import { qualityMessages } from './quality-messages'
+import { signatoryMessages } from './signatory-messages'
 
 export const manifest: ModuleManifest = {
   id: 'inspections',
@@ -105,6 +106,7 @@ export const manifest: ModuleManifest = {
       ...qualityMessages,
       ...criteriaMessages,
       ...gateMessages,
+      ...signatoryMessages,
       'nav.inspections': 'Inspections',
       'inspections.page_title': 'Quality inspections',
       'inspections.description':

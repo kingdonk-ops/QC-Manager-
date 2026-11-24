@@ -15,6 +15,7 @@ from .constants import (
     AttachmentKind,
     Attendance,
     InspectionStatus,
+    Kind,
     RequestStatus,
     SignatureRole,
     SignatureStatus,
@@ -22,8 +23,11 @@ from .constants import (
     external_hw,
     has_hold,
 )
+from .gate_rules import proceed_allowed, split_overridden
 from .gates import blocking_gates
 from .models import Inspection, InspectionRequest, InspectionSettings, RequestLink, RequestParty
+from .signatories import facts_of
+from .signatory_rules import collected_count, is_met, shortfall_message
 from .signing import competency_findings, live_signature
 
 
@@ -190,6 +194,7 @@ async def check(
             allowed = (await settings_of(db, inspection.project_id)).allow_self_approval
             if not allowed:
                 out.append(Finding("SELF_APPROVAL", "Nobody approves an inspection they performed or submitted."))
+        out += await signatory_findings(db, inspection, user_id)
     if action == "hold_release":
         if not has_hold(inspection.points):
             out.append(Finding("NO_HOLD_POINT", "This line has no Hold point."))
@@ -203,6 +208,19 @@ async def check(
     return out
 
 
+async def signatory_findings(db: AsyncSession, inspection: Inspection, user_id: int | None) -> list[Finding]:
+    """Approval of an ITP line needs enough distinct signing people: the live signatures over the current content
+    plus the person approving. A requirement of one never refuses anything; the stateless answer without a user counts
+    the stored signatures only."""
+    required = inspection.required_signatories
+    if inspection.kind != Kind.ITP or required <= 1:
+        return []
+    collected = collected_count(await facts_of(db, inspection), extra_signer=user_id)
+    if is_met(collected, required):
+        return []
+    return [Finding("SIGNATORIES_SHORT", shortfall_message(collected, required))]
+
+
 async def gate_findings(db: AsyncSession, inspection: Inspection) -> list[Finding]:
     """Advisory only: standalone gates still pending on this record never block an action by themselves."""
     gates = await blocking_gates(db, inspection.project_id, AttachmentKind.INSPECTION.value, inspection.id)
@@ -213,9 +231,12 @@ async def gate_findings(db: AsyncSession, inspection: Inspection) -> list[Findin
 
 
 async def can_proceed(db: AsyncSession, project_id: int, kind: str, target_id: int) -> dict[str, Any]:
-    """May work go ahead on one entity? Blocking gates attached to it, oldest first, and, for an inspection record,
-    the earlier ITP hold points that are still unreleased (listed apart). False when either list is not empty."""
+    """May work go ahead on one entity? Blocking gates attached to it, oldest first, split into plain pending ones and
+    overridden-pending ones (a dossier issue override covers them; listed apart), and, for an inspection record, the
+    earlier ITP hold points that are still unreleased (listed apart). False when a plain gate or a hold point is
+    left; overridden gates also make it false, except for a dossier attachment."""
     gates = await blocking_gates(db, project_id, kind, target_id)
+    overridden, plain = split_overridden(gates)
     holds: list[Inspection] = []
     if kind == AttachmentKind.INSPECTION:
         record = await db.get(Inspection, target_id)
@@ -225,9 +246,11 @@ async def can_proceed(db: AsyncSession, project_id: int, kind: str, target_id: i
         "project_id": project_id,
         "attachment_kind": kind,
         "attachment_id": target_id,
-        "can_proceed": not gates and not holds,
-        "gate_numbers": [g.number for g in gates],
-        "gate_ids": [g.id for g in gates],
+        "can_proceed": proceed_allowed(kind, len(plain), len(overridden), len(holds)),
+        "gate_numbers": [g.number for g in plain],
+        "gate_ids": [g.id for g in plain],
+        "overridden_gate_numbers": [g.number for g in overridden],
+        "overridden_gate_ids": [g.id for g in overridden],
         "hold_points": [{"id": h.id, "code": h.code, "title": h.title} for h in holds],
     }
 
