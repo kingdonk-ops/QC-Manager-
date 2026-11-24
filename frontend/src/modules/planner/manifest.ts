@@ -62,7 +62,7 @@ export const manifest: ModuleManifest = {
       'planner.new_pack': 'New work pack',
       'planner.from_programme': 'Add from programme',
       'planner.from_programme_hint':
-        'Pick P6 activities linked to RSWs. Each RSW becomes a work pack with its activities, or each activity becomes one pack covering all its RSWs. Activities already in this plan are never added twice.',
+        'Pick P6 activities linked to RSWs. Each RSW becomes a work pack with its activities, or each activity becomes one pack covering all its RSWs. A pack takes only the hours that fall inside this plan’s window. Activities already in this plan are never added twice.',
       'planner.programme_search': 'Search Activity ID, name or code',
       'planner.whole_programme':
         'Whole programme (not just this plan’s window)',
@@ -72,6 +72,9 @@ export const manifest: ModuleManifest = {
       'planner.p6_id': 'Activity ID',
       'planner.activity': 'Activity',
       'planner.rsws': 'RSWs',
+      'planner.hours_in_plan': 'Hours in plan',
+      'planner.hours_in_plan_hint':
+        'The share of the activity’s P6 hours that falls inside this plan’s window (working days on the project calendar). This is what the work pack takes.',
       'planner.not_linked': 'Not linked',
       'planner.in_plan': 'In plan',
       'planner.picked_one': '{{count}} activity picked',

@@ -426,6 +426,10 @@ class ProgrammeActivity(BaseModel):
     activity_type: str | None
     codes: dict[str, str]
     anchors: list[ProgrammeAnchor] = Field(description="Work anchors (RSWs) the activity is linked to")
+    window_share: float | None = Field(
+        None, description="Part of the activity's working days inside the plan's window (0-1, project calendar)"
+    )
+    hours_in_window: Decimal | None = Field(None, description="budget_hours × window_share: what a pack takes")
     in_plan: bool = Field(False, description="Every (RSW, activity) pair is already in one of the plan's packs")
 
 

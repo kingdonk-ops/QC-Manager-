@@ -1,9 +1,11 @@
 """P6 name grammar, aliases, eligibility and the change-impact diff, without a database."""
 
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
 
+from src.modules.schedule.calendar import Calendar
 from src.modules.schedule.p6_rules import (
     DEFAULT_RULES,
     GrammarError,
@@ -17,7 +19,7 @@ from src.modules.schedule.p6_rules import (
     parse,
     split_chain,
 )
-from src.modules.schedule.p6_service import Existing, diff, row_hash
+from src.modules.schedule.p6_service import Existing, diff, row_hash, window_share
 
 
 def rules(**override):
@@ -243,3 +245,16 @@ def test_provisional_sums_without_an_rsw_are_out_of_scope():
         assert eligible(r, parse(r, rules()), rules())[0] is False
     r = row("Site mobilisation")
     assert eligible(r, parse(r, rules()), rules()) == (True, None)
+
+
+def test_window_share_counts_working_days_on_the_project_calendar():
+    cal = Calendar(date(2026, 11, 2))  # Mon-Fri
+    window = (date(2026, 11, 23), date(2026, 12, 6))
+    assert window_share(cal, date(2026, 11, 16), date(2026, 12, 25), window) == pytest.approx(1 / 3)
+    assert window_share(cal, date(2026, 11, 24), date(2026, 11, 26), window) == 1.0
+    assert window_share(cal, date(2027, 1, 4), date(2027, 1, 8), window) == 0.0
+    assert window_share(cal, None, None, window) == 1.0
+    # Only days off in its span (a weekend): shared by calendar days, never divided by zero.
+    assert window_share(cal, date(2026, 11, 21), date(2026, 11, 22), window) == 0.0
+    seven = Calendar(date(2026, 11, 2), range(7))
+    assert window_share(seven, date(2026, 11, 16), date(2026, 11, 29), window) == pytest.approx(0.5)

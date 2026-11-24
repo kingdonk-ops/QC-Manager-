@@ -124,3 +124,33 @@ async def test_packs_per_rsw_or_per_activity_from_the_programme(client: AsyncCli
 
     bad = await client.post(f"{base}/from-programme", json={"activity_ids": [999999]}, headers=site.headers)
     assert bad.status_code == 422
+
+
+async def test_a_long_activity_brings_only_the_hours_inside_the_plan_window(
+    client: AsyncClient, site: Site, db_session: AsyncSession
+):
+    """A six-week activity planned in a two-week window takes the window's share of its hours, not all of them."""
+    long = await mirror(db_session, site, "C200", "101 / P / 101.1", date(2026, 11, 16), date(2026, 12, 25), "300", ["rsw1"])
+    plan = await make_plan(client, site)  # 2026-11-23 .. 2026-12-06
+    base = f"/api/v1/planner/plans/{plan['id']}"
+
+    rows = {x["p6_activity_id"]: x for x in (await client.get(f"{base}/programme")).json()}
+    # Mon-Fri project calendar: 30 working days in the activity, 10 of them in the window.
+    assert rows["C200"]["window_share"] == pytest.approx(0.3333, abs=1e-4)
+    assert float(rows["C200"]["hours_in_window"]) == 100.0
+    assert float(rows["C200"]["budget_hours"]) == 300.0  # the P6 figure is never changed
+
+    r = await client.post(f"{base}/from-programme", json={"activity_ids": [long.id]}, headers=site.headers)
+    assert r.status_code == 201, r.text
+    pack = (await client.get(f"/api/v1/planner/packs/{r.json()['pack_ids'][0]}")).json()
+    assert [float(ln["planned_hours"]) for ln in pack["lines"]] == [100.0]
+    assert pack["lines"][0]["description"] == "101 / P / 101.1 — 100 of 300 h in this plan"
+    assert (pack["planned_start"], pack["planned_end"]) == ("2026-11-23", "2026-12-06")  # clipped to the window
+
+    # Outside the window entirely (picked from the whole programme): no hours, the pack spans the window.
+    later = await mirror(db_session, site, "C210", "102 / B / 102.1", date(2027, 2, 1), date(2027, 2, 5), "40", ["rsw3"])
+    r = await client.post(f"{base}/from-programme", json={"activity_ids": [later.id]}, headers=site.headers)
+    pack = (await client.get(f"/api/v1/planner/packs/{r.json()['pack_ids'][0]}")).json()
+    assert float(pack["lines"][0]["planned_hours"]) == 0.0
+    assert pack["lines"][0]["description"].endswith("— 0 of 40 h in this plan")
+    assert (pack["planned_start"], pack["planned_end"]) == ("2026-11-23", "2026-12-06")

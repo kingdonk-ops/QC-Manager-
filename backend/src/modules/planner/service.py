@@ -378,6 +378,7 @@ async def programme_candidates(
         start=None if whole_programme else plan.window_start,
         end=None if whole_programme else plan.window_end,
         search=search,
+        window=(plan.window_start, plan.window_end),
     )
     planned = await _planned_keys(db, plan)
     for r in rows:
@@ -386,8 +387,15 @@ async def programme_candidates(
     return rows
 
 
-def _note(description: str, qualifier: str | None) -> str:
-    return (f"{description} ({qualifier})" if qualifier else description)[:300]
+def _hours(value: Decimal) -> str:
+    return f"{value:,.2f}".rstrip("0").rstrip(".")
+
+
+def _note(description: str, qualifier: str | None, in_window: Decimal | None = None, total: Decimal | None = None) -> str:
+    """The line text: the activity name, the name's note, and "120 of 2,700 h in this plan" when shared."""
+    tail = f" — {_hours(in_window)} of {_hours(total)} h in this plan" if in_window is not None and total else ""
+    text = f"{description} ({qualifier})" if qualifier else description
+    return text[: 300 - len(tail)] + tail
 
 
 async def add_from_programme(
@@ -397,13 +405,16 @@ async def add_from_programme(
 
     ``grouping = "rsw"``: one pack per work anchor (RSW), a line per activity linked to it. ``"activity"``: one
     pack per activity, a line per RSW it is linked to. Lines carry the P6 Activity ID, the activity's name (with
-    the name's note such as ``OHP``) and its hours (shared evenly when it covers several RSWs). Activities with
+    the name's note such as ``OHP``) and its hours inside the plan's window (the activity's working days that
+    fall in the window, on the project calendar; shared evenly when it covers several RSWs), noting the full P6
+    figure when it differs. Pack dates are clipped to the window. Activities with
     no link are skipped and reported; an (RSW, activity) pair already in the plan is never added twice.
     """
     if plan.status in ("closed", "cancelled"):
         raise PlanRuleError("Packs can't be added to a closed or cancelled plan.")
     p6 = await _p6(db, plan.project_id)
-    rows: list[dict[str, Any]] = await p6.programme_for_planning(db, plan.project_id, activity_ids=activity_ids)
+    window = (plan.window_start, plan.window_end)
+    rows: list[dict[str, Any]] = await p6.programme_for_planning(db, plan.project_id, activity_ids=activity_ids, window=window)
     found = {r["activity_id"] for r in rows}
     missing = sorted(set(activity_ids) - found)
     if missing:
@@ -415,7 +426,10 @@ async def add_from_programme(
     groups: dict[Any, dict[str, Any]] = {}
     skipped = 0
     for r in rows:
-        share = Decimal(r["budget_hours"] or 0) / max(len(r["anchors"]), 1)
+        total = Decimal(r["budget_hours"] or 0)
+        in_window = Decimal(r["hours_in_window"]) if r.get("hours_in_window") is not None else total
+        shared = in_window != total
+        share = in_window / max(len(r["anchors"]), 1)
         for anchor in r["anchors"]:
             if (anchor["node_id"], r["p6_activity_id"]) in planned:
                 skipped += 1
@@ -432,8 +446,10 @@ async def add_from_programme(
                 {
                     "node_id": anchor["node_id"],
                     "activity_code": r["p6_activity_id"][:40],
-                    "description": _note(r["name"], anchor.get("qualifier")),
-                    "planned_hours": share.quantize(Decimal("0.01")) if share else None,
+                    "description": _note(
+                        r["name"], anchor.get("qualifier"), in_window if shared else None, total if shared else None
+                    ),
+                    "planned_hours": share.quantize(Decimal("0.01")) if total else None,
                 }
             )
     created: list[WorkPack] = []
@@ -441,13 +457,18 @@ async def add_from_programme(
         acts = sorted(g["acts"], key=lambda r: (r["planned_start"] or date.max, r["p6_activity_id"]))
         starts = [r["planned_start"] for r in acts if r["planned_start"]]
         finishes = [r["planned_finish"] for r in acts if r["planned_finish"]]
+        # The pack runs where its activities meet the plan's window; none inside it → the whole window.
+        start = max(min(starts), window[0]) if starts else None
+        end = min(max(finishes), window[1]) if finishes else None
+        if start and end and end < start:
+            start = end = None
         pack = await create_pack(
             db,
             plan,
             {
                 "title": g["title"][:200],
-                "planned_start": min(starts) if starts else None,
-                "planned_end": max(finishes) if finishes else None,
+                "planned_start": start,
+                "planned_end": end,
                 "schedule_activity_id": acts[0]["activity_id"],
                 "lines": g["lines"],
             },

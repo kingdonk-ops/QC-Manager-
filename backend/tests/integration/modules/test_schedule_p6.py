@@ -12,6 +12,7 @@ from src.infrastructure.modules import state
 from src.modules.inspections.models import Inspection
 from src.modules.projects.models import Project
 from src.modules.schedule.interchange import read_xer_tables
+from tests.fixtures.accounts import reset_api_budget
 from tests.integration.rbac.test_user_permissions import _grant, _login
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("fresh_login_lockout")]
@@ -89,6 +90,7 @@ async def ctx(client: AsyncClient, db_session: AsyncSession, test_user: dict):
     db_session.add(project)
     await db_session.commit()
     await _grant(db_session, test_user["id"], "planner", *PERMS)
+    await reset_api_budget(test_user["id"], "/api/v1/asset-tree/nodes/")
     h = {"X-CSRF-Token": await _login(client, test_user)}
     r = await client.post("/api/v1/asset-tree/packs/remediation-rsw/apply", params={"project_id": project.id}, headers=h)
     assert r.status_code == 200, r.text

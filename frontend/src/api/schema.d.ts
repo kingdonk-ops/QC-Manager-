@@ -27865,6 +27865,16 @@ export interface components {
              */
             anchors: components["schemas"]["ProgrammeAnchor"][];
             /**
+             * Window Share
+             * @description Part of the activity's working days inside the plan's window (0-1, project calendar)
+             */
+            window_share?: number | null;
+            /**
+             * Hours In Window
+             * @description budget_hours × window_share: what a pack takes
+             */
+            hours_in_window?: string | null;
+            /**
              * In Plan
              * @description Every (RSW, activity) pair is already in one of the plan's packs
              * @default false
