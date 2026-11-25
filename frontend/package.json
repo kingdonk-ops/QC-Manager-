@@ -1,6 +1,7 @@
 {
   "name": "qc-manager-frontend",
   "private": true,
+  "packageManager": "pnpm@10.28.0",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
@@ -98,5 +99,10 @@
     "vite": "^8.1.6",
     "vitest": "^4.1.12",
     "vitest-browser-react": "^2.2.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

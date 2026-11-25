@@ -88,9 +88,10 @@ FROM base AS prod
 
 WORKDIR /app/src
 
-# Create non-root user for security
+# Create non-root user for security; the uploads folder exists and is theirs, so a named volume
+# mounted on it (FILE_STORAGE_DIR, see docker-compose.coolify.yml) starts out writable by the app
 RUN groupadd -r appuser && useradd -r -m -g appuser appuser
-RUN chown -R appuser:appuser /app
+RUN mkdir -p /app/data/files && chown -R appuser:appuser /app
 USER appuser
 
 # Production command with FastAPI CLI and configurable workers
