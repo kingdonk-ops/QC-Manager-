@@ -6,13 +6,20 @@ Run from ``backend/`` with
 no tasks of its own, so every module ``TASK_MODULES`` lists is imported here; a task the
 worker doesn't know is reported as unknown and its message is dropped. The scheduler entry
 point imports this module, so it sees the same tasks.
+
+Every model module is imported first, as the API does at startup: a task that queries
+``User`` needs the classes its relationships name by string (``Tier``) to be registered,
+or SQLAlchemy refuses to configure any mapper and every task fails.
 """
 
 from importlib import import_module
 
 from ...wiring.tasks import TASK_MODULES
+from ..database.registry import import_models
 from .app import configure_broker_lifecycle
 from .brokers import default_broker
+
+import_models()
 
 for module in TASK_MODULES:
     import_module(module)

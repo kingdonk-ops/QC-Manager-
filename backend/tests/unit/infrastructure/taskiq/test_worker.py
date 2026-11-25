@@ -51,3 +51,26 @@ def test_the_worker_registers_every_task_the_wiring_names_and_no_others():
     declared, registered = _cold_worker()
 
     assert registered == declared
+
+
+_WORKER_MAPPERS = """
+import src.infrastructure.taskiq.worker  # noqa: F401
+from sqlalchemy.orm import configure_mappers
+
+configure_mappers()
+print("MAPPERS OK")
+"""
+
+
+def test_a_cold_worker_can_configure_every_mapper():
+    """A relationship named by string (``User.tier`` -> ``Tier``) resolves in the worker too.
+
+    Otherwise SQLAlchemy refuses to configure any mapper and every scheduled task fails.
+    """
+    environment = {**os.environ, "PYTHONPATH": str(BACKEND)}
+
+    command = [sys.executable, "-c", _WORKER_MAPPERS]
+    result = subprocess.run(command, cwd=BACKEND, env=environment, capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
+    assert "MAPPERS OK" in result.stdout
