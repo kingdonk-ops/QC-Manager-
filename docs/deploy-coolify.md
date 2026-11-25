@@ -47,7 +47,7 @@ domain. They are only reachable inside the stack.
 
 ## 4. Environment variables
 
-Open **Environment Variables**. Coolify has already filled in `SERVICE_FQDN_WEB` (from the domain)
+Open **Environment Variables**. Coolify has already filled in `SERVICE_URL_WEB` (the full `https://` address of the domain)
 and the generated passwords: `SERVICE_PASSWORD_POSTGRES`, `SERVICE_PASSWORD_REDIS` and
 `SERVICE_PASSWORD_64_SECRETKEY`. Leave those alone.
 

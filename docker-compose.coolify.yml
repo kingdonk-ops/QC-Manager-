@@ -2,7 +2,7 @@
 # See docs/deploy-coolify.md for the step-by-step setup.
 #
 # Coolify fills the SERVICE_* variables itself:
-#   SERVICE_FQDN_WEB_80      the public https URL routed to the web container's port 80
+#   SERVICE_URL_WEB_80       the public https URL (with scheme; SERVICE_FQDN_* is the bare host) routed to the web container's port 80
 #   SERVICE_PASSWORD_*       generated passwords, kept between deploys
 # Variables written with ":?" (for example ADMIN_PASSWORD) are required: Coolify shows them in the Environment Variables tab
 # and refuses to deploy until they are set. Nothing secret is stored in this file.
@@ -31,10 +31,10 @@ x-backend-env: &backend-env
   TASKIQ_REDIS_HOST: redis
   TASKIQ_REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
   # Where the app is served (one origin: nginx forwards /api)
-  FRONTEND_URL: ${SERVICE_FQDN_WEB}
-  OAUTH_REDIRECT_BASE_URL: ${SERVICE_FQDN_WEB}
+  FRONTEND_URL: ${SERVICE_URL_WEB}
+  OAUTH_REDIRECT_BASE_URL: ${SERVICE_URL_WEB}
   OAUTH_DEFAULT_REDIRECT: /sign-in
-  CORS_ORIGINS: ${SERVICE_FQDN_WEB}
+  CORS_ORIGINS: ${SERVICE_URL_WEB}
   SESSION_SECURE_COOKIES: "true"
   TRUSTED_PROXY_HOPS: "2"
   # Microsoft Entra ID for staff (optional; see docs/entra-setup.md)
@@ -182,7 +182,7 @@ services:
       context: frontend
       dockerfile: Dockerfile
     environment:
-      - SERVICE_FQDN_WEB_80
+      - SERVICE_URL_WEB_80
     depends_on:
       api:
         condition: service_healthy
