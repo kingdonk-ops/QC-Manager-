@@ -13,6 +13,8 @@ A modular business platform: a FastAPI backend and a React frontend where every 
 
 ## Run it
 
+To host it on a Coolify server, see [docs/deploy-coolify.md](docs/deploy-coolify.md) (Docker Compose build pack, `docker-compose.coolify.yml`).
+
 With Docker:
 
 ```bash

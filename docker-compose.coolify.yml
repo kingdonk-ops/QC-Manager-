@@ -1,0 +1,199 @@
+# Production deployment on Coolify ("Docker Compose" build pack, this file as the compose location).
+# See docs/deploy-coolify.md for the step-by-step setup.
+#
+# Coolify fills the SERVICE_* variables itself:
+#   SERVICE_FQDN_WEB_80      the public https URL routed to the web container's port 80
+#   SERVICE_PASSWORD_*       generated passwords, kept between deploys
+# Variables written with ":?" (for example ADMIN_PASSWORD) are required: Coolify shows them in the Environment Variables tab
+# and refuses to deploy until they are set. Nothing secret is stored in this file.
+#
+# Request path: browser → Coolify proxy (Traefik, TLS) → web (nginx: SPA + /api) → api.
+# Two proxies sit in front of the API, hence TRUSTED_PROXY_HOPS=2.
+
+x-backend-env: &backend-env
+  ENVIRONMENT: production
+  APP_NAME: ${APP_NAME:-QC Manager}
+  SECRET_KEY: ${SERVICE_PASSWORD_64_SECRETKEY}
+  # Database (the db service below)
+  POSTGRES_USER: qcmanager
+  POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+  POSTGRES_SERVER: db
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: qc_manager
+  CREATE_TABLES_ON_STARTUP: "false"
+  # Redis (the redis service below): cache, sessions, rate limits and the task queue
+  CACHE_REDIS_HOST: redis
+  CACHE_REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+  SESSION_REDIS_HOST: redis
+  SESSION_REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+  RATE_LIMITER_REDIS_HOST: redis
+  RATE_LIMITER_REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+  TASKIQ_REDIS_HOST: redis
+  TASKIQ_REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+  # Where the app is served (one origin: nginx forwards /api)
+  FRONTEND_URL: ${SERVICE_FQDN_WEB}
+  OAUTH_REDIRECT_BASE_URL: ${SERVICE_FQDN_WEB}
+  OAUTH_DEFAULT_REDIRECT: /sign-in
+  CORS_ORIGINS: ${SERVICE_FQDN_WEB}
+  SESSION_SECURE_COOKIES: "true"
+  TRUSTED_PROXY_HOPS: "2"
+  # Microsoft Entra ID for staff (optional; see docs/entra-setup.md)
+  OAUTH_ENTRA_TENANT_ID: ${OAUTH_ENTRA_TENANT_ID:-}
+  OAUTH_ENTRA_CLIENT_ID: ${OAUTH_ENTRA_CLIENT_ID:-}
+  OAUTH_ENTRA_CLIENT_SECRET: ${OAUTH_ENTRA_CLIENT_SECRET:-}
+  OAUTH_ENTRA_GROUPS_CLAIM: ${OAUTH_ENTRA_GROUPS_CLAIM:-true}
+  # E-mail: production refuses the console backend, so SMTP is required
+  LOCAL_SIGNUP_ENABLED: "false"
+  EMAIL_BACKEND: smtp
+  EMAIL_FROM: ${EMAIL_FROM:?}
+  EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:?}
+  EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-587}
+  EMAIL_SMTP_USER: ${EMAIL_SMTP_USER:-}
+  EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD:-}
+  # Modules to switch off, e.g. cvr,portal
+  MODULES_DISABLED: ${MODULES_DISABLED:-}
+  # Break-glass local administrator, created once by the bootstrap service
+  ADMIN_NAME: ${ADMIN_NAME:-Local Admin}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:?}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
+  ADMIN_ENABLED: "false"
+  # Uploaded files live on the files volume
+  FILE_STORAGE_DIR: /app/data/files
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: qcmanager
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_DB: qc_manager
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qcmanager -d qc_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${SERVICE_PASSWORD_REDIS}", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+    restart: unless-stopped
+
+  # One-shot: apply database migrations, then exit.
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: migrate
+    environment:
+      <<: *backend-env
+      CONFIRM_PRODUCTION_MIGRATION: "yes"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    exclude_from_hc: true
+
+  # One-shot: create the first administrator (does nothing if it already exists), then exit.
+  bootstrap:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    working_dir: /app
+    command: ["python", "scripts/create_first_superuser.py"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+    exclude_from_hc: true
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    environment:
+      <<: *backend-env
+      WORKERS: ${API_WORKERS:-2}
+    volumes:
+      - files:/app/data/files
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    working_dir: /app
+    command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker"]
+    environment:
+      <<: *backend-env
+    volumes:
+      - files:/app/data/files
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    exclude_from_hc: true
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    working_dir: /app
+    command: ["taskiq", "scheduler", "src.infrastructure.taskiq.scheduler:scheduler"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    exclude_from_hc: true
+
+  web:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_FQDN_WEB_80
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  files:
