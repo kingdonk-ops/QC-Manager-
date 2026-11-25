@@ -10,7 +10,7 @@ What runs:
 | Service | What it does |
 |---|---|
 | `web` | nginx serving the app and forwarding `/api` to the API. The only service on the internet. |
-| `api` | The FastAPI backend (2 workers by default, `API_WORKERS`). |
+| `api` | The FastAPI backend (1 worker by default, about 600 MB; raise `API_WORKERS` on a bigger server). |
 | `worker`, `scheduler` | Background jobs and scheduled jobs (mail, Entra sync, reports). |
 | `db` | PostgreSQL 16, data on the `pgdata` volume. |
 | `redis` | Sessions, cache, rate limits and the job queue, password protected, on the `redisdata` volume. |
@@ -69,7 +69,7 @@ Usually also needed:
 | `ADMIN_USERNAME` | `admin` | |
 | `OAUTH_ENTRA_TENANT_ID`, `OAUTH_ENTRA_CLIENT_ID`, `OAUTH_ENTRA_CLIENT_SECRET` | empty | Staff sign-in with Microsoft. The redirect URI to register is `https://<your domain>/api/v1/auth/oauth/callback/entra` (see [entra-setup.md](entra-setup.md)). |
 | `MODULES_DISABLED` | empty | Modules to switch off, e.g. `cvr,portal` |
-| `API_WORKERS` | `2` | Raise on a bigger server |
+| `API_WORKERS` | `1` | Each worker needs about 600 MB of memory. Raise it only when the server has the RAM to spare. |
 
 ## 5. Deploy
 
@@ -98,6 +98,21 @@ cd /app && python -m scripts.seed_demo
 - **Startup refusals:** the API refuses to start in production with unsafe settings and logs why.
   Examples are a site address on `localhost` or plain `http`, or console mail. Fix the variable and
   redeploy.
+
+## If you see "502 Bad Gateway"
+
+The 502 page comes from the `web` container's nginx: it couldn't get an answer from `api`. The
+usual causes, in order:
+
+1. **The API ran out of memory and was killed mid-request.** Open the **api** service's logs. A
+   restart right after the failing request, or `Killed`, means the server is short of memory.
+   Check the server's free memory in Coolify. Keep `API_WORKERS` at `1`, which uses about 600 MB.
+   The whole stack needs about 1.3 GB, plus whatever Coolify and your other apps use.
+2. **The API isn't running.** Look for a startup refusal in the api logs (see above), fix the
+   variable and redeploy.
+
+nginx looks up the API's address on every request, so once the API is back the site recovers by
+itself. You don't need to restart `web`.
 
 ## Notes
 
