@@ -129,7 +129,8 @@ services:
       target: prod
     environment:
       <<: *backend-env
-      WORKERS: ${API_WORKERS:-2}
+      # One worker is ~600 MB; each extra one adds ~600 MB more (plus a supervisor process). Raise on big servers.
+      WORKERS: ${API_WORKERS:-1}
     volumes:
       - files:/app/data/files
     depends_on:
