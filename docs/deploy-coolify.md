@@ -16,6 +16,7 @@ What runs:
 | `redis` | Sessions, cache, rate limits and the job queue, password protected, on the `redisdata` volume. |
 | `migrate` | Runs on every deploy: applies database migrations, then exits. |
 | `bootstrap` | Runs on every deploy: creates the first administrator if it doesn't exist yet, then exits. |
+| `seed` | Off unless `SEED_DATA=true`: builds a sample project from a P6 programme, then exits (see below). |
 
 Uploaded files are kept on the `files` volume, shared by `api` and `worker`.
 
@@ -98,6 +99,35 @@ cd /app && python -m scripts.seed_demo
 - **Startup refusals:** the API refuses to start in production with unsafe settings and logs why.
   Examples are a site address on `localhost` or plain `http`, or console mail. Fix the variable and
   redeploy.
+
+## Sample data from a P6 programme
+
+The `seed` service builds a ready-to-explore project from a real P6 programme. It is off by default and
+does nothing until you switch it on. It runs after `bootstrap` on every deploy and skips any step it has
+already done, so leaving it on never duplicates anything.
+
+1. In **Environment Variables** set `SEED_DATA` to `true` (optional: `SEED_PROJECT_CODE`, default
+   `P6-DEMO`, and `SEED_PROJECT_NAME`). Deploy. The seed creates the project with the
+   site > area > asset > RSW hierarchy and rules that turn P6 WBS levels 3 and 4 into sites and areas.
+   Change the levels with `SEED_P6_WBS_SITE_DEPTH` and `SEED_P6_WBS_AREA_DEPTH` before this first run.
+2. Give it the programme. Either:
+   - sign in, open the project, go to **Schedule > Import** and upload the `.xer` (tick *create missing*),
+     or
+   - put the file on the `files` volume as `seed/programme.xer` (or point `SEED_P6_XER` at it).
+   The programme is client data, so it is never committed to the repository.
+3. Deploy again (or restart the `seed` service). It imports the file if it isn't already imported, then
+   adds sample records tied to the imported RSWs:
+   - a two-week look-ahead plan and a shutdown plan built from the programme
+   - scaffolds at several stages
+   - tasks
+   - an insulation ITP applied to RSWs
+   - walk-down inspections
+   - NCRs and RFIs
+
+   The plans start this week, moved into the programme's dates if today falls outside them.
+
+Every sample record says `[sample]` in its notes or description. To start again, delete the project; its
+records go with it. Set `SEED_DATA` back to `false` once you're done.
 
 ## If you see "502 Bad Gateway"
 

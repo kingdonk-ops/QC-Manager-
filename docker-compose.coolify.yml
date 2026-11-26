@@ -122,6 +122,29 @@ services:
     restart: "no"
     exclude_from_hc: true
 
+  # One-shot, off unless SEED_DATA=true: a project from the P6 programme plus sample records.
+  # Safe to repeat. See docs/deploy-coolify.md "Sample data from a P6 programme".
+  seed:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    working_dir: /app
+    command: ["python", "-m", "scripts.seed_p6_project"]
+    environment:
+      <<: *backend-env
+      SEED_DATA: ${SEED_DATA:-false}
+      SEED_PROJECT_CODE: ${SEED_PROJECT_CODE:-P6-DEMO}
+      SEED_PROJECT_NAME: ${SEED_PROJECT_NAME:-P6 programme (sample data)}
+      SEED_P6_XER: ${SEED_P6_XER:-/app/data/files/seed/programme.xer}
+    volumes:
+      - files:/app/data/files
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    restart: "no"
+    exclude_from_hc: true
+
   api:
     build:
       context: .
